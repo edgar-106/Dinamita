@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- SEO básico -->
+<title>NIDUS | Tu hogar, tu nido</title>
+<meta name="description" content="NIDUS — Plataforma inmobiliaria para comprar, rentar o publicar terrenos, casas y departamentos de manera sencilla, transparente y segura en México.">
+<meta name="robots" content="index, follow">
+
+<!-- Open Graph (redes sociales) -->
+<meta property="og:type"        content="website">
+<meta property="og:title"       content="NIDUS | Tu hogar, tu nido">
+<meta property="og:description" content="Compra, renta o publica terrenos, casas y departamentos de manera sencilla, transparente y segura.">
+<meta property="og:image"       content="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80">
+<meta property="og:locale"      content="es_MX">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+
+<!-- CSS -->
+<link rel="stylesheet" href="css/styles.css?v=2.1">
+
+<style>
+/* =========================================================
+   INTRO SPLASH
+========================================================= */
+#intro-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #0d1015;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: opacity 1.3s ease-in-out, visibility 1.3s ease-in-out;
+}
+
+#intro-splash.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#intro-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .55;
+}
+
+.intro-logo {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: introLogoPop .6s cubic-bezier(.22,1,.36,1) .3s both;
+}
+
+.intro-logo svg {
+    filter: drop-shadow(0 8px 32px rgba(201,168,106,.45));
+}
+
+.intro-logo-name {
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(36px, 8vw, 72px);
+    font-weight: 800;
+    letter-spacing: 14px;
+    text-transform: uppercase;
+}
+
+.intro-logo-sub {
+    color: #c9a86a;
+    font-size: clamp(9px, 2vw, 13px);
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    font-weight: 300;
+}
+
+.intro-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: #c9a86a;
+    width: 0%;
+    animation: introProgress 3s linear forwards;
+    z-index: 3;
+}
+
+@keyframes introLogoPop {
+    from { opacity: 0; transform: scale(.88) translateY(18px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes introProgress {
+    from { width: 0%; }
+    to   { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     INTRO SPLASH — se muestra solo al entrar, dura 3 seg.
+========================================================= -->
+
+<div id="intro-splash" role="dialog" aria-label="Pantalla de bienvenida NIDUS" aria-modal="true">
+
+    <!-- Video de fondo — se detiene en seg. 7.5 para omitir el texto final -->
+    <video
+        id="intro-video"
+        src="inicio de mi sistema web.mp4#t=0,7.5"
+        autoplay
+        muted
+        playsinline
+        preload="auto"
+    ></video>
+
+    <!-- Logo centrado -->
+    <div class="intro-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="90" height="90" viewBox="0 0 38 38" fill="none" aria-hidden="true">
+            <rect width="38" height="38" rx="9" fill="#c9a86a"/>
+            <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
+            <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
+        </svg>
+        <div class="intro-logo-name">NIDUS</div>
+        <div class="intro-logo-sub">Inmobiliaria</div>
+    </div>
+
+    <!-- Barra de progreso dorada en la parte inferior -->
+    <div class="intro-bar" aria-hidden="true"></div>
+
+</div>
+
+
+<!-- =========================================================
+     MENÚ MÓVIL
+========================================================= -->
+
+<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Menú de navegación">
+    <button
+        class="mobile-menu-close"
+        id="mobileMenuClose"
+        aria-label="Cerrar menú"
+    >×</button>
+    <a href="#inicio">Inicio</a>
+    <a href="#propiedades">Propiedades</a>
+    <a href="#categorias">Explorar</a>
+    <a href="#publicar">Publicar</a>
+    <a href="#legal">Legal</a>
+</div>
+
+
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
+
+<nav class="navbar" id="navbar" role="navigation" aria-label="Navegación principal">
+
+    <!-- Logo NIDUS -->
+    <a href="#inicio" class="logo" aria-label="NIDUS Inmobiliaria - Inicio">
+        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none" aria-hidden="true">
+            <rect width="38" height="38" rx="9" fill="#c9a86a"/>
+            <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
+            <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
+        </svg>
+        <span>
+            <span class="logo-name">NIDUS</span>
+            <span class="logo-sub">INMOBILIARIA</span>
+        </span>
+    </a>
+
+    <ul class="nav-links" role="list">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#propiedades">Propiedades</a></li>
+        <li><a href="#categorias">Explorar</a></li>
+        <li><a href="#publicar">Publicar</a></li>
+        <li><a href="#legal">Legal</a></li>
+    </ul>
+
+    <div class="nav-actions">
+
+        <!-- Botones visibles cuando NO hay sesión activa -->
+        <div id="navAuthButtons" style="display:flex;gap:10px;align-items:center;">
+            <button class="btn-outline" onclick="openModal('loginModal')">
+                Ingresar
+            </button>
+            <button class="btn-light" onclick="openModal('registerModal')">
+                Registrarme
+            </button>
+        </div>
+
+        <!-- Área visible cuando SÍ hay sesión activa (poblada por JS) -->
+        <div id="navUserArea" style="display:none;align-items:center;gap:10px;"></div>
+
+        <button
+            class="nav-hamburger"
+            id="hamburgerBtn"
+            aria-label="Abrir menú de navegación"
+            aria-expanded="false"
+            aria-controls="mobileMenu"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+</nav>
+
+
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section class="hero" id="inicio">
+
+    <div class="hero-content">
+
+        <div class="hero-small">
+            Encuentra. Conecta. Decide.
+        </div>
+
+        <h1>
+            Tu próximo<br>
+            espacio comienza aquí.
+        </h1>
+
+        <p>
+            Compra, renta o publica terrenos, casas y departamentos
+            de manera sencilla, transparente y segura.
+        </p>
+
+    </div>
+
+    <div class="search-box" role="search" aria-label="Buscar propiedades">
+
+        <div class="search-item">
+            <label for="searchType">¿Qué buscas?</label>
+            <select id="searchType">
+                <option value="todos">Todo</option>
+                <option value="terreno">Terreno</option>
+                <option value="casa">Casa</option>
+                <option value="departamento">Departamento</option>
+            </select>
+        </div>
+
+        <div class="search-item">
+            <label for="searchOperation">Operación</label>
+            <select id="searchOperation">
+                <option value="todos">Comprar o rentar</option>
+                <option value="comprar">Comprar</option>
+                <option value="rentar">Rentar</option>
+                <option value="vender">Vender</option>
+            </select>
+        </div>
+
+        <div class="search-item">
+            <label for="searchPrice">Presupuesto</label>
+            <select id="searchPrice">
+                <option value="todos">Cualquier precio</option>
+                <option value="barato">Económico</option>
+                <option value="medio">Precio medio</option>
+                <option value="alto">Alta gama</option>
+            </select>
+        </div>
+
+        <div class="search-item">
+            <label for="searchLocation">Ubicación</label>
+            <input
+                type="text"
+                id="searchLocation"
+                placeholder="Ciudad o zona"
+                aria-label="Ubicación"
+            >
+        </div>
+
+        <button
+            class="search-button"
+            onclick="searchProperties()"
+            aria-label="Buscar propiedades"
+        >
+            BUSCAR
+        </button>
+
+    </div>
+
+    <div class="scroll" aria-hidden="true">
+        SCROLL ↓
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     PROPIEDADES — CATÁLOGO
+========================================================= -->
+
+<section class="section properties" id="propiedades">
+    <div class="section-header">
+        <div>
+            <div class="section-label">Inventario seleccionado</div>
+            <h2>Propiedades disponibles.</h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+            <p class="section-description" style="margin:0;">Consulta opciones de venta y renta. Explora las opciones con los controles de navegación.</p>
+        </div>
+    </div>
+
+    <div class="property-carousel-wrapper">
+        <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="moveCarousel(-1)" aria-label="Propiedad anterior">❮</button>
+        <button class="carousel-btn carousel-next" id="carouselNext" onclick="moveCarousel(1)" aria-label="Siguiente propiedad">❯</button>
+
+        <div class="property-carousel-container" id="carouselContainer">
+            <div class="property-grid" id="propertyGrid">
+
+                <article class="property-card" data-type="terreno" data-operation="comprar" data-price="medio" data-location="Mérida">
+                    <div class="property-image">
+                        <img
+                            src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85"
+                            alt="Terreno residencial en Mérida, Yucatán"
+                            loading="lazy"
+                        >
+                        <span class="property-tag">VENTA · TERRENO</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="property-type">Terreno</div>
+                        <h3 class="property-title">Lote Residencial Montebello</h3>
+                        <div class="property-location">Mérida, Yucatán</div>
+                        <div class="property-info">
+                            <span>450 m²</span>
+                            <span>Servicios</span>
+                            <span>Regular</span>
+                        </div>
+                        <div class="property-status">✓ Situación legal: <strong>revisable</strong></div>
+                        <div class="property-extra">Agua potable, red de servicios y acceso vehicular.</div>
+                        <div class="property-footer">
+                            <div class="property-price">$1,850,000</div>
+                            <button class="view-button" onclick="handleMoreInfo(1)" aria-label="Ver más información de Lote Residencial Montebello">Ver más información</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="property-card" data-type="casa" data-operation="comprar" data-price="alto" data-location="Monterrey">
+                    <div class="property-image">
+                        <img
+                            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85"
+                            alt="Casa moderna residencial en Monterrey"
+                            loading="lazy"
+                        >
+                        <span class="property-tag">VENTA · CASA</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="property-type">Casa</div>
+                        <h3 class="property-title">Residencia Minimalista Las Cumbres</h3>
+                        <div class="property-location">Las Cumbres, Monterrey, N.L.</div>
+                        <div class="property-info">
+                            <span>4 Rec.</span>
+                            <span>5 Baños</span>
+                            <span>340 m²</span>
+                        </div>
+                        <div class="property-status">🏦 Acepta financiamiento sujeto a condiciones.</div>
+                        <div class="property-extra">Alberca privada, cocina equipada y estacionamiento.</div>
+                        <div class="property-footer">
+                            <div class="property-price">$6,800,000</div>
+                            <button class="view-button" onclick="handleMoreInfo(2)" aria-label="Ver más información de Residencia Minimalista Las Cumbres">Ver más información</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="property-card" data-type="departamento" data-operation="rentar" data-price="medio" data-location="Ciudad de México">
+                    <div class="property-image">
+                        <img
+                            src="https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1200&q=85"
+                            alt="Penthouse moderno en Polanco, Ciudad de México"
+                            loading="lazy"
+                        >
+                        <span class="property-tag">EN RENTA · PENTHOUSE</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="property-type">Departamento</div>
+                        <h3 class="property-title">Penthouse Polanco Sky View</h3>
+                        <div class="property-location">Polanco, Ciudad de México</div>
+                        <div class="property-info">
+                            <span>160 m²</span>
+                            <span>3 Rec.</span>
+                            <span>2.5 Baños</span>
+                        </div>
+                        <div class="property-status">✓ Póliza jurídica incluida.</div>
+                        <div class="property-extra">Primer mes y depósito sujetos a los requisitos de renta.</div>
+                        <div class="property-footer">
+                            <div class="property-price">$38,000/mes</div>
+                            <button class="view-button" onclick="handleMoreInfo(3)" aria-label="Ver más información de Penthouse Polanco Sky View">Ver más información</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="property-card" data-type="departamento" data-operation="rentar" data-price="medio" data-location="Guadalajara">
+                    <div class="property-image">
+                        <img
+                            src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85"
+                            alt="Departamento urbano en Guadalajara"
+                            loading="lazy"
+                        >
+                        <span class="property-tag">EN RENTA · ECONÓMICO</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="property-type">Departamento</div>
+                        <h3 class="property-title">Departamento Urbano Providencia</h3>
+                        <div class="property-location">Col. Providencia, Guadalajara, Jal.</div>
+                        <div class="property-info">
+                            <span>78 m²</span>
+                            <span>2 Rec.</span>
+                            <span>1 Baño</span>
+                        </div>
+                        <div class="property-status">✓ Renta accesible</div>
+                        <div class="property-extra">Primer mes y depósito requeridos para iniciar el proceso.</div>
+                        <div class="property-footer">
+                            <div class="property-price">$14,500/mes</div>
+                            <button class="view-button" onclick="handleMoreInfo(4)" aria-label="Ver más información de Departamento Urbano Providencia">Ver más información</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="property-card" data-type="terreno" data-operation="comprar" data-price="medio" data-location="Valle de Bravo">
+                    <div class="property-image">
+                        <img
+                            src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=85"
+                            alt="Terreno campestre en Valle de Bravo"
+                            loading="lazy"
+                        >
+                        <span class="property-tag">VENTA · TERRENO</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="property-type">Terreno</div>
+                        <h3 class="property-title">Lote Campestre Valle de Bravo</h3>
+                        <div class="property-location">Avándaro Alto, Valle de Bravo, Méx.</div>
+                        <div class="property-info">
+                            <span>1,200 m²</span>
+                            <span>Servicios</span>
+                            <span>Campestre</span>
+                        </div>
+                        <div class="property-status">✓ Revisión legal disponible.</div>
+                        <div class="property-extra">Zona natural con acceso y posibilidades de financiamiento.</div>
+                        <div class="property-footer">
+                            <div class="property-price">$950,000</div>
+                            <button class="view-button" onclick="handleMoreInfo(5)" aria-label="Ver más información de Lote Campestre Valle de Bravo">Ver más información</button>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+
+        <!-- Indicadores de puntos del carrusel -->
+        <div class="carousel-dots" id="carouselDots" aria-label="Navegación del carrusel"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:35px;">
+        <button class="btn-dark" onclick="showAllProperties()">VER TODAS LAS PROPIEDADES</button>
+    </div>
+</section>
+
+
+<!-- =========================================================
+     EXPLORAR
+========================================================= -->
+
+<section class="section categories" id="categorias">
+    <div class="section-header">
+        <div>
+            <div class="section-label">Explorar</div>
+            <h2>¿Qué estás buscando?</h2>
+        </div>
+        <p class="section-description">Selecciona el tipo de inmueble que necesitas y encuentra opciones según tu presupuesto.</p>
+    </div>
+
+    <div class="category-grid">
+        <div
+            class="category"
+            style="background-image:url('https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85')"
+            onclick="filterCategory('casa')"
+            role="button"
+            tabindex="0"
+            aria-label="Explorar casas"
+            onkeypress="if(event.key==='Enter') filterCategory('casa')"
+        >
+            <div class="category-content"><h3>Casas</h3><p>Compra o renta</p></div>
+        </div>
+        <div
+            class="category"
+            style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=85')"
+            onclick="filterCategory('departamento')"
+            role="button"
+            tabindex="0"
+            aria-label="Explorar departamentos"
+            onkeypress="if(event.key==='Enter') filterCategory('departamento')"
+        >
+            <div class="category-content"><h3>Departamentos</h3><p>Espacios modernos</p></div>
+        </div>
+        <div
+            class="category"
+            style="background-image:url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85')"
+            onclick="filterCategory('terreno')"
+            role="button"
+            tabindex="0"
+            aria-label="Explorar terrenos"
+            onkeypress="if(event.key==='Enter') filterCategory('terreno')"
+        >
+            <div class="category-content"><h3>Terrenos</h3><p>Invierte en tu futuro</p></div>
+        </div>
+    </div>
+</section>
+
+
+<!-- =========================================================
+     ASESOR
+========================================================= -->
+
+<section class="section advisor-section" id="asesor">
+    <div class="advisor-wrap">
+        <div class="advisor-profile">
+            <img
+                class="advisor-photo"
+                src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=300&q=80"
+                alt="Foto de Lic. Sofía Valenzuela, asesora inmobiliaria"
+                loading="lazy"
+            >
+            <div class="advisor-kicker">● ASESORA INMOBILIARIA</div>
+            <h2 class="advisor-name">Lic. Sofía Valenzuela</h2>
+            <div class="advisor-role">Especialista en orientación inmobiliaria</div>
+            <p class="advisor-quote">"Te acompaño paso a paso en la revisión de información, validación de antecedentes y orientación del proceso inmobiliario."</p>
+            <div class="advisor-actions">
+                <button class="btn-advisor-dark" onclick="toggleChat()" aria-label="Abrir chat en vivo">▣ Chat en Vivo</button>
+                <button class="btn-advisor-green" onclick="openModal('interestModal')" aria-label="Contactar asesor">▣ Contactar asesor</button>
+            </div>
+        </div>
+        <div class="advisor-form">
+            <h3>¿Deseas atención personalizada o agendar un recorrido guiado?</h3>
+            <div class="small">Déjanos tus datos y te orientaremos sobre propiedades, requisitos y citas.</div>
+            <form onsubmit="requestAdvisor(event)">
+                <div class="advisor-form-grid">
+                    <input id="advisorName" required placeholder="Nombre completo" aria-label="Nombre completo">
+                    <input id="advisorPhone" required placeholder="Teléfono / WhatsApp" aria-label="Teléfono o WhatsApp">
+                    <select id="advisorTime" aria-label="Horario preferido">
+                        <option>Inmediato (9:00 - 19:00)</option>
+                        <option>Por la mañana</option>
+                        <option>Por la tarde</option>
+                    </select>
+                </div>
+                <div class="advisor-security">🔒 Tus datos se utilizarán para comunicación, seguimiento y citas relacionadas con el servicio.</div>
+                <button class="advisor-submit" type="submit">SOLICITAR ASESORÍA GRATUITA</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+
+<!-- =========================================================
+     PROCESO
+========================================================= -->
+
+<section class="section">
+
+    <div class="section-header">
+        <div>
+            <div class="section-label">Proceso</div>
+            <h2>Fácil y transparente.</h2>
+        </div>
+    </div>
+
+    <div class="steps">
+
+        <div class="step">
+            <div class="step-number">01</div>
+            <h3>Explora</h3>
+            <p>Ingresa como visitante y consulta la información básica de las propiedades disponibles.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">02</div>
+            <h3>Regístrate</h3>
+            <p>Si una propiedad te interesa, crea una cuenta para desbloquear la información completa.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">03</div>
+            <h3>Conecta</h3>
+            <p>Comunícate con el propietario o monitor, resuelve tus dudas y agenda una cita.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">04</div>
+            <h3>Formaliza</h3>
+            <p>Consulta la información legal y descarga los documentos correspondientes cuando el trato haya sido realizado.</p>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     PUBLICAR PROPIEDAD
+========================================================= -->
+
+<section class="section publish" id="publicar">
+
+    <div class="publish-content">
+
+        <div class="section-label">Para propietarios</div>
+
+        <h2>Publica tu propiedad.</h2>
+
+        <p>
+            El sistema está abierto al público.
+            Cualquier persona puede publicar un terreno,
+            casa o departamento para vender o rentar.
+        </p>
+
+        <button class="btn-light" onclick="openPublishModal()">
+            PUBLICAR PROPIEDAD
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     INFORMACIÓN LEGAL
+========================================================= -->
+
+<section class="section legal" id="legal">
+    <div class="section-header">
+        <div>
+            <div class="section-label">Certeza jurídica inmobiliaria</div>
+            <h2 class="legal-title-main">Modelos contractuales y cumplimiento.</h2>
+        </div>
+        <p class="section-description">Antes de avanzar con cualquier operación, consulta condiciones, requisitos, información legal y medidas de seguridad del proceso.</p>
+    </div>
+
+    <div class="legal-grid">
+        <div class="legal-card">
+            <span class="legal-chip">PDF MODELO</span>
+            <h3>Promesa de Compraventa</h3>
+            <p>Cláusulas de arras, condiciones y plazo de escrituración para revisar antes de formalizar.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Promesa de Compraventa')">↓ Consultar modelo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">ARRENDAMIENTO</span>
+            <h3>Arrendamiento Residencial</h3>
+            <p>Información sobre depósito, garantía, inventario y requisitos para formalizar el contrato.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Arrendamiento Residencial')">↓ Consultar modelo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">RPP</span>
+            <h3>Auditoría Registral</h3>
+            <p>Revisión de antecedentes registrales, situación legal y posibles afectaciones de la propiedad.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Auditoría Registral')">◉ Ver ejemplo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">PROTECCIÓN</span>
+            <h3>Cobertura jurídica</h3>
+            <p>Información de respaldo y condiciones aplicables a procesos de compraventa y arrendamiento.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Cobertura jurídica')">◯ Consultar cobertura</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">TERRENOS</span>
+            <h3>Situación legal</h3>
+            <p>Escritura, propietario, medidas, colindancias, servicios, uso de suelo, adeudos y revisión legal.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Situación legal de terrenos')">Ver información</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">VIVIENDA</span>
+            <h3>Casas y departamentos</h3>
+            <p>Precio, medidas, habitaciones, servicios, ubicación, pagos y alternativas de financiamiento.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Información de vivienda')">Ver información</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">PRIVACIDAD</span>
+            <h3>Protección de datos</h3>
+            <p>Los datos personales deberán utilizarse únicamente para comunicación, seguimiento, citas y procesos relacionados.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Política de privacidad')">Leer política</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">MEDIA</span>
+            <h3>Recorrido virtual</h3>
+            <p>Las propiedades pueden incorporar fotografías, galerías, video, recorrido virtual o contenido 3D.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Recorrido virtual')">Conocer opción</a>
+        </div>
+    </div>
+</section>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer>
+
+    <div class="footer-grid">
+
+        <div>
+            <div class="logo footer-title" style="margin-bottom:14px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 38 38" fill="none" aria-hidden="true">
+                    <rect width="38" height="38" rx="9" fill="#c9a86a"/>
+                    <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
+                    <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
+                </svg>
+                <span class="logo-name" style="color:#172033;">NIDUS</span>
+            </div>
+            <p>Plataforma digital para encontrar, publicar y gestionar propiedades de manera sencilla y transparente.</p>
+        </div>
+
+        <div>
+            <h4 class="footer-title">EXPLORAR</h4>
+            <p><a href="#propiedades">Propiedades</a></p>
+            <p><a href="#categorias">Explorar</a></p>
+            <p><a href="#asesor">Asesor</a></p>
+            <p><a href="#publicar">Publicar</a></p>
+        </div>
+
+        <div>
+            <h4 class="footer-title">AYUDA</h4>
+            <p>Preguntas frecuentes</p>
+            <p>Contacto</p>
+            <p>Soporte</p>
+        </div>
+
+        <div>
+            <h4 class="footer-title">LEGAL</h4>
+            <p>Política de privacidad</p>
+            <p>Términos y condiciones</p>
+            <p>Aviso legal</p>
+        </div>
+
+    </div>
+
+    <div class="copyright">
+        © 2026 NIDUS INMOBILIARIA — Plataforma inmobiliaria.
+    </div>
+
+</footer>
+
+
+<!-- =========================================================
+     BOTÓN CHAT
+========================================================= -->
+
+<button
+    class="chat-button"
+    onclick="toggleChat()"
+    aria-label="Abrir chat de asistencia"
+    title="Abrir chat"
+>
+    💬
+</button>
+
+
+<div class="chat-box" id="chatBox" role="complementary" aria-label="Chat de asistencia">
+
+    <div class="chat-header">
+        <strong>Asistente NIDUS</strong>
+        <br>
+        <small>Responde tus dudas</small>
+    </div>
+
+    <div class="chat-messages" id="chatMessages" aria-live="polite">
+        <div class="message">Hola 👋 ¿En qué podemos ayudarte?</div>
+        <div class="message">Puedes preguntar por propiedades, citas, créditos o requisitos.</div>
+    </div>
+
+    <div class="chat-input">
+        <input
+            type="text"
+            id="chatInput"
+            placeholder="Escribe un mensaje..."
+            aria-label="Escribe un mensaje al asistente"
+            onkeypress="if(event.key==='Enter') sendMessage()"
+        >
+        <button onclick="sendMessage()" aria-label="Enviar mensaje">➤</button>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TOAST NOTIFICATIONS
+========================================================= -->
+
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+
+<!-- =========================================================
+     MODAL LOGIN
+========================================================= -->
+
+<div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('loginModal')" aria-label="Cerrar modal de inicio de sesión">×</button>
+
+        <h2 id="loginTitle">Bienvenido.</h2>
+        <p class="modal-subtitle">Ingresa para consultar información completa.</p>
+
+        <form onsubmit="login(event)">
+
+            <div class="form-group">
+                <label for="loginEmail">Correo electrónico</label>
+                <input type="email" id="loginEmail" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword">Contraseña</label>
+                <input type="password" id="loginPassword" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-dark" style="width:100%;">
+                INICIAR SESIÓN
+            </button>
+
+        </form>
+
+        <p style="margin-top:20px;text-align:center;color:#777;font-size:13px;">
+            ¿No tienes cuenta?
+            <button
+                onclick="closeModal('loginModal'); openModal('registerModal')"
+                style="border:none;background:none;text-decoration:underline;cursor:pointer;"
+            >
+                Regístrate
+            </button>
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL REGISTRO
+========================================================= -->
+
+<div class="modal" id="registerModal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('registerModal')" aria-label="Cerrar modal de registro">×</button>
+
+        <h2 id="registerTitle">Crear cuenta.</h2>
+        <p class="modal-subtitle">Regístrate para conocer información completa y contactar al propietario.</p>
+
+        <form onsubmit="register(event)">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="regName">Nombre</label>
+                    <input type="text" id="regName" required autocomplete="given-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="regLast">Apellidos</label>
+                    <input type="text" id="regLast" required autocomplete="family-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="regEmail">Correo</label>
+                    <input type="email" id="regEmail" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="regPhone">Teléfono</label>
+                    <input type="tel" id="regPhone" required autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="regPassword">Contraseña</label>
+                    <input type="password" id="regPassword" required autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                    <label for="regInterest">Tipo de interés</label>
+                    <select id="regInterest">
+                        <option value="comprar">Comprar</option>
+                        <option value="rentar">Rentar</option>
+                        <option value="vender">Vender</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label>Aceptación</label>
+                    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;">
+                        <input type="checkbox" required style="width:auto;">
+                        Acepto la política de privacidad y los términos y condiciones.
+                    </label>
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn-dark">CREAR MI CUENTA</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL INTERESADO
+========================================================= -->
+
+<div class="modal" id="interestModal" role="dialog" aria-modal="true" aria-labelledby="interestTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('interestModal')" aria-label="Cerrar modal de contacto">×</button>
+
+        <h2 id="interestTitle">¿Te interesa esta propiedad?</h2>
+        <p class="modal-subtitle">Déjanos tus datos y un asesor/monitor podrá comunicarse contigo.</p>
+
+        <form onsubmit="sendInterest(event)">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="interestName">Nombre</label>
+                    <input type="text" id="interestName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="interestPhone">Teléfono</label>
+                    <input type="tel" id="interestPhone" required>
+                </div>
+
+                <div class="form-group full">
+                    <label for="interestEmail">Correo</label>
+                    <input type="email" id="interestEmail" required>
+                </div>
+
+                <div class="form-group full">
+                    <label for="interestMsg">Mensaje</label>
+                    <textarea id="interestMsg" placeholder="Tengo interés en esta propiedad..."></textarea>
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn-dark">ENVIAR SOLICITUD</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL DETALLE PROPIEDAD
+========================================================= -->
+
+<div class="modal" id="propertyModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('propertyModal')" aria-label="Cerrar detalle de propiedad">×</button>
+
+        <img id="detailImage" class="detail-image" src="" alt="">
+
+        <div class="section-label">Información de propiedad</div>
+
+        <h2 id="detailTitle">Propiedad</h2>
+
+        <p id="detailLocation" class="modal-subtitle"></p>
+
+        <div class="detail-grid">
+
+            <div class="detail-box">
+                <h3>Información básica</h3>
+                <ul class="detail-list" id="basicDetails"></ul>
+            </div>
+
+            <div class="detail-box">
+                <h3>Operación</h3>
+                <ul class="detail-list" id="operationDetails"></ul>
+            </div>
+
+        </div>
+
+        <!-- Caja de Recorrido Virtual (si la propiedad tiene recorrido configurado) -->
+        <div id="virtualTourSection" style="display:none;margin-top:25px;background:#f4f2ec;padding:22px;border-radius:10px;border:1px solid #e5e2d8;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div style="flex:1;min-width:240px;">
+                    <strong style="font-size:15px;display:block;">🎥 Recorrido Virtual en Video</strong>
+                    <p id="tourDescription" style="margin-top:5px;color:#555;font-size:13px;line-height:1.6;">
+                        Explora los espacios, acabados y distribución con el video guiado.
+                    </p>
+                </div>
+                <button
+                    id="btnVirtualTour"
+                    class="btn-dark"
+                    style="padding:12px 22px;font-size:12px;white-space:nowrap;"
+                    onclick="openVirtualTour()"
+                >
+                    VER RECORRIDO EN VIDEO ▶
+                </button>
+            </div>
+        </div>
+
+        <div id="fullInformation" style="display:none;margin-top:30px;">
+
+            <div class="detail-box">
+                <h3>Información legal</h3>
+                <ul class="detail-list">
+                    <li>Situación legal: Sin problemas reportados</li>
+                    <li>Escritura: Disponible para revisión</li>
+                    <li>Propietario: Verificado</li>
+                    <li>Adeudos: Sin adeudos reportados</li>
+                    <li>Uso de suelo: Verificado</li>
+                    <li>Colindancias: Registradas</li>
+                </ul>
+            </div>
+
+            <div class="detail-box" style="margin-top:30px;">
+                <h3>Opciones de pago</h3>
+                <ul class="detail-list">
+                    <li>Pago en efectivo</li>
+                    <li>Crédito bancario</li>
+                    <li>Crédito INFONAVIT</li>
+                    <li>Crédito FOVISSSTE</li>
+                    <li>Financiamiento según condiciones</li>
+                    <li>Número de pagos sujeto al acuerdo</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn-dark" onclick="openAppointment()">AGENDAR CITA</button>
+                <button class="btn-gold" onclick="closeModal('propertyModal'); openModal('interestModal')">ME INTERESA</button>
+            </div>
+
+        </div>
+
+        <!-- Formulario de registro para visitantes -->
+        <div id="loginRequired" style="display:none;margin-top:25px;padding:25px;background:#f4f2ec;border-radius:10px;text-align:center;">
+            <span style="font-size:24px;display:block;margin-bottom:10px;">🔒</span>
+            <h3>Regístrate para ver toda la información</h3>
+            <p style="color:#666;font-size:14px;margin-bottom:20px;">
+                Crea tu cuenta gratuita para desbloquear la información legal, de financiamiento y contacto.
+            </p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="btn-dark" onclick="closeModal('propertyModal'); openModal('registerModal')">REGISTRARME</button>
+                <button class="btn-outline" onclick="closeModal('propertyModal'); openModal('loginModal')" style="background:transparent;color:var(--ink);border-color:var(--ink);">INICIAR SESIÓN</button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL PUBLICAR
+========================================================= -->
+
+<div class="modal" id="publishModal" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('publishModal')" aria-label="Cerrar modal de publicación">×</button>
+
+        <h2 id="publishTitle">Publicar propiedad.</h2>
+        <p class="modal-subtitle">Completa la información de tu inmueble.</p>
+
+        <form onsubmit="publishProperty(event)">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="publishType">Tipo de propiedad</label>
+                    <select id="publishType">
+                        <option>Terreno</option>
+                        <option>Casa</option>
+                        <option>Departamento</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="publishOperation">Operación</label>
+                    <select id="publishOperation">
+                        <option>Venta</option>
+                        <option>Renta</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="publishPrice">Precio</label>
+                    <input type="number" id="publishPrice" placeholder="$" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="publishCity">Ciudad / Estado</label>
+                    <input type="text" id="publishCity" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="publishArea">Superficie</label>
+                    <input type="text" id="publishArea" placeholder="Ej. 500 m²" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="publishRooms">Habitaciones</label>
+                    <input type="number" id="publishRooms" placeholder="Si aplica">
+                </div>
+
+                <div class="form-group full">
+                    <label for="publishLegal">Situación legal</label>
+                    <select id="publishLegal">
+                        <option>Escritura en regla</option>
+                        <option>En proceso de regularización</option>
+                        <option>Tiene adeudos</option>
+                        <option>Tiene problemas legales</option>
+                    </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="publishDesc">Descripción</label>
+                    <textarea id="publishDesc" required placeholder="Describe la propiedad..."></textarea>
+                </div>
+
+                <div class="form-group full">
+                    <label for="publishPhotos">Fotografías</label>
+                    <input type="file" id="publishPhotos" accept="image/*" multiple>
+                </div>
+
+                <div class="form-group full">
+                    <label for="publishVideo">Video / Recorrido 3D</label>
+                    <input type="file" id="publishVideo" accept="video/*">
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn-dark">PUBLICAR PROPIEDAD</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL CITA
+========================================================= -->
+
+<div class="modal" id="appointmentModal" role="dialog" aria-modal="true" aria-labelledby="appointmentTitle">
+
+    <div class="modal-content">
+
+        <button class="modal-close" onclick="closeModal('appointmentModal')" aria-label="Cerrar modal de cita">×</button>
+
+        <h2 id="appointmentTitle">Agenda una cita.</h2>
+        <p class="modal-subtitle">Selecciona cuándo deseas conocer la propiedad.</p>
+
+        <form onsubmit="scheduleAppointment(event)">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="apptDate">Fecha</label>
+                    <input type="date" id="apptDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apptTime">Hora</label>
+                    <input type="time" id="apptTime" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apptPhone">Teléfono</label>
+                    <input type="tel" id="apptPhone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apptContact">Medio de contacto</label>
+                    <select id="apptContact">
+                        <option>WhatsApp</option>
+                        <option>Llamada</option>
+                        <option>Correo</option>
+                        <option>Mensaje dentro del sistema</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button class="btn-dark" type="submit">CONFIRMAR CITA</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MODAL RECORRIDO VIRTUAL (VIDEO)
+========================================================= -->
+
+<div class="modal" id="tourModal" role="dialog" aria-modal="true" aria-labelledby="tourModalTitle">
+
+    <div class="modal-content" style="max-width:900px;padding:25px;">
+
+        <button class="modal-close" onclick="closeTourModal()" aria-label="Cerrar recorrido virtual">×</button>
+
+        <div class="section-label">Experiencia inmersiva</div>
+        <h2 id="tourModalTitle">Recorrido Virtual</h2>
+        <p id="tourModalSubtitle" class="modal-subtitle" style="margin-bottom:18px;">
+            Explora las áreas y distribución de esta propiedad.
+        </p>
+
+        <!-- Contenedor de Video -->
+        <div id="tourVideoContainer" style="display:none;position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <video
+                id="tourVideoPlayer"
+                controls
+                playsinline
+                preload="metadata"
+                style="width:100%;display:block;max-height:65vh;object-fit:contain;background:#000;"
+            >
+                Tu navegador no soporta la reproducción de video HTML5.
+            </video>
+        </div>
+
+        <!-- Contenedor de Recorrido 3D / Interactivo (iframe) -->
+        <div id="tourIframeContainer" style="display:none;position:relative;width:100%;height:65vh;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <iframe
+                id="tourIframePlayer"
+                src=""
+                style="width:100%;height:100%;border:none;display:block;"
+                allow="fullscreen; accelerometer; gyroscope"
+                loading="lazy"
+            ></iframe>
+        </div>
+
+        <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <span id="tourHelpText" style="font-size:12px;color:#666;">
+                💡 Puedes pausar, adelantar o ver en pantalla completa el recorrido.
+            </span>
+            <button class="btn-dark" onclick="closeTourModal()">Cerrar Recorrido</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- JavaScript -->
+<script src="js/app.js?v=2.1"></script>
+
+</body>
+</html>
