@@ -1,0 +1,2 @@
+# Dinamita
+Integrantes del equipo
