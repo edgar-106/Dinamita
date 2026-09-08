@@ -11,61 +11,104 @@
 ========================================================= */
 
 (function () {
-    const DURACION_MAX = 3000; // ms
+    // Bloquear scroll mientras el splash esté activo y configurar videos
+    document.addEventListener('DOMContentLoaded', function () {
+        const splash = document.getElementById('intro-splash');
+        if (splash) {
+            document.body.style.overflow = 'hidden';
+            
+            // Loop the intro video cleanly at 7.4s
+            const video = document.getElementById('intro-video');
+            if (video) {
+                video.playbackRate = 1.0;
+                video.addEventListener('timeupdate', function () {
+                    if (video.currentTime >= 7.4) {
+                        video.currentTime = 0;
+                        video.play();
+                    }
+                });
+            }
+        }
 
-    function cerrarSplash() {
+        // Configurar los videos de las propiedades: solo reproducir en hover, loop a los 6 segundos
+        const propertyCards = document.querySelectorAll('.property-card');
+        propertyCards.forEach(function(card) {
+            const vid = card.querySelector('.property-video');
+            if (vid) {
+                // Pausar al cargar por si acaso
+                vid.pause();
+                
+                // Eventos de hover en la tarjeta
+                card.addEventListener('mouseenter', function() {
+                    vid.play().catch(function(e) { console.log('Autoplay impedido en hover', e); });
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    vid.pause();
+                    vid.currentTime = 0; // Regresar al inicio al quitar el cursor
+                });
+
+                // Loop a los 6 segundos
+                vid.addEventListener('timeupdate', function () {
+                    if (vid.currentTime >= 6) {
+                        vid.currentTime = 0;
+                        vid.play();
+                    }
+                });
+            }
+        });
+    });
+
+    // Función global para cerrar el splash
+    window.closeSplash = function(operation) {
         const splash = document.getElementById('intro-splash');
         if (!splash) return;
 
-        // Liberar scroll al comenzar el fade (no al terminar),
-        // así el sitio ya es visible/interactivo mientras se disuelve
         document.body.style.overflow = '';
-
         splash.classList.add('fade-out');
 
-        // Eliminar del DOM tras la transición para liberar memoria
-        splash.addEventListener('transitionend', function () {
-            splash.remove();
-        }, { once: true });
-    }
+        function onFadeOut() {
+            splash.style.display = 'none';
+            splash.removeEventListener('transitionend', onFadeOut);
+        }
+        splash.addEventListener('transitionend', onFadeOut);
 
-    // Timeout de seguridad: garantiza cierre a los 3 s
-    const timerSeguridad = setTimeout(cerrarSplash, DURACION_MAX);
+        // Si se seleccionó una operación
+        if (operation === 'vender') {
+            // Esperar un poco a que el splash se desvanezca y abrir modal de publicar
+            setTimeout(function() {
+                if (typeof openPublishModal === 'function') {
+                    openPublishModal();
+                }
+            }, 500);
+        } else if (operation) {
+            // Filtrar propiedades (ej. 'comprar')
+            setTimeout(function() {
+                if (typeof filterOperation === 'function') {
+                    filterOperation(operation);
+                }
+            }, 100);
+        }
+    };
 
-    document.addEventListener('DOMContentLoaded', function () {
-        // Bloquear scroll del body mientras dura el splash
+    // Función global para abrir el splash de nuevo
+    window.openSplash = function(e) {
+        if(e) e.preventDefault();
+        const splash = document.getElementById('intro-splash');
+        if (!splash) return;
+
+        splash.style.display = 'flex';
+        // Forzar reflow para reiniciar la transición
+        void splash.offsetWidth;
+        splash.classList.remove('fade-out');
         document.body.style.overflow = 'hidden';
 
         const video = document.getElementById('intro-video');
-        if (!video) {
-            cerrarSplash();
-            return;
+        if (video) {
+            video.currentTime = 0;
+            video.play();
         }
-
-        // Acelerar video cuando esté listo para reproducirse
-        video.addEventListener('canplay', function () {
-            // Calcular velocidad: queremos que el video termine en DURACION_MAX
-            const duracionVideo = video.duration || 0;
-            if (duracionVideo > 0) {
-                const velocidad = Math.max(duracionVideo / (DURACION_MAX / 1000), 1);
-                video.playbackRate = velocidad;
-            } else {
-                video.playbackRate = 4; // fallback si no se conoce la duración
-            }
-        }, { once: true });
-
-        // Cuando el video termine antes del timeout → cerrar inmediatamente
-        video.addEventListener('ended', function () {
-            clearTimeout(timerSeguridad);
-            cerrarSplash();
-        }, { once: true });
-
-        // Si el video falla → cerrar de todas formas
-        video.addEventListener('error', function () {
-            clearTimeout(timerSeguridad);
-            cerrarSplash();
-        }, { once: true });
-    });
+    };
 })();
 
 
@@ -335,21 +378,9 @@ function showProperty(id) {
     });
 
     // Personalizar sección de recorrido virtual
-    const tourSection = document.getElementById('virtualTourSection');
-    const tourDesc = document.getElementById('tourDescription');
-    const btnTour = document.getElementById('btnVirtualTour');
-
-    if (property.virtualTour) {
-        if (tourSection) tourSection.style.display = 'block';
-        if (tourDesc) {
-            tourDesc.innerText = property.virtualTour.subtitle || 'Explora los espacios, acabados y distribución de esta propiedad.';
-        }
-        if (btnTour) {
-            btnTour.innerText = property.virtualTour.buttonText || (property.virtualTour.type === 'iframe' ? 'VER RECORRIDO 3D ▶' : 'VER RECORRIDO EN VIDEO ▶');
-            btnTour.style.display = 'inline-block';
-        }
-    } else {
-        if (tourSection) tourSection.style.display = 'none';
+    const mediaSection = document.getElementById('mediaGallerySection');
+    if (mediaSection) {
+        mediaSection.style.display = 'block'; // Always show since all have at least a photo
     }
 
     // Mostrar información según sesión
@@ -361,19 +392,27 @@ function showProperty(id) {
 }
 
 /* =========================================================
-   RECORRIDO VIRTUAL (Video o Interactivo 3D)
+   RECORRIDO VIRTUAL (Video o Interactivo)
 ========================================================= */
 
-function openVirtualTour(propertyId) {
-    if (propertyId) {
-        currentPropertyId = propertyId;
-    } else if (!currentPropertyId) {
-        currentPropertyId = 3;
-    }
-    const property = properties[currentPropertyId];
-    if (!property || !property.virtualTour) {
-        showToast('Esta propiedad no tiene recorrido virtual disponible aún.', 'info');
+function openMediaTour(type) {
+    if (type === 'fotos') {
+        // En un futuro se podría abrir una galería, por ahora indicamos que están arriba
+        document.querySelector('#propertyModal .modal-content').scrollTo({top: 0, behavior: 'smooth'});
+        showToast('Explora las fotografías en la parte superior.', 'info');
         return;
+    }
+
+    const propertyId = currentPropertyId || 3;
+    const property = properties[propertyId];
+    
+    // Fallback content in case they don't have specific virtual tours defined yet
+    let tourUrl = 'https://my.matterport.com/show/?m=J2b34X5T5zM'; // Default interactive
+    let videoUrl = 'casa 1.mp4'; // Default video
+
+    if (property && property.virtualTour) {
+        if (property.virtualTour.url) tourUrl = property.virtualTour.url;
+        if (property.virtualTour.video) videoUrl = property.virtualTour.video;
     }
 
     const modalTitle = document.getElementById('tourModalTitle');
@@ -384,14 +423,17 @@ function openVirtualTour(propertyId) {
     const iframeContainer = document.getElementById('tourIframeContainer');
     const iframePlayer = document.getElementById('tourIframePlayer');
 
-    if (modalTitle) modalTitle.innerText = property.virtualTour.title || 'Recorrido Virtual';
-    if (modalSubtitle) modalSubtitle.innerText = property.virtualTour.subtitle || property.title;
+    if (modalTitle) {
+        modalTitle.innerText = type === 'interactivo' ? 'Recorrido Interactivo' : 'Recorrido en Video';
+    }
+    if (modalSubtitle) modalSubtitle.innerText = property ? property.title : 'Explorando propiedad';
     if (tourHelpText) {
-        tourHelpText.innerText = property.virtualTour.helpText || '💡 Explora los espacios e interactúa con el contenido.';
+        tourHelpText.innerText = type === 'interactivo' 
+            ? '💡 Interactúa con el modelo 3D usando tu ratón o pantalla táctil.' 
+            : '💡 Disfruta de la vista guiada en video.';
     }
 
-    if (property.virtualTour.type === 'iframe') {
-        // Modal modo interactivo / 3D
+    if (type === 'interactivo') {
         if (videoContainer) videoContainer.style.display = 'none';
         if (videoPlayer) {
             videoPlayer.pause();
@@ -400,21 +442,18 @@ function openVirtualTour(propertyId) {
         }
         if (iframeContainer) iframeContainer.style.display = 'block';
         if (iframePlayer) {
-            iframePlayer.src = property.virtualTour.url;
+            iframePlayer.src = tourUrl;
         }
-    } else {
-        // Modal modo video
+    } else if (type === 'video') {
         if (iframeContainer) iframeContainer.style.display = 'none';
         if (iframePlayer) iframePlayer.src = '';
         if (videoContainer) videoContainer.style.display = 'block';
         if (videoPlayer) {
-            videoPlayer.innerHTML = `<source src="${property.virtualTour.video}" type="video/mp4">Tu navegador no soporta video.`;
+            videoPlayer.innerHTML = `<source src="${videoUrl}" type="video/mp4">Tu navegador no soporta video.`;
             videoPlayer.load();
             const playPromise = videoPlayer.play();
             if (playPromise !== undefined) {
-                playPromise.catch(function (e) {
-                    console.log('Autoplay prevent or error:', e);
-                });
+                playPromise.catch(function (e) { console.log('Autoplay prevent or error:', e); });
             }
         }
     }
@@ -446,11 +485,23 @@ function closeTourModal() {
    FILTRO DE PROPIEDADES
 ========================================================= */
 
+window.currentSearchFilters = {
+    type: 'todos',
+    operation: 'todos',
+    price: 'todos',
+    location: ''
+};
+
 function searchProperties() {
-    const type      = document.getElementById('searchType').value;
-    const operation = document.getElementById('searchOperation').value;
-    const price     = document.getElementById('searchPrice').value;
-    const location  = document.getElementById('searchLocation').value.toLowerCase();
+    const typeEl      = document.getElementById('searchType');
+    const operationEl = document.getElementById('searchOperation');
+    const priceEl     = document.getElementById('searchPrice');
+    const locationEl  = document.getElementById('searchLocation');
+
+    const type      = typeEl ? typeEl.value : window.currentSearchFilters.type;
+    const operation = operationEl ? operationEl.value : window.currentSearchFilters.operation;
+    const price     = priceEl ? priceEl.value : window.currentSearchFilters.price;
+    const location  = locationEl ? locationEl.value.toLowerCase() : window.currentSearchFilters.location;
 
     const cards = document.querySelectorAll('.property-card');
     let found = 0;
@@ -480,7 +531,34 @@ function searchProperties() {
 }
 
 function filterCategory(type) {
-    document.getElementById('searchType').value = type;
+    const searchType = document.getElementById('searchType');
+    if (searchType) {
+        searchType.value = type;
+    } else {
+        window.currentSearchFilters.type = type;
+    }
+    searchProperties();
+}
+
+function filterOperation(op) {
+    const searchOp = document.getElementById('searchOperation');
+    if (searchOp) {
+        searchOp.value = op;
+    } else {
+        window.currentSearchFilters.operation = op;
+    }
+
+    // Update active pill styling
+    const pills = document.querySelectorAll('.property-filters .pill-btn');
+    pills.forEach(pill => pill.classList.remove('active'));
+    
+    // Find the pill that matches
+    pills.forEach(pill => {
+        if (op === 'todos' && pill.textContent.trim() === 'Todas') pill.classList.add('active');
+        if (op === 'comprar' && pill.textContent.trim() === 'En Venta') pill.classList.add('active');
+        if (op === 'rentar' && pill.textContent.trim() === 'En Renta') pill.classList.add('active');
+    });
+
     searchProperties();
 }
 
@@ -507,91 +585,12 @@ function handleMoreInfo(propertyId) {
 }
 
 /* =========================================================
-   CARRUSEL DE PROPIEDADES
+   CARRUSEL DE PROPIEDADES (REMOVIDO PARA USAR GRID)
 ========================================================= */
 
-let carouselCurrentIndex = 0;
-
-function getVisibleCardsCount() {
-    const width = window.innerWidth;
-    if (width <= 600) return 1;
-    if (width <= 1100) return 2;
-    return 3;
-}
-
-function updateCarousel() {
-    const container = document.getElementById('carouselContainer');
-    const prevBtn = document.getElementById('carouselPrev');
-    const nextBtn = document.getElementById('carouselNext');
-    if (!container) return;
-
-    // Actualizar visibilidad de botones basados en el scroll actual
-    if (prevBtn) {
-        prevBtn.style.display = container.scrollLeft <= 10 ? 'none' : 'flex';
-    }
-    if (nextBtn) {
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        nextBtn.style.display = container.scrollLeft >= maxScroll - 10 ? 'none' : 'flex';
-    }
-}
-
-function moveCarousel(direction) {
-    const container = document.getElementById('carouselContainer');
-    if (!container) return;
-    
-    // Desplazar 340px (ancho de tarjeta + gap) en la dirección indicada
-    const scrollAmount = 340 * direction;
-    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    
-    // Actualizar botones después de que termine la animación
-    setTimeout(updateCarousel, 400);
-}
-
 function resetCarouselPosition() {
-    const container = document.getElementById('carouselContainer');
-    if (container) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-    }
-    setTimeout(updateCarousel, 400);
+    // Ya no hay carrusel, pero si alguien llama a esta función que no haga nada.
 }
-
-// Inicializar carrusel en carga, redimensión y al hacer scroll manualmente
-window.addEventListener('load', updateCarousel);
-window.addEventListener('resize', updateCarousel);
-
-const container = document.getElementById('carouselContainer');
-if (container) {
-    container.addEventListener('scroll', updateCarousel, { passive: true });
-}
-
-// Inicializar carrusel en carga y redimensión
-window.addEventListener('load', updateCarousel);
-window.addEventListener('resize', updateCarousel);
-
-// Gestos táctiles de deslizamiento (swipe) para móvil
-(function initCarouselTouch() {
-    const container = document.getElementById('carouselContainer');
-    if (!container) return;
-
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    container.addEventListener('touchstart', function (e) {
-        touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-
-    container.addEventListener('touchend', function (e) {
-        touchEndX = e.changedTouches[0].screenX;
-        const diff = touchStartX - touchEndX;
-        if (Math.abs(diff) > 40) {
-            if (diff > 0) {
-                moveCarousel(1); // Deslizar hacia la izquierda -> siguiente
-            } else {
-                moveCarousel(-1); // Deslizar hacia la derecha -> anterior
-            }
-        }
-    }, { passive: true });
-})();
 
 /* =========================================================
    REGISTRO
