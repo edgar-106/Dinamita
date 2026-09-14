@@ -67,22 +67,31 @@
         document.body.style.overflow = '';
         splash.classList.add('fade-out');
 
+        let fired = false;
         function onFadeOut() {
+            if (fired) return;
+            fired = true;
             splash.style.display = 'none';
             splash.removeEventListener('transitionend', onFadeOut);
         }
         splash.addEventListener('transitionend', onFadeOut);
+        setTimeout(onFadeOut, 1400); // fallback
 
         // Si se seleccionó una operación
         if (operation === 'vender') {
-            // Esperar un poco a que el splash se desvanezca y abrir modal de publicar
+            // Esperar un poco a que el splash se desvanezca y redirigir
             setTimeout(function() {
-                if (typeof openPublishModal === 'function') {
-                    openPublishModal();
+                window.location.href = 'vender.html';
+            }, 100);
+        } else if (operation === 'comprar') {
+            setTimeout(function() {
+                const categorias = document.getElementById('categorias');
+                if (categorias) {
+                    categorias.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-            }, 500);
+            }, 100);
         } else if (operation) {
-            // Filtrar propiedades (ej. 'comprar')
+            // Filtrar propiedades
             setTimeout(function() {
                 if (typeof filterOperation === 'function') {
                     filterOperation(operation);
@@ -153,8 +162,17 @@ window.addEventListener('scroll', function () {
 });
 
 /* =========================================================
-   MENÚ HAMBURGUESA
+   MENÚ HAMBURGUESA Y ENLACES
 ========================================================= */
+
+document.querySelectorAll('a[href="#propiedades"], a[href="#categorias"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        const propSection = document.getElementById('propiedades');
+        if (propSection) {
+            propSection.style.display = 'block';
+        }
+    });
+});
 
 const hamburgerBtn  = document.getElementById('hamburgerBtn');
 const mobileMenu    = document.getElementById('mobileMenu');
@@ -344,6 +362,100 @@ const properties = {
             'Efectivo',
             'Financiamiento sujeto a condiciones'
         ]
+    },
+    6: {
+        title: 'Casa Moderna Cancún',
+        type: 'Casa',
+        location: 'Cancún, Quintana Roo',
+        image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=90',
+        price: '$5,200,000',
+        details: [
+            '280 m² de construcción',
+            '3 habitaciones',
+            'Alberca privada',
+            'Acabados de lujo',
+            'A 10 min de la playa'
+        ],
+        operation: [
+            'Venta',
+            'Crédito bancario',
+            'Efectivo'
+        ]
+    },
+    7: {
+        title: 'Loft Centro Histórico',
+        type: 'Departamento',
+        location: 'Centro Histórico, CDMX',
+        image: 'https://images.unsplash.com/photo-1502672260266-1c1f5523a5b1?auto=format&fit=crop&w=1400&q=90',
+        price: '$22,000 / mes',
+        details: [
+            '95 m²',
+            '1 recámara',
+            'Doble altura',
+            'Terraza compartida',
+            'Vigilancia 24/7'
+        ],
+        operation: [
+            'Renta',
+            'Póliza jurídica',
+            'Mantenimiento incluido'
+        ]
+    },
+    8: {
+        title: 'Villa Toscana',
+        type: 'Casa',
+        location: 'Querétaro, Qro',
+        image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=90',
+        price: '$4,500,000',
+        details: [
+            '210 m² de construcción',
+            '3 recámaras',
+            'Estudio',
+            'Jardín amplio',
+            'Privada con amenidades'
+        ],
+        operation: [
+            'Venta',
+            'Crédito bancario',
+            'Infonavit / Fovissste'
+        ]
+    },
+    9: {
+        title: 'Departamento Ejecutivo',
+        type: 'Departamento',
+        location: 'San Pedro, N.L.',
+        image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=90',
+        price: '$30,000 / mes',
+        details: [
+            '110 m²',
+            '2 habitaciones',
+            'Amueblado',
+            'Gimnasio en torre',
+            '2 cajones de estacionamiento'
+        ],
+        operation: [
+            'Renta',
+            'Aval requerido',
+            'Contrato a 1 año mínimo'
+        ]
+    },
+    10: {
+        title: 'Terreno Industrial',
+        type: 'Terreno',
+        location: 'Apodaca, N.L.',
+        image: 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1400&q=90',
+        price: '$12,500,000',
+        details: [
+            '5,000 m²',
+            'Uso de suelo industrial',
+            'Acceso a vialidades principales',
+            'Servicios de alta tensión'
+        ],
+        operation: [
+            'Venta',
+            'Esquemas de financiamiento',
+            'Efectivo'
+        ]
     }
 };
 
@@ -376,14 +488,21 @@ function showProperty(id) {
         li.textContent = item;
         operation.appendChild(li);
     });
-
     // Personalizar sección de recorrido virtual
     const mediaSection = document.getElementById('mediaGallerySection');
+    const btnVideo = document.getElementById('btnMediaVideo');
     if (mediaSection) {
         mediaSection.style.display = 'block'; // Always show since all have at least a photo
     }
-
-    // Mostrar información según sesión
+    
+    // Si es terreno, ocultar el botón de video
+    if (btnVideo) {
+        if (property.type.toLowerCase() === 'terreno') {
+            btnVideo.style.display = 'none';
+        } else {
+            btnVideo.style.display = 'block';
+        }
+    }
     const logged = localStorage.getItem('br_usuario');
     document.getElementById('fullInformation').style.display  = logged ? 'block' : 'none';
     document.getElementById('loginRequired').style.display    = logged ? 'none'  : 'block';
@@ -537,6 +656,18 @@ function filterCategory(type) {
     } else {
         window.currentSearchFilters.type = type;
     }
+
+    // Update active pill styling
+    const pills = document.querySelectorAll('.property-filters .pill-btn');
+    pills.forEach(pill => pill.classList.remove('active'));
+    
+    // Find the pill that matches
+    pills.forEach(pill => {
+        if (type === 'terreno' && pill.textContent.trim() === 'Terrenos') pill.classList.add('active');
+        if (type === 'casa' && pill.textContent.trim() === 'Casas') pill.classList.add('active');
+        if (type === 'departamento' && pill.textContent.trim() === 'Departamentos') pill.classList.add('active');
+    });
+
     searchProperties();
 }
 
@@ -547,17 +678,13 @@ function filterOperation(op) {
     } else {
         window.currentSearchFilters.operation = op;
     }
-
-    // Update active pill styling
-    const pills = document.querySelectorAll('.property-filters .pill-btn');
-    pills.forEach(pill => pill.classList.remove('active'));
     
-    // Find the pill that matches
-    pills.forEach(pill => {
-        if (op === 'todos' && pill.textContent.trim() === 'Todas') pill.classList.add('active');
-        if (op === 'comprar' && pill.textContent.trim() === 'En Venta') pill.classList.add('active');
-        if (op === 'rentar' && pill.textContent.trim() === 'En Renta') pill.classList.add('active');
-    });
+    // Mostrar y scrollear al buscador inline
+    const searchSection = document.getElementById('propiedades');
+    if (searchSection) {
+        searchSection.style.display = 'block';
+        searchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     searchProperties();
 }
@@ -606,6 +733,7 @@ function register(event) {
     const lastEl     = isEmbedded ? form.querySelector('#regLastModal')     : document.getElementById('regLast');
     const emailEl    = isEmbedded ? form.querySelector('#regEmailModal')    : document.getElementById('regEmail');
     const phoneEl    = isEmbedded ? form.querySelector('#regPhoneModal')    : document.getElementById('regPhone');
+    const locationEl = isEmbedded ? form.querySelector('#regLocationModal') : document.getElementById('regLocation');
     const interestEl = isEmbedded ? form.querySelector('#regInterestModal') : document.getElementById('regInterest');
     const passEl     = isEmbedded ? form.querySelector('#regPasswordModal') : document.getElementById('regPassword');
 
@@ -614,6 +742,7 @@ function register(event) {
         last:     lastEl ? lastEl.value.trim() : '',
         email:    emailEl ? emailEl.value.trim() : '',
         phone:    phoneEl ? phoneEl.value.trim() : '',
+        location: locationEl ? locationEl.value.trim() : '',
         interest: interestEl ? interestEl.value : 'comprar',
         password: passEl ? passEl.value : ''
     };
@@ -806,3 +935,22 @@ window.addEventListener('DOMContentLoaded', function () {
         if (navUserArea) navUserArea.style.display = 'none';
     }
 });
+
+
+// Check URL parameters to filter category automatically on load
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const category = urlParams.get('categoria');
+    if (category) {
+        setTimeout(() => {
+            if (typeof filterCategory === 'function') {
+                filterCategory(category);
+            }
+            const propsSection = document.getElementById('propiedades');
+            if(propsSection) {
+                propsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 600);
+    }
+});
+

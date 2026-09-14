@@ -142,75 +142,370 @@
 
 <body>
 
-<!-- =========================================================
-     INTRO SPLASH — se muestra solo al entrar, espera interacción.
-========================================================= -->
+<body>
 
-<div id="intro-splash" role="dialog" aria-label="Pantalla de bienvenida NIDUS" aria-modal="true">
+<style>
+/* Estilos para vender.html */
+.vender-hero {
+    position: relative;
+    padding: 180px 5% 100px;
+    background: url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+    color: white;
+    text-align: center;
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.vender-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(13, 16, 21, 0.75);
+    z-index: 1;
+}
+.vender-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+}
+.vender-hero-content h1 {
+    font-family: Georgia, serif;
+    font-size: clamp(45px, 6vw, 75px);
+    margin-bottom: 20px;
+}
+.vender-hero-content p {
+    font-size: 20px;
+    color: #cbd5e1;
+    margin-bottom: 50px;
+}
+.vender-benefits {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+}
+.benefit-item {
+    text-align: center;
+    max-width: 200px;
+}
+.benefit-item strong {
+    display: block;
+    color: #c9a86a;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+.benefit-item span {
+    font-size: 14px;
+    color: #94a3b8;
+}
+.btn-huge {
+    background: white;
+    color: #172033;
+    border: none;
+    padding: 20px 50px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 40px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+.btn-huge:hover {
+    background: #c9a86a;
+    color: white;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(201, 168, 106, 0.4);
+}
 
-    <!-- Video de fondo — loop, no cut -->
-    <video
-        id="intro-video"
-        src="inicio de mi sistema web.mp4"
-        autoplay
-        muted
-        playsinline
-        loop
-        preload="auto"
-    ></video>
+/* Panel Formulario */
+.form-panel {
+    display: none;
+    padding: 120px 5% 80px;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.05);
+    padding: 50px;
+}
 
-    <!-- Logo superior -->
-    <div class="intro-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="90" height="90" viewBox="0 0 38 38" fill="none" aria-hidden="true">
-            <rect width="38" height="38" rx="9" fill="#c9a86a"/>
-            <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
-            <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
-        </svg>
-        <div class="intro-logo-name">INFONATEC</div>
-        <div class="intro-logo-sub">Inmobiliaria</div>
-    </div>
+/* Progress Bar */
+.progress-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 50px;
+    position: relative;
+}
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+.progress-step {
+    position: relative;
+    z-index: 2;
+    background: white;
+    padding: 0 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-weight: bold;
+    font-size: 14px;
+}
+.progress-step.active {
+    color: #c9a86a;
+}
+.progress-step span {
+    display: block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    color: #64748b;
+}
+.progress-step.active span {
+    background: #c9a86a;
+    color: white;
+    box-shadow: 0 0 15px rgba(201,168,106,0.4);
+}
+.progress-step.completed span {
+    background: #172033;
+    color: white;
+}
 
-    <!-- Botones de Acción inferiores -->
-    <div class="intro-actions">
-        <button class="intro-btn" onclick="closeSplash('comprar')">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-            Adquirir
-        </button>
-        <button class="intro-btn" onclick="window.location.href='vender.html'">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-            </svg>
-            Venta
-        </button>
-    </div>
+/* Pasos */
+.form-step {
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+.form-step.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-</div>
+.step-title {
+    font-family: Georgia, serif;
+    font-size: 32px;
+    color: #172033;
+    margin-bottom: 30px;
+    text-align: center;
+}
 
-<!-- =========================================================
-     MENÚ MÓVIL
-========================================================= -->
+/* Tipo de Propiedad */
+.property-types {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+.type-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    padding: 30px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    background: white;
+}
+.type-card:hover {
+    border-color: #c9a86a;
+    transform: translateY(-5px);
+}
+.type-card.selected {
+    border-color: #c9a86a;
+    background: rgba(201,168,106,0.05);
+}
+.type-card .icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+.type-card .name {
+    font-weight: bold;
+    color: #172033;
+}
 
-<div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Menú de navegación">
-    <button
-        class="mobile-menu-close"
-        id="mobileMenuClose"
-        aria-label="Cerrar menú"
-    >×</button>
-        <a href="#categorias">Explorar</a>
-    <a href="#legal">Legal</a>
-</div>
+/* Form Fields */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group.full {
+    grid-column: 1 / -1;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #475569;
+    font-size: 14px;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 16px;
+    color: #1e293b;
+    font-family: inherit;
+    transition: 0.3s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: #c9a86a;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(201,168,106,0.1);
+}
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* Drag and Drop Zone */
+.drop-zone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 15px;
+    padding: 60px 20px;
+    text-align: center;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-bottom: 30px;
+}
+.drop-zone:hover {
+    border-color: #c9a86a;
+    background: #fff;
+}
+.drop-zone .icon {
+    font-size: 50px;
+    color: #94a3b8;
+    margin-bottom: 15px;
+}
+.drop-zone p {
+    color: #64748b;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+.drop-zone small {
+    color: #94a3b8;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #e2e8f0;
+}
+.btn-prev {
+    background: white;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    padding: 15px 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.btn-prev:hover {
+    background: #f1f5f9;
+    color: #172033;
+}
+.btn-next {
+    background: #172033;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.btn-next:hover {
+    background: #c9a86a;
+}
+.btn-publish {
+    background: #c9a86a;
+    color: white;
+    border: none;
+    padding: 15px 50px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    text-transform: uppercase;
+    transition: 0.3s;
+    box-shadow: 0 10px 20px rgba(201,168,106,0.3);
+}
+.btn-publish:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(201,168,106,0.4);
+}
+
+/* Success State */
+.success-state {
+    text-align: center;
+    padding: 80px 20px;
+}
+.success-icon {
+    width: 80px;
+    height: 80px;
+    background: #22c55e;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 30px;
+    animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes scaleIn {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
+.success-state h2 {
+    font-family: Georgia, serif;
+    font-size: 36px;
+    color: #172033;
+    margin-bottom: 20px;
+}
+.success-state p {
+    color: #64748b;
+    font-size: 18px;
+    margin-bottom: 40px;
+}
+</style>
 
 <!-- =========================================================
      NAVBAR
 ========================================================= -->
+
 <nav class="navbar" id="navbar" role="navigation" aria-label="Navegación principal">
 
-    <a href="#" class="logo" aria-label="INFONATEC Inmobiliaria - Inicio" onclick="openSplash(event)">
+    <!-- Logo INFONATEC -->
+    <a href="index.html" class="logo" aria-label="INFONATEC Inmobiliaria - Inicio">
         <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none" aria-hidden="true">
             <rect width="38" height="38" rx="9" fill="#c9a86a"/>
             <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
@@ -220,11 +515,7 @@
         
     </a>
 
-    <ul class="nav-links" role="list">
-        <li><a href="explorar.html">Explorar</a></li>
-        <li><a href="#asesor">Asesor</a></li>
-        <li><a href="#legal">Legal</a></li>
-    </ul>
+    <ul class="nav-links" role="list"></ul>
 
     <div class="nav-actions">
 
@@ -247,6 +538,7 @@
             aria-label="Abrir menú de navegación"
             aria-expanded="false"
             aria-controls="mobileMenu"
+            style="display: none;"
         >
             <span></span>
             <span></span>
@@ -256,207 +548,260 @@
 
 </nav>
 
-<!-- =========================================================
-     EXPLORAR
-========================================================= -->
-
-<section class="section categories" id="categorias">
-    <div class="section-header">
-        <div>
-            <div class="section-label">Explorar</div>
-            <h2>¿Qué estás buscando?</h2>
-        </div>
-        <p class="section-description">Selecciona el tipo de inmueble que necesitas y encuentra opciones según tu presupuesto.</p>
-    </div>
-
-    <div class="category-grid">
-        <div
-            class="category"
-            style="background-image:url('https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85')"
-            onclick="window.open('explorar.html?categoria=casa', '_self')"
-            role="button"
-            tabindex="0"
-            aria-label="Explorar casas"
-            onkeypress="if(event.key==='Enter') window.open('explorar.html?categoria=casa', '_self')"
-        >
-            <div class="category-content"><h3>Casas</h3><p>Compra o renta</p></div>
-        </div>
-        <div
-            class="category"
-            style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=85')"
-            onclick="window.open('explorar.html?categoria=departamento', '_self')"
-            role="button"
-            tabindex="0"
-            aria-label="Explorar departamentos"
-            onkeypress="if(event.key==='Enter') window.open('explorar.html?categoria=departamento', '_self')"
-        >
-            <div class="category-content"><h3>Departamentos</h3><p>Espacios modernos</p></div>
-        </div>
-        <div
-            class="category"
-            style="background-image:url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85')"
-            onclick="window.open('explorar.html?categoria=terreno', '_self')"
-            role="button"
-            tabindex="0"
-            aria-label="Explorar terrenos"
-            onkeypress="if(event.key==='Enter') window.open('explorar.html?categoria=terreno', '_self')"
-        >
-            <div class="category-content"><h3>Terrenos</h3><p>Invierte en tu futuro</p></div>
-        </div>
-    </div>
-</section>
-
-<!-- =========================================================
-     ASESOR
-========================================================= -->
-
-<section class="section advisor-section" id="asesor">
-    <div class="advisor-wrap">
-        <div class="advisor-profile">
-            <img
-                class="advisor-photo"
-                src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=300&q=80"
-                alt="Foto de Lic. Sofía Valenzuela, asesora inmobiliaria"
-                loading="lazy"
-            >
-            <div class="advisor-kicker">● ASESORA INMOBILIARIA</div>
-            <h2 class="advisor-name">Lic. Sofía Valenzuela</h2>
-            <div class="advisor-role">Especialista en orientación inmobiliaria</div>
-            <p class="advisor-quote">"Te acompaño paso a paso en la revisión de información, validación de antecedentes y orientación del proceso inmobiliario."</p>
-            <div class="advisor-actions">
-                <button class="btn-advisor-dark" onclick="toggleChat()" aria-label="Abrir chat en vivo">▣ Chat en Vivo</button>
-                <button class="btn-advisor-green" onclick="openModal('interestModal')" aria-label="Contactar asesor">▣ Contactar asesor</button>
+<!-- HERO SECTION -->
+<div class="vender-hero" id="venderHero">
+    <div class="vender-hero-content">
+        <h1>Vende tu propiedad</h1>
+        <p>Publica tu propiedad de forma rápida, sencilla y segura.</p>
+        
+        <div class="vender-benefits">
+            <div class="benefit-item">
+                <strong>Publicación sencilla</strong>
+                <span>Completa la información de tu propiedad fácilmente.</span>
+            </div>
+            <div class="benefit-item">
+                <strong>Mayor visibilidad</strong>
+                <span>Haz que tu propiedad llegue a posibles compradores.</span>
+            </div>
+            <div class="benefit-item">
+                <strong>Proceso rápido</strong>
+                <span>Publica tu inmueble en pocos pasos.</span>
             </div>
         </div>
-        <div class="advisor-form">
-            <h3>¿Deseas atención personalizada o agendar un recorrido guiado?</h3>
-            <div class="small">Déjanos tus datos y te orientaremos sobre propiedades, requisitos y citas.</div>
-            <form onsubmit="requestAdvisor(event)">
-                <div class="advisor-form-grid">
-                    <input id="advisorName" required placeholder="Nombre completo" aria-label="Nombre completo">
-                    <input id="advisorPhone" required placeholder="Teléfono / WhatsApp" aria-label="Teléfono o WhatsApp">
-                    <select id="advisorTime" aria-label="Horario preferido">
-                        <option>Inmediato (9:00 - 19:00)</option>
-                        <option>Por la mañana</option>
-                        <option>Por la tarde</option>
-                    </select>
+        
+        <button class="btn-huge" onclick="startPublishing()">Publicar propiedad</button>
+    </div>
+</div>
+
+<!-- FORMULARIO PASO A PASO -->
+<div class="form-panel" id="formPanel">
+    <div class="form-container">
+        
+        <div class="progress-bar">
+            <div class="progress-step active" id="step-nav-1"><span>1</span>Información</div>
+            <div class="progress-step" id="step-nav-2"><span>2</span>Características</div>
+            <div class="progress-step" id="step-nav-3"><span>3</span>Fotografías</div>
+            <div class="progress-step" id="step-nav-4"><span>4</span>Publicar</div>
+        </div>
+        
+        <form id="publishForm" onsubmit="event.preventDefault(); submitForm();">
+            <!-- PASO 1: INFORMACION -->
+            <div class="form-step active" id="step-1">
+                <h2 class="step-title">Tipo de Propiedad</h2>
+                <div class="property-types">
+                    <div class="type-card selected" onclick="selectType('casa')" id="type-casa">
+                        <div class="icon">🏠</div>
+                        <div class="name">Casa</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('departamento')" id="type-departamento">
+                        <div class="icon">🏢</div>
+                        <div class="name">Departamento</div>
+                    </div>
+                    <div class="type-card" onclick="selectType('terreno')" id="type-terreno">
+                        <div class="icon">🌳</div>
+                        <div class="name">Terreno</div>
+                    </div>
                 </div>
-                <div class="advisor-security">🔒 Tus datos se utilizarán para comunicación, seguimiento y citas relacionadas con el servicio.</div>
-                <button class="advisor-submit" type="submit">SOLICITAR ASESORÍA GRATUITA</button>
-            </form>
-        </div>
+                
+                <h2 class="step-title" style="margin-top: 50px;">Información Básica</h2>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Título de la publicación</label>
+                        <input type="text" placeholder="Ej. Hermosa casa en venta en Cancún" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio</label>
+                        <input type="number" placeholder="$0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ubicación (Colonia o Calle)</label>
+                        <input type="text" placeholder="Ubicación" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ciudad</label>
+                        <input type="text" placeholder="Ciudad" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <input type="text" placeholder="Estado" required>
+                    </div>
+                    <div class="form-group full">
+                        <label>Descripción</label>
+                        <textarea placeholder="Describe los detalles de tu propiedad..." required></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-actions" style="justify-content: flex-end;">
+                    <button type="button" class="btn-next" onclick="nextStep(2)">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 2: CARACTERÍSTICAS -->
+            <div class="form-step" id="step-2">
+                <h2 class="step-title">Características</h2>
+                
+                <div class="form-grid" id="fields-vivienda">
+                    <div class="form-group">
+                        <label>Número de habitaciones</label>
+                        <input type="number" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Número de baños</label>
+                        <input type="number" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Estacionamientos</label>
+                        <input type="number" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Metros cuadrados (Construcción)</label>
+                        <input type="number" placeholder="m²">
+                    </div>
+                </div>
+                
+                <div class="form-grid" id="fields-terreno" style="display: none;">
+                    <div class="form-group">
+                        <label>Metros cuadrados (Superficie)</label>
+                        <input type="number" placeholder="m²">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de terreno</label>
+                        <select>
+                            <option>Residencial</option>
+                            <option>Comercial</option>
+                            <option>Industrial</option>
+                            <option>Agrícola</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label>Servicios disponibles</label>
+                        <input type="text" placeholder="Agua, Luz, Drenaje, etc.">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep(1)">← Atrás</button>
+                    <button type="button" class="btn-next" onclick="nextStep(3)">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 3: FOTOGRAFÍAS -->
+            <div class="form-step" id="step-3">
+                <h2 class="step-title">Fotografías</h2>
+                <div class="drop-zone">
+                    <div class="icon">📷</div>
+                    <p>Arrastra tus fotografías aquí</p>
+                    <small>o haz clic para seleccionar archivos (Máximo 10 fotos)</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep(2)">← Atrás</button>
+                    <button type="button" class="btn-next" onclick="nextStep(4)">Siguiente →</button>
+                </div>
+            </div>
+
+            <!-- PASO 4: PUBLICAR -->
+            <div class="form-step" id="step-4">
+                <h2 class="step-title">Datos de Contacto</h2>
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label>Nombre del propietario</label>
+                        <input type="text" placeholder="Tu nombre completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" placeholder="Tu número telefónico" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo electrónico</label>
+                        <input type="email" placeholder="tu@correo.com" required>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep(3)">← Atrás</button>
+                    <button type="button" class="btn-publish" onclick="publishProperty()">Publicar propiedad</button>
+                </div>
+            </div>
+            
+            <!-- VISTA DE ÉXITO -->
+            <div class="form-step" id="step-success">
+                <div class="success-state">
+                    <div class="success-icon">✓</div>
+                    <h2>¡Tu propiedad ha sido publicada!</h2>
+                    <p>Tu anuncio ya está visible para miles de compradores potenciales.</p>
+                    <button type="button" class="btn-next" onclick="window.location.href='index.html'">Volver al Inicio</button>
+                </div>
+            </div>
+        </form>
+        
     </div>
-</section>
+</div>
 
-<!-- =========================================================
-     PROCESO
-========================================================= -->
-
-<section class="section">
-
-    <div class="section-header">
-        <div>
-            <div class="section-label">Proceso</div>
-            <h2>Fácil y transparente.</h2>
-        </div>
-    </div>
-
-    <div class="steps">
-
-        <div class="step">
-            <div class="step-number">01</div>
-            <h3>Explora</h3>
-            <p>Ingresa como visitante y consulta la información básica de las propiedades disponibles.</p>
-        </div>
-
-        <div class="step">
-            <div class="step-number">02</div>
-            <h3>Regístrate</h3>
-            <p>Si una propiedad te interesa, crea una cuenta para desbloquear la información completa.</p>
-        </div>
-
-        <div class="step">
-            <div class="step-number">03</div>
-            <h3>Conecta</h3>
-            <p>Comunícate con el propietario o monitor, resuelve tus dudas y agenda una cita.</p>
-        </div>
-
-        <div class="step">
-            <div class="step-number">04</div>
-            <h3>Formaliza</h3>
-            <p>Consulta la información legal y descarga los documentos correspondientes cuando el trato haya sido realizado.</p>
-        </div>
-
-    </div>
-
-</section>
-
-
-
-<!-- =========================================================
-     INFORMACIÓN LEGAL
-========================================================= -->
-
-<section class="section legal" id="legal">
-    <div class="section-header">
-        <div>
-            <div class="section-label">Certeza jurídica inmobiliaria</div>
-            <h2 class="legal-title-main">Modelos contractuales y cumplimiento.</h2>
-        </div>
-        <p class="section-description">Antes de avanzar con cualquier operación, consulta condiciones, requisitos, información legal y medidas de seguridad del proceso.</p>
-    </div>
-
-    <div class="legal-grid">
-        <div class="legal-card">
-            <span class="legal-chip">PDF MODELO</span>
-            <h3>Promesa de Compraventa</h3>
-            <p>Cláusulas de arras, condiciones y plazo de escrituración para revisar antes de formalizar.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Promesa de Compraventa')">↓ Consultar modelo</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">ARRENDAMIENTO</span>
-            <h3>Arrendamiento Residencial</h3>
-            <p>Información sobre depósito, garantía, inventario y requisitos para formalizar el contrato.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Arrendamiento Residencial')">↓ Consultar modelo</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">RPP</span>
-            <h3>Auditoría Registral</h3>
-            <p>Revisión de antecedentes registrales, situación legal y posibles afectaciones de la propiedad.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Auditoría Registral')">◉ Ver ejemplo</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">PROTECCIÓN</span>
-            <h3>Cobertura jurídica</h3>
-            <p>Información de respaldo y condiciones aplicables a procesos de compraventa y arrendamiento.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Cobertura jurídica')">◯ Consultar cobertura</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">TERRENOS</span>
-            <h3>Situación legal</h3>
-            <p>Escritura, propietario, medidas, colindancias, servicios, uso de suelo, adeudos y revisión legal.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Situación legal de terrenos')">Ver información</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">VIVIENDA</span>
-            <h3>Casas y departamentos</h3>
-            <p>Precio, medidas, habitaciones, servicios, ubicación, pagos y alternativas de financiamiento.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Información de vivienda')">Ver información</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">PRIVACIDAD</span>
-            <h3>Protección de datos</h3>
-            <p>Los datos personales deberán utilizarse únicamente para comunicación, seguimiento, citas y procesos relacionados.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Política de privacidad')">Leer política</a>
-        </div>
-        <div class="legal-card">
-            <span class="legal-chip">MEDIA</span>
-            <h3>Recorrido virtual</h3>
-            <p>Las propiedades pueden incorporar fotografías, galerías, video, recorrido virtual o contenido 3D.</p>
-            <a class="legal-link" href="#" onclick="demoLegal(event,'Recorrido virtual')">Conocer opción</a>
-        </div>
-    </div>
-</section>
+<script>
+    let currentStep = 1;
+    let selectedType = 'casa';
+    
+    function startPublishing() {
+        document.getElementById('venderHero').style.display = 'none';
+        document.getElementById('formPanel').style.display = 'block';
+        window.scrollTo(0, 0);
+    }
+    
+    function selectType(type) {
+        selectedType = type;
+        document.querySelectorAll('.type-card').forEach(card => card.classList.remove('selected'));
+        document.getElementById('type-' + type).classList.add('selected');
+        
+        if (type === 'terreno') {
+            document.getElementById('fields-vivienda').style.display = 'none';
+            document.getElementById('fields-terreno').style.display = 'grid';
+        } else {
+            document.getElementById('fields-vivienda').style.display = 'grid';
+            document.getElementById('fields-terreno').style.display = 'none';
+        }
+    }
+    
+    function updateProgress(step) {
+        for(let i=1; i<=4; i++) {
+            let nav = document.getElementById('step-nav-' + i);
+            if(nav) {
+                if (i < step) {
+                    nav.className = 'progress-step completed';
+                } else if (i === step) {
+                    nav.className = 'progress-step active';
+                } else {
+                    nav.className = 'progress-step';
+                }
+            }
+        }
+    }
+    
+    function nextStep(step) {
+        document.getElementById('step-' + currentStep).classList.remove('active');
+        currentStep = step;
+        document.getElementById('step-' + currentStep).classList.add('active');
+        updateProgress(step);
+        window.scrollTo(0, 0);
+    }
+    
+    function prevStep(step) {
+        document.getElementById('step-' + currentStep).classList.remove('active');
+        currentStep = step;
+        document.getElementById('step-' + currentStep).classList.add('active');
+        updateProgress(step);
+        window.scrollTo(0, 0);
+    }
+    
+    function publishProperty() {
+        // Hide progress bar
+        document.querySelector('.progress-bar').style.display = 'none';
+        
+        document.getElementById('step-' + currentStep).classList.remove('active');
+        document.getElementById('step-success').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+</script>
 
 <!-- =========================================================
      FOOTER
@@ -552,6 +897,7 @@
 ========================================================= -->
 
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
 
 <!-- =========================================================
      MODAL LOGIN
@@ -1006,3 +1352,6 @@
 </body>
 </html>
 
+
+</body>
+</html>

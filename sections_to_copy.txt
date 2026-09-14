@@ -1,0 +1,176 @@
+<!-- =========================================================
+     ASESOR
+========================================================= -->
+
+<section class="section advisor-section" id="asesor">
+    <div class="advisor-wrap">
+        <div class="advisor-profile">
+            <img
+                class="advisor-photo"
+                src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=300&q=80"
+                alt="Foto de Lic. Sofía Valenzuela, asesora inmobiliaria"
+                loading="lazy"
+            >
+            <div class="advisor-kicker">● ASESORA INMOBILIARIA</div>
+            <h2 class="advisor-name">Lic. Sofía Valenzuela</h2>
+            <div class="advisor-role">Especialista en orientación inmobiliaria</div>
+            <p class="advisor-quote">"Te acompaño paso a paso en la revisión de información, validación de antecedentes y orientación del proceso inmobiliario."</p>
+            <div class="advisor-actions">
+                <button class="btn-advisor-dark" onclick="toggleChat()" aria-label="Abrir chat en vivo">▣ Chat en Vivo</button>
+                <button class="btn-advisor-green" onclick="openModal('interestModal')" aria-label="Contactar asesor">▣ Contactar asesor</button>
+            </div>
+        </div>
+        <div class="advisor-form">
+            <h3>¿Deseas atención personalizada o agendar un recorrido guiado?</h3>
+            <div class="small">Déjanos tus datos y te orientaremos sobre propiedades, requisitos y citas.</div>
+            <form onsubmit="requestAdvisor(event)">
+                <div class="advisor-form-grid">
+                    <input id="advisorName" required placeholder="Nombre completo" aria-label="Nombre completo">
+                    <input id="advisorPhone" required placeholder="Teléfono / WhatsApp" aria-label="Teléfono o WhatsApp">
+                    <select id="advisorTime" aria-label="Horario preferido">
+                        <option>Inmediato (9:00 - 19:00)</option>
+                        <option>Por la mañana</option>
+                        <option>Por la tarde</option>
+                    </select>
+                </div>
+                <div class="advisor-security">🔒 Tus datos se utilizarán para comunicación, seguimiento y citas relacionadas con el servicio.</div>
+                <button class="advisor-submit" type="submit">SOLICITAR ASESORÍA GRATUITA</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     PROCESO
+========================================================= -->
+
+<section class="section">
+
+    <div class="section-header">
+        <div>
+            <div class="section-label">Proceso</div>
+            <h2>Fácil y transparente.</h2>
+        </div>
+    </div>
+
+    <div class="steps">
+
+        <div class="step">
+            <div class="step-number">01</div>
+            <h3>Explora</h3>
+            <p>Ingresa como visitante y consulta la información básica de las propiedades disponibles.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">02</div>
+            <h3>Regístrate</h3>
+            <p>Si una propiedad te interesa, crea una cuenta para desbloquear la información completa.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">03</div>
+            <h3>Conecta</h3>
+            <p>Comunícate con el propietario o monitor, resuelve tus dudas y agenda una cita.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">04</div>
+            <h3>Formaliza</h3>
+            <p>Consulta la información legal y descarga los documentos correspondientes cuando el trato haya sido realizado.</p>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- =========================================================
+     PUBLICAR PROPIEDAD
+========================================================= -->
+
+<section class="section publish" id="publicar">
+
+    <div class="publish-content">
+
+        <div class="section-label">Para propietarios</div>
+
+        <h2>Publica tu propiedad.</h2>
+
+        <p>
+            El sistema está abierto al público.
+            Cualquier persona puede publicar un terreno,
+            casa o departamento para vender o rentar.
+        </p>
+
+        <button class="btn-light" onclick="openPublishModal()">
+            PUBLICAR PROPIEDAD
+        </button>
+
+    </div>
+
+</section>
+
+<!-- =========================================================
+     INFORMACIÓN LEGAL
+========================================================= -->
+
+<section class="section legal" id="legal">
+    <div class="section-header">
+        <div>
+            <div class="section-label">Certeza jurídica inmobiliaria</div>
+            <h2 class="legal-title-main">Modelos contractuales y cumplimiento.</h2>
+        </div>
+        <p class="section-description">Antes de avanzar con cualquier operación, consulta condiciones, requisitos, información legal y medidas de seguridad del proceso.</p>
+    </div>
+
+    <div class="legal-grid">
+        <div class="legal-card">
+            <span class="legal-chip">PDF MODELO</span>
+            <h3>Promesa de Compraventa</h3>
+            <p>Cláusulas de arras, condiciones y plazo de escrituración para revisar antes de formalizar.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Promesa de Compraventa')">↓ Consultar modelo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">ARRENDAMIENTO</span>
+            <h3>Arrendamiento Residencial</h3>
+            <p>Información sobre depósito, garantía, inventario y requisitos para formalizar el contrato.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Arrendamiento Residencial')">↓ Consultar modelo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">RPP</span>
+            <h3>Auditoría Registral</h3>
+            <p>Revisión de antecedentes registrales, situación legal y posibles afectaciones de la propiedad.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Auditoría Registral')">◉ Ver ejemplo</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">PROTECCIÓN</span>
+            <h3>Cobertura jurídica</h3>
+            <p>Información de respaldo y condiciones aplicables a procesos de compraventa y arrendamiento.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Cobertura jurídica')">◯ Consultar cobertura</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">TERRENOS</span>
+            <h3>Situación legal</h3>
+            <p>Escritura, propietario, medidas, colindancias, servicios, uso de suelo, adeudos y revisión legal.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Situación legal de terrenos')">Ver información</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">VIVIENDA</span>
+            <h3>Casas y departamentos</h3>
+            <p>Precio, medidas, habitaciones, servicios, ubicación, pagos y alternativas de financiamiento.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Información de vivienda')">Ver información</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">PRIVACIDAD</span>
+            <h3>Protección de datos</h3>
+            <p>Los datos personales deberán utilizarse únicamente para comunicación, seguimiento, citas y procesos relacionados.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Política de privacidad')">Leer política</a>
+        </div>
+        <div class="legal-card">
+            <span class="legal-chip">MEDIA</span>
+            <h3>Recorrido virtual</h3>
+            <p>Las propiedades pueden incorporar fotografías, galerías, video, recorrido virtual o contenido 3D.</p>
+            <a class="legal-link" href="#" onclick="demoLegal(event,'Recorrido virtual')">Conocer opción</a>
+        </div>
+    </div>
+</section>
+

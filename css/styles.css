@@ -632,7 +632,7 @@ img {
 }
 
 .category {
-    height: 590px;
+    height: clamp(350px, 60vh, 550px);
     position: relative;
     display: flex;
     align-items: flex-end;
