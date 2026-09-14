@@ -4,7 +4,7 @@ $html = file_get_contents('explorar.html');
 // Add the operation-tabs HTML
 $search = '<div class="category-tabs">';
 $replace = '<div class="operation-tabs">
-        <button class="op-btn active" id="op-comprar" onclick="switchOperation(\'comprar\')">Adquirir</button>
+        <button class="op-btn active" id="op-comprar" onclick="switchOperation(\'comprar\')">Comprar</button>
         <button class="op-btn" id="op-rentar" onclick="switchOperation(\'rentar\')">Rentar</button>
     </div>
     <div class="category-tabs">';
