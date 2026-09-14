@@ -85,7 +85,7 @@
             }, 100);
         } else if (operation === 'comprar') {
             setTimeout(function() {
-                const categorias = document.getElementById('categorias');
+                const categorias = document.getElementById('adquirir');
                 if (categorias) {
                     categorias.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
