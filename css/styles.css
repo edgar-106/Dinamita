@@ -591,6 +591,8 @@ img {
 .categories {
     background: #141414;
     color: var(--white);
+    min-height: 100vh;
+    min-height: 100svh;
     padding-top: 110px;
     padding-bottom: 110px;
 }
