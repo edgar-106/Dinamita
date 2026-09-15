@@ -20,7 +20,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 
 <!-- CSS -->
-<link rel="stylesheet" href="css/styles.css?v=3.9">
+<link rel="stylesheet" href="css/styles.css?v=4.5">
 
 <style>
 /* =========================================================
@@ -989,37 +989,45 @@
 
         <img id="detailImage" class="detail-image" src="" alt="">
 
-        <!-- Selector de Media (Fotos, Video, Recorrido Interactivo) -->
-        <div id="mediaGallerySection" style="margin-top: 15px; margin-bottom: 25px; display:flex; gap: 10px; justify-content: center; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e4e9f0;">
-            <button id="btnMediaFotos" class="btn-media-option" onclick="openMediaTour('fotos')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">📷 Fotos</button>
-            <button id="btnMediaVideo" class="btn-media-option" onclick="openMediaTour('video')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🎥 Video</button>
-            <button id="btnMediaInteractivo" class="btn-media-option" onclick="openMediaTour('interactivo')" style="flex:1; min-width:160px; padding:10px; border:none; background:var(--ink); color:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🕹️ Recorrido Interactivo</button>
+        <!-- Accesos de media -->
+        <div id="mediaGallerySection" class="property-media-actions" aria-label="Recursos de la propiedad">
+            <button id="btnMediaFotos" class="media-action media-action-photo" onclick="openMediaTour('fotos')">
+                <span class="media-illustration" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="7" y="9" width="50" height="46" rx="6"/><circle cx="45" cy="22" r="5"/><path d="m12 48 14-15 9 9 7-7 10 13"/></svg></span>
+                <span>Fotos</span>
+            </button>
+            <button id="btnMediaVideo" class="media-action media-action-video" onclick="openMediaTour('video')">
+                <span class="media-illustration" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="7" y="18" width="34" height="29" rx="6"/><path d="m41 27 16-9v29l-16-9z"/><circle cx="24" cy="32" r="6"/></svg></span>
+                <span>Video</span>
+            </button>
+            <button id="btnMediaInteractivo" class="media-action media-action-tour" onclick="openMediaTour('interactivo')">
+                <span class="media-illustration cube-3d" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 6 55 18v27L32 58 9 45V18z"/><path d="M9 18 32 31l23-13M32 31v27"/></svg></span>
+                <span>Recorrido<br>interactivo</span>
+            </button>
         </div>
 
         <div class="section-label">Información de propiedad</div>
 
         <h2 id="detailTitle">Propiedad</h2>
 
-        <p id="detailLocation" class="modal-subtitle"></p>
+        <p id="detailLocation" class="modal-subtitle property-location"></p>
+        <p id="detailPrice" class="property-price"></p>
 
-        <div class="detail-grid">
-
-            <div class="detail-box">
-                <h3>Información básica</h3>
+        <div class="property-accordions">
+            <details class="detail-accordion">
+                <summary><span>Información básica</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list" id="basicDetails"></ul>
-            </div>
+            </details>
 
-            <div class="detail-box">
-                <h3>Operación</h3>
+            <details class="detail-accordion">
+                <summary><span>Operación</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list" id="operationDetails"></ul>
-            </div>
-
+            </details>
         </div>
 
         <div id="fullInformation" style="display:none;margin-top:30px;">
 
-            <div class="detail-box">
-                <h3>Información legal</h3>
+            <details class="detail-accordion">
+                <summary><span>Información legal</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list">
                     <li>Situación legal: Sin problemas reportados</li>
                     <li>Escritura: Disponible para revisión</li>
@@ -1028,19 +1036,32 @@
                     <li>Uso de suelo: Verificado</li>
                     <li>Colindancias: Registradas</li>
                 </ul>
-            </div>
+            </details>
 
-            <div class="detail-box" style="margin-top:30px;">
-                <h3>Opciones de pago</h3>
-                <ul class="detail-list">
-                    <li>Pago en efectivo</li>
-                    <li>Crédito bancario</li>
-                    <li>Crédito INFONAVIT</li>
-                    <li>Crédito FOVISSSTE</li>
-                    <li>Financiamiento según condiciones</li>
-                    <li>Número de pagos sujeto al acuerdo</li>
-                </ul>
-            </div>
+            <details class="detail-accordion payment-accordion">
+                <summary><span>Opciones de pago</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
+                <div class="payment-grid" role="list" aria-label="Formas de pago aceptadas">
+                    <div class="payment-option payment-cash" role="listitem" aria-label="Pago en efectivo" title="Pago en efectivo">
+                        <span class="payment-symbol">$</span><span>EFECTIVO</span>
+                    </div>
+                    <div class="payment-option payment-visa" role="listitem" aria-label="Tarjeta Visa" title="Tarjeta Visa">
+                        <span>VISA</span>
+                    </div>
+                    <div class="payment-option payment-mastercard" role="listitem" aria-label="Tarjeta Mastercard" title="Tarjeta Mastercard">
+                        <span class="mastercard-symbol" aria-hidden="true"><i></i><i></i></span><span>mastercard</span>
+                    </div>
+                    <div class="payment-option payment-spei" role="listitem" aria-label="Transferencia bancaria SPEI" title="Transferencia bancaria SPEI">
+                        <span class="payment-symbol">↔</span><span>SPEI</span>
+                    </div>
+                    <div class="payment-option payment-infonavit" role="listitem" aria-label="Crédito INFONAVIT" title="Crédito INFONAVIT">
+                        <span class="payment-symbol">⌂</span><span>INFONAVIT</span>
+                    </div>
+                    <div class="payment-option payment-fovissste" role="listitem" aria-label="Crédito FOVISSSTE" title="Crédito FOVISSSTE">
+                        <span class="payment-symbol">⌂</span><span>FOVISSSTE</span>
+                    </div>
+                </div>
+                <p class="payment-note">Financiamiento y número de pagos, sujetos a acuerdo.</p>
+            </details>
 
             <div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn-dark" onclick="openAppointment()">AGENDAR CITA</button>
@@ -1263,7 +1284,7 @@
 
 
 <!-- JavaScript -->
-<script src="js/app.js?v=3.9"></script>
+<script src="js/app.js?v=4.5"></script>
 
 </body>
 </html>

@@ -20,7 +20,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
 
 <!-- CSS -->
-<link rel="stylesheet" href="css/styles.css?v=3.9">
+<link rel="stylesheet" href="css/styles.css?v=4.8">
 
 <style>
 /* =========================================================
@@ -142,8 +142,8 @@
 <style>
 .filter-btn {
     background: transparent;
-    border: 2px solid #e2e8f0;
-    color: #64748b;
+    border: 1px solid rgba(255, 255, 255, .28);
+    color: #fff;
     padding: 10px 25px;
     border-radius: 30px;
     font-size: 14px;
@@ -156,21 +156,72 @@
     border-color: #c9a86a;
     color: white;
 }
-.property-card {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+#adquirir {
+    padding: 110px 5% 80px !important;
+    background: #f5f7fb !important;
+}
+.category-chooser {
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: -110px -5% -80px;
+    padding: 145px 5% 70px;
+    background: #141414;
+    color: #fff;
+}
+.chooser-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    align-items: end;
+    margin: 0 auto 42px;
+    max-width: 1420px;
+}
+.chooser-kicker { color: #c9a86a; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 16px; }
+.chooser-header h2 { font: normal clamp(38px, 5vw, 64px) Georgia, serif; }
+.chooser-header p { max-width: 410px; color: #c7d0df; line-height: 1.8; }
+.chooser-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; max-width: 1420px; margin: auto; }
+.chooser-card { position: relative; min-height: clamp(330px, 48vh, 500px); overflow: hidden; display: flex; align-items: end; padding: 32px; border: 1px solid rgba(255,255,255,.15); background: center / cover; color: #fff; text-align: left; font: inherit; cursor: pointer; transition: transform .3s ease, border-color .3s ease; }
+.chooser-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(0,0,0,.86)); }
+.chooser-card:hover, .chooser-card:focus-visible { transform: translateY(-6px); border-color: #c9a86a; outline: none; }
+.chooser-card span { position: relative; z-index: 1; }
+.chooser-card strong { display: block; font: normal clamp(32px, 3vw, 46px) Georgia, serif; margin-bottom: 8px; }
+.chooser-card small { font-size: 14px; }
+.catalog-view[hidden], .category-chooser[hidden] { display: none; }
+@media (max-width: 800px) { .chooser-header { display: block; } .chooser-header p { margin-top: 22px; } .chooser-grid { grid-template-columns: 1fr; } .chooser-card { min-height: 280px; } }
+.nav-operation-tabs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.nav-operation-tabs .filter-btn {
+    padding: 9px 20px !important;
+    font-size: 12px;
+    letter-spacing: .5px;
+}
+@media (max-width: 900px) {
+    .nav-operation-tabs { margin-left: auto; }
+    .nav-operation-tabs .filter-btn { padding: 8px 12px !important; font-size: 11px; }
+}
+@media (max-width: 650px) {
+    .navbar .custom-dropdown { display: none; }
+    .nav-operation-tabs .filter-btn { padding: 8px 9px !important; font-size: 10px; }
+}
+#adquirir .property-card {
+    background: #181d2f;
+    border-radius: 12px;
+    box-shadow: 0 5px 18px rgba(22, 34, 54, .14);
     overflow: hidden;
     transition: all 0.3s ease;
     cursor: pointer;
-    border: 1px solid #f1f5f9;
+    border: none;
+    color: #fff;
 }
-.property-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+#adquirir .property-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
 }
-.property-image {
-    height: 240px;
+#adquirir .property-image {
+    height: 220px;
     position: relative;
     overflow: hidden;
 }
@@ -184,7 +235,7 @@
 .property-image video {
     transition: transform 0.6s ease;
 }
-.property-card:hover .property-image video {
+#adquirir .property-card:hover .property-image video {
     transform: scale(1.08);
 }
 .property-tag {
@@ -229,6 +280,22 @@
 }
 .favorite-btn.active svg {
     fill: #ff3b30;
+}
+#adquirir .property-body {
+    background: #181d2f;
+}
+#adquirir .property-title {
+    color: #fff !important;
+}
+#adquirir .property-location {
+    color: #a0a8b9 !important;
+    margin-bottom: 0;
+}
+#adquirir .property-price {
+    color: #c9a86a;
+}
+#adquirir .property-stats {
+    display: none !important;
 }
 .legal-item {
     background: #f8fafc;
@@ -419,17 +486,22 @@
 }
 </style>
         <div class="custom-dropdown">
-            <button class="dropdown-toggle">
-                Categorías
+            <button class="dropdown-toggle" id="categoryLabel">
+                Todos
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="dropdown-menu">
-                <a href="#" onclick="filterProps('type', 'all'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Todos '; return false;">Todos</a>
-                <a href="#" onclick="filterProps('type', 'casa'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Casas '; return false;">Casas</a>
-                <a href="#" onclick="filterProps('type', 'departamento'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Departamentos '; return false;">Departamentos</a>
-                <a href="#" onclick="filterProps('type', 'terreno'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Terrenos '; return false;">Terrenos</a>
+                <a href="#" onclick="selectCategory('all'); return false;">Todos</a>
+                <a href="#" onclick="selectCategory('casa'); return false;">Casas</a>
+                <a href="#" onclick="selectCategory('departamento'); return false;">Departamentos</a>
+                <a href="#" onclick="selectCategory('terreno'); return false;">Terrenos</a>
             </div>
         </div>
+    </div>
+
+    <div class="nav-operation-tabs" aria-label="Tipo de operación">
+        <button class="filter-btn active" id="op-comprar" onclick="openCatalogForOperation('comprar')">Adquirir</button>
+        <button class="filter-btn" id="op-rentar" onclick="openCatalogForOperation('rentar')">Rentar</button>
     </div>
 
     <ul class="nav-links" role="list">
@@ -472,21 +544,16 @@
 ========================================================= -->
 
 
-<section class="section" id="adquirir" style="padding: 60px 5%; background: #f5f7fb;">
-    <div style="text-align: center; margin-bottom: 30px; display: flex; flex-direction: column; align-items: center;">
-        <div class="section-label" style="margin-bottom: 8px;">Catálogo</div>
-        <h2 style="font-family: Georgia, serif; font-size: clamp(36px, 4vw, 48px); margin: 0; color: #172033; letter-spacing: -0.5px;">Encuentra tu espacio ideal</h2>
-    </div>
-
-    <!-- Filtros -->
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 50px;">
-        <div class="operation-tabs" style="display: inline-flex; background: #fff; padding: 5px; border-radius: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0;">
-            <button class="filter-btn active" id="op-comprar" onclick="filterProps('op', 'comprar')" style="border: none; padding: 10px 30px;">Adquirir</button>
-            <button class="filter-btn" id="op-rentar" onclick="filterProps('op', 'rentar')" style="border: none; padding: 10px 30px;">Rentar</button>
+<section class="section" id="adquirir">
+    <div class="category-chooser" id="categoryChooser">
+        <div class="chooser-header"><div><div class="chooser-kicker">Explorar</div><h2>¿Qué estás buscando?</h2></div><p>Selecciona el tipo de inmueble que necesitas y encuentra opciones según tu presupuesto.</p></div>
+        <div class="chooser-grid">
+            <button class="chooser-card" onclick="selectCategory('casa')" style="background-image:url('https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85')"><span><strong>Casas</strong><small>Compra o renta</small></span></button>
+            <button class="chooser-card" onclick="selectCategory('departamento')" style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=85')"><span><strong>Departamentos</strong><small>Espacios modernos</small></span></button>
+            <button class="chooser-card" onclick="selectCategory('terreno')" style="background-image:url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85')"><span><strong>Terrenos</strong><small>Invierte en tu futuro</small></span></button>
         </div>
-
     </div>
-
+    <div class="catalog-view" id="catalogView" hidden>
     <!-- Properties Grid -->
     <div class="properties-grid" id="mainPropGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto;">
 
@@ -634,11 +701,49 @@
                 </div>
             </div>
         </article>
-    </div>
+        <article class="property-card js-prop-card" data-type="departamento" data-operation="rentar" onclick="handleMoreInfo(7)">
+            <div class="property-image"><img src="https://images.unsplash.com/photo-1502672260266-1c1f5523a5b1?auto=format&fit=crop&w=600&q=80" alt="Loft Centro Histórico" style="width:100%;height:100%;object-fit:cover;"><span class="property-tag">RENTA · LOFT</span></div>
+            <div class="property-body" style="padding:20px;"><h3 class="property-title" style="font-size:18px;color:#fff;">Loft Centro Histórico</h3><div class="property-location">Centro Histórico · CDMX</div><div class="property-price" style="margin-top:10px;font-size:22px;">$22,000 <span class="currency">/mes</span></div></div>
+        </article>
+        <article class="property-card js-prop-card" data-type="casa" data-operation="comprar" onclick="handleMoreInfo(8)">
+            <div class="property-image"><img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80" alt="Villa Toscana" style="width:100%;height:100%;object-fit:cover;"><span class="property-tag">VENTA · VILLA</span></div>
+            <div class="property-body" style="padding:20px;"><h3 class="property-title" style="font-size:18px;color:#fff;">Villa Toscana</h3><div class="property-location">Querétaro · Qro.</div><div class="property-price" style="margin-top:10px;font-size:22px;">$4,500,000 <span class="currency">MXN</span></div></div>
+        </article>
+        <article class="property-card js-prop-card" data-type="departamento" data-operation="rentar" onclick="handleMoreInfo(9)">
+            <div class="property-image"><img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80" alt="Departamento Ejecutivo" style="width:100%;height:100%;object-fit:cover;"><span class="property-tag">RENTA · DEPTO</span></div>
+            <div class="property-body" style="padding:20px;"><h3 class="property-title" style="font-size:18px;color:#fff;">Departamento Ejecutivo</h3><div class="property-location">San Pedro · N.L.</div><div class="property-price" style="margin-top:10px;font-size:22px;">$30,000 <span class="currency">/mes</span></div></div>
+        </article>
+        <article class="property-card js-prop-card" data-type="terreno" data-operation="comprar" onclick="handleMoreInfo(10)">
+            <div class="property-image"><img src="https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=600&q=80" alt="Terreno Industrial" style="width:100%;height:100%;object-fit:cover;"><span class="property-tag">VENTA · INDUSTRIAL</span></div>
+            <div class="property-body" style="padding:20px;"><h3 class="property-title" style="font-size:18px;color:#fff;">Terreno Industrial</h3><div class="property-location">Apodaca · N.L.</div><div class="property-price" style="margin-top:10px;font-size:22px;">$12,500,000 <span class="currency">MXN</span></div></div>
+        </article>
+    </div></div>
 </section>
 <script>
 let currentOp = "comprar";
 let currentType = "all";
+const categoryNames = { all: 'Todos', casa: 'Casas', departamento: 'Departamentos', terreno: 'Terrenos' };
+function openCategoryChooser() {
+    document.getElementById('categoryChooser').hidden = false;
+    document.getElementById('catalogView').hidden = true;
+    document.getElementById('adquirir').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function selectCategory(type) {
+    currentType = type;
+    const label = document.getElementById('categoryLabel');
+    if (label) label.firstChild.nodeValue = categoryNames[type] + ' ';
+    document.getElementById('categoryChooser').hidden = true;
+    document.getElementById('catalogView').hidden = false;
+    filterProps('type', type);
+}
+function openCatalogForOperation(operation) {
+    document.getElementById('categoryChooser').hidden = true;
+    document.getElementById('catalogView').hidden = false;
+    currentType = 'all';
+    const label = document.getElementById('categoryLabel');
+    if (label) label.firstChild.nodeValue = categoryNames.all + ' ';
+    filterProps('op', operation);
+}
 function filterProps(filterType, value) {
     if (filterType === "op") {
         currentOp = value;
@@ -1066,37 +1171,41 @@ document.addEventListener("DOMContentLoaded", () => filterProps("op", "comprar")
 
         <img id="detailImage" class="detail-image" src="" alt="">
 
-        <!-- Selector de Media (Fotos, Video, Recorrido Interactivo) -->
-        <div id="mediaGallerySection" style="margin-top: 15px; margin-bottom: 25px; display:flex; gap: 10px; justify-content: center; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e4e9f0;">
-            <button id="btnMediaFotos" class="btn-media-option" onclick="openMediaTour('fotos')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">📷 Fotos</button>
-            <button id="btnMediaVideo" class="btn-media-option" onclick="openMediaTour('video')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🎥 Video</button>
-            <button id="btnMediaInteractivo" class="btn-media-option" onclick="openMediaTour('interactivo')" style="flex:1; min-width:160px; padding:10px; border:none; background:var(--ink); color:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🕹️ Recorrido Interactivo</button>
+        <div id="mediaGallerySection" class="property-media-actions" aria-label="Recursos de la propiedad">
+            <button id="btnMediaFotos" class="media-action media-action-photo" onclick="openMediaTour('fotos')">
+                <span class="media-illustration" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="7" y="9" width="50" height="46" rx="6"/><circle cx="45" cy="22" r="5"/><path d="m12 48 14-15 9 9 7-7 10 13"/></svg></span><span>Fotos</span>
+            </button>
+            <button id="btnMediaVideo" class="media-action media-action-video" onclick="openMediaTour('video')">
+                <span class="media-illustration" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="7" y="18" width="34" height="29" rx="6"/><path d="m41 27 16-9v29l-16-9z"/><circle cx="24" cy="32" r="6"/></svg></span><span>Video</span>
+            </button>
+            <button id="btnMediaInteractivo" class="media-action media-action-tour" onclick="openMediaTour('interactivo')">
+                <span class="media-illustration cube-3d" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 6 55 18v27L32 58 9 45V18z"/><path d="M9 18 32 31l23-13M32 31v27"/></svg></span><span>Recorrido<br>interactivo</span>
+            </button>
         </div>
 
         <div class="section-label">Información de propiedad</div>
 
         <h2 id="detailTitle">Propiedad</h2>
 
-        <p id="detailLocation" class="modal-subtitle"></p>
+        <p id="detailLocation" class="modal-subtitle property-location"></p>
+        <p id="detailPrice" class="property-price"></p>
 
-        <div class="detail-grid">
-
-            <div class="detail-box">
-                <h3>Información básica</h3>
+        <div class="property-accordions">
+            <details class="detail-accordion">
+                <summary><span>Información básica</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list" id="basicDetails"></ul>
-            </div>
+            </details>
 
-            <div class="detail-box">
-                <h3>Operación</h3>
+            <details class="detail-accordion">
+                <summary><span>Operación</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list" id="operationDetails"></ul>
-            </div>
-
+            </details>
         </div>
 
         <div id="fullInformation" style="display:none;margin-top:30px;">
 
-            <div class="detail-box">
-                <h3>Información legal</h3>
+            <details class="detail-accordion">
+                <summary><span>Información legal</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
                 <ul class="detail-list">
                     <li>Situación legal: Sin problemas reportados</li>
                     <li>Escritura: Disponible para revisión</li>
@@ -1105,19 +1214,20 @@ document.addEventListener("DOMContentLoaded", () => filterProps("op", "comprar")
                     <li>Uso de suelo: Verificado</li>
                     <li>Colindancias: Registradas</li>
                 </ul>
-            </div>
+            </details>
 
-            <div class="detail-box" style="margin-top:30px;">
-                <h3>Opciones de pago</h3>
-                <ul class="detail-list">
-                    <li>Pago en efectivo</li>
-                    <li>Crédito bancario</li>
-                    <li>Crédito INFONAVIT</li>
-                    <li>Crédito FOVISSSTE</li>
-                    <li>Financiamiento según condiciones</li>
-                    <li>Número de pagos sujeto al acuerdo</li>
-                </ul>
-            </div>
+            <details class="detail-accordion payment-accordion">
+                <summary><span>Opciones de pago</span><span class="accordion-icon" aria-hidden="true">⌄</span></summary>
+                <div class="payment-grid" role="list" aria-label="Formas de pago aceptadas">
+                    <div class="payment-option payment-cash" role="listitem"><span class="payment-symbol">$</span><span>EFECTIVO</span></div>
+                    <div class="payment-option payment-visa" role="listitem"><span>VISA</span></div>
+                    <div class="payment-option payment-mastercard" role="listitem"><span class="mastercard-symbol" aria-hidden="true"><i></i><i></i></span><span>mastercard</span></div>
+                    <div class="payment-option payment-spei" role="listitem"><span class="payment-symbol">↔</span><span>SPEI</span></div>
+                    <div class="payment-option payment-infonavit" role="listitem"><span class="payment-symbol">⌂</span><span>INFONAVIT</span></div>
+                    <div class="payment-option payment-fovissste" role="listitem"><span class="payment-symbol">⌂</span><span>FOVISSSTE</span></div>
+                </div>
+                <p class="payment-note">Financiamiento y número de pagos, sujetos a acuerdo.</p>
+            </details>
 
             <div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn-dark" onclick="openAppointment()">AGENDAR CITA</button>
@@ -1336,7 +1446,7 @@ document.addEventListener("DOMContentLoaded", () => filterProps("op", "comprar")
 </div>
 
 <!-- JavaScript -->
-<script src="js/app.js?v=3.9"></script>
+<script src="js/app.js?v=4.8"></script>
 
 </body>
 </html>

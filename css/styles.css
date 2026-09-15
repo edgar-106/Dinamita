@@ -76,14 +76,15 @@ img {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 25px 6%;
+    padding: 25px 5%;
     color: var(--white);
+    background: #141414;
     transition: var(--transition);
 }
 
 .navbar.scrolled {
     background: rgba(15, 15, 15, .95);
-    padding: 16px 6%;
+    padding: 16px 5%;
     backdrop-filter: blur(10px);
 }
 
@@ -542,7 +543,7 @@ img {
 
 .property-footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     border-top: none;
     padding-top: 5px;
@@ -562,6 +563,7 @@ img {
 }
 
 .property-stats {
+    display: none !important;
     font-size: 11px;
     color: #a0a8b9;
 }
@@ -593,8 +595,12 @@ img {
     color: var(--white);
     min-height: 100vh;
     min-height: 100svh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
     padding-top: 110px;
     padding-bottom: 110px;
+    overflow: hidden;
 }
 
 .categories .section-header {
@@ -1148,6 +1154,256 @@ footer a:hover {
     font-size: 13px;
 }
 
+/* Ficha de propiedad: medios, precio y secciones desplegables */
+.property-media-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 15px 0 28px;
+}
+
+.media-action {
+    min-height: 138px;
+    border: 1px solid #dce4ef;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #fff 0%, #eef4fb 100%);
+    color: var(--ink);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    transition: transform .25s ease, box-shadow .25s ease, background .25s ease, color .25s ease;
+}
+
+.media-action::after {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    right: -45px;
+    bottom: -55px;
+    border-radius: 50%;
+    background: rgba(77, 155, 114, .12);
+}
+
+.media-action > .media-illustration {
+    position: relative;
+    z-index: 1;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #e9eff7;
+    color: #345c8d;
+    font-size: 20px;
+}
+
+.media-illustration svg {
+    width: 29px;
+    height: 29px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.media-action > span:last-child {
+    position: relative;
+    z-index: 1;
+}
+
+.media-action:hover,
+.media-action:focus-visible {
+    transform: translateY(-3px);
+    background: #eef4fb;
+    box-shadow: 0 12px 22px rgba(29, 56, 88, .16);
+    outline: none;
+}
+
+.media-action-tour {
+    background: linear-gradient(145deg, #172033 0%, #283d61 100%);
+    border-color: #172033;
+    color: var(--white);
+}
+
+.media-action-tour::after {
+    background: rgba(201, 168, 106, .2);
+}
+
+.media-action-tour > .media-illustration {
+    background: var(--gold);
+    color: var(--white);
+}
+
+.cube-3d {
+    animation: cubeFloat 3s ease-in-out infinite;
+}
+
+.cube-3d svg path:first-child {
+    fill: rgba(255, 255, 255, .14);
+}
+
+.media-action-tour:hover,
+.media-action-tour:focus-visible {
+    background: #26334c;
+}
+
+@keyframes cubeFloat {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-4px) rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cube-3d { animation: none; }
+}
+
+.property-location {
+    margin-bottom: 6px;
+}
+
+#detailPrice {
+    margin: 0 0 28px;
+    color: var(--gold);
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    letter-spacing: -.8px;
+}
+
+.property-accordions,
+#fullInformation {
+    display: grid;
+    gap: 14px;
+}
+
+#fullInformation {
+    margin-top: 14px !important;
+}
+
+.detail-accordion {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.detail-accordion summary {
+    min-height: 62px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+    list-style: none;
+}
+
+.detail-accordion summary::-webkit-details-marker {
+    display: none;
+}
+
+.accordion-icon {
+    font-family: Arial, sans-serif;
+    color: var(--gold);
+    font-size: 24px;
+    line-height: 1;
+    transition: transform .2s ease;
+}
+
+.detail-accordion[open] .accordion-icon {
+    transform: rotate(180deg);
+}
+
+.detail-accordion .detail-list,
+.detail-accordion .payment-grid,
+.detail-accordion .payment-note {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.detail-accordion .detail-list {
+    margin-bottom: 18px;
+}
+
+.detail-accordion .payment-grid {
+    margin-bottom: 14px;
+}
+
+.detail-accordion .payment-note {
+    margin-bottom: 18px;
+}
+
+/* Formas de pago */
+.payment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.payment-option {
+    min-height: 74px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(22, 34, 54, .06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #172033;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+}
+
+.payment-symbol {
+    display: inline-grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.payment-cash { color: #3d855f; }
+.payment-cash .payment-symbol { background: #3d855f; }
+.payment-visa { color: #1a4f9b; font-size: 22px; font-style: italic; letter-spacing: -1.5px; }
+.payment-spei { color: #0b7082; letter-spacing: .5px; }
+.payment-spei .payment-symbol { background: #0b7082; }
+.payment-infonavit { color: #c63d32; font-size: 13px; }
+.payment-infonavit .payment-symbol { background: #c63d32; }
+.payment-fovissste { color: #1f5c9d; font-size: 13px; }
+.payment-fovissste .payment-symbol { background: #1f5c9d; }
+
+.payment-mastercard { flex-direction: column; gap: 3px; font-size: 12px; color: #222; }
+.mastercard-symbol { display: flex; width: 39px; height: 25px; }
+.mastercard-symbol i { display: block; width: 25px; height: 25px; border-radius: 50%; }
+.mastercard-symbol i:first-child { background: #e94235; }
+.mastercard-symbol i:last-child { background: #f59b2f; margin-left: -11px; mix-blend-mode: multiply; }
+
+.payment-note {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
 /* =========================================================
    LOGIN TABS
 ========================================================= */
@@ -1388,6 +1644,14 @@ footer a:hover {
         grid-template-columns: 1fr 1fr;
     }
 
+    /* En pantallas pequeñas el contenido puede crecer y desplazarse sin cortarse. */
+    .categories {
+        height: auto;
+        min-height: 100svh;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+
     .steps {
         grid-template-columns: 1fr 1fr;
     }
@@ -1493,6 +1757,39 @@ footer a:hover {
     .form-grid,
     .detail-grid {
         grid-template-columns: 1fr;
+    }
+
+    .payment-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .property-media-actions {
+        gap: 8px;
+    }
+
+    .media-action {
+        min-height: 112px;
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+
+    .media-action > .media-illustration {
+        width: 36px;
+        height: 36px;
+        font-size: 17px;
+    }
+
+    .detail-accordion summary {
+        min-height: 56px;
+        padding: 15px;
+        font-size: 18px;
+    }
+
+    .detail-accordion .detail-list,
+    .detail-accordion .payment-grid,
+    .detail-accordion .payment-note {
+        margin-left: 15px;
+        margin-right: 15px;
     }
 
     .modal-content {

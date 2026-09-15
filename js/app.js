@@ -468,8 +468,8 @@ function showProperty(id) {
     document.getElementById('detailImage').src = property.image;
     document.getElementById('detailImage').alt = property.title;
     document.getElementById('detailTitle').innerText = property.title;
-    document.getElementById('detailLocation').innerText =
-        property.location + ' · ' + property.price;
+    document.getElementById('detailLocation').innerText = property.location;
+    document.getElementById('detailPrice').innerText = property.price;
 
     // Detalles básicos
     const basic = document.getElementById('basicDetails');
@@ -492,16 +492,12 @@ function showProperty(id) {
     const mediaSection = document.getElementById('mediaGallerySection');
     const btnVideo = document.getElementById('btnMediaVideo');
     if (mediaSection) {
-        mediaSection.style.display = 'block'; // Always show since all have at least a photo
+        mediaSection.hidden = false; // Todas las propiedades tienen al menos fotografías.
     }
     
     // Si es terreno, ocultar el botón de video
     if (btnVideo) {
-        if (property.type.toLowerCase() === 'terreno') {
-            btnVideo.style.display = 'none';
-        } else {
-            btnVideo.style.display = 'block';
-        }
+        btnVideo.hidden = property.type.toLowerCase() === 'terreno';
     }
     const logged = localStorage.getItem('br_usuario');
     document.getElementById('fullInformation').style.display  = logged ? 'block' : 'none';
