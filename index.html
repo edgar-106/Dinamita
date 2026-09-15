@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -345,15 +345,92 @@
 ========================================================= -->
 <nav class="navbar" id="navbar" role="navigation" aria-label="Navegación principal">
 
-    <a href="#" class="logo" aria-label="INFONATEC Inmobiliaria - Inicio" onclick="openSplash(event)">
-        <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none" aria-hidden="true">
-            <rect width="38" height="38" rx="9" fill="#c9a86a"/>
-            <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
-            <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
-        </svg>
-        
-    </a>
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <a href="#" class="logo" aria-label="INFONATEC Inmobiliaria - Inicio" onclick="openSplash(event)">
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none" aria-hidden="true">
+                <rect width="38" height="38" rx="9" fill="#c9a86a"/>
+                <rect x="11" y="20" width="16" height="11" rx="1.5" fill="white"/>
+                <path d="M7 21 L19 10 L31 21" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <rect x="16" y="24" width="6" height="7" rx="1" fill="#c9a86a"/>
+            </svg>
+        </a>
+        <style>
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+}
+.dropdown-toggle {
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+.dropdown-toggle:hover {
+    background: #c9a86a;
+    border-color: #c9a86a;
+    box-shadow: 0 4px 15px rgba(201,168,106,0.3);
+}
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 15px);
+    left: 0;
+    background: #ffffff;
+    min-width: 190px;
+    border-radius: 14px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transform-origin: top left;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 1000;
+    overflow: hidden;
+    padding: 8px 0;
+}
+.custom-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+.dropdown-menu a {
+    color: #172033;
+    padding: 10px 20px;
+    text-decoration: none;
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+}
+.dropdown-menu a:hover {
+    background: #f5f7fb;
+    color: #c9a86a;
+    padding-left: 25px;
+}
+</style>
+        <div class="custom-dropdown">
+            <button class="dropdown-toggle">
+                Categorías
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="dropdown-menu">
+                <a href="#" onclick="filterProps('type', 'all'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Todos '; return false;">Todos</a>
+                <a href="#" onclick="filterProps('type', 'casa'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Casas '; return false;">Casas</a>
+                <a href="#" onclick="filterProps('type', 'departamento'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Departamentos '; return false;">Departamentos</a>
+                <a href="#" onclick="filterProps('type', 'terreno'); document.querySelector('.dropdown-toggle').firstChild.nodeValue = 'Terrenos '; return false;">Terrenos</a>
+            </div>
+        </div>
+    </div>
 
     <ul class="nav-links" role="list">
         <li><a href="#adquirir">Explorar</a></li>
@@ -372,7 +449,6 @@
                 Registrarme
             </button>
         </div>
-
         <!-- Área visible cuando SÍ hay sesión activa (poblada por JS) -->
         <div id="navUserArea" style="display:none;align-items:center;gap:10px;"></div>
 
@@ -408,12 +484,7 @@
             <button class="filter-btn active" id="op-comprar" onclick="filterProps('op', 'comprar')" style="border: none; padding: 10px 30px;">Adquirir</button>
             <button class="filter-btn" id="op-rentar" onclick="filterProps('op', 'rentar')" style="border: none; padding: 10px 30px;">Rentar</button>
         </div>
-        <div class="type-tabs" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
-            <button class="filter-btn active" id="type-all" onclick="filterProps('type', 'all')">Todos</button>
-            <button class="filter-btn" id="type-casa" onclick="filterProps('type', 'casa')">Casas</button>
-            <button class="filter-btn" id="type-departamento" onclick="filterProps('type', 'departamento')">Departamentos</button>
-            <button class="filter-btn" id="type-terreno" onclick="filterProps('type', 'terreno')">Terrenos</button>
-        </div>
+
     </div>
 
     <!-- Properties Grid -->
@@ -575,8 +646,6 @@ function filterProps(filterType, value) {
         document.getElementById("op-" + value).classList.add("active");
     } else {
         currentType = value;
-        document.querySelectorAll("[id^=type-]").forEach(b => b.classList.remove("active"));
-        document.getElementById("type-" + value).classList.add("active");
     }
     document.querySelectorAll(".js-prop-card").forEach(card => {
         const matchOp = card.dataset.operation === currentOp;
@@ -1271,4 +1340,7 @@ document.addEventListener("DOMContentLoaded", () => filterProps("op", "comprar")
 
 </body>
 </html>
+
+
+
 
