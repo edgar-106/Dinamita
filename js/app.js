@@ -209,6 +209,33 @@ if (mobileMenu) {
 function openModal(id) {
     document.getElementById(id).classList.add('active');
     document.body.style.overflow = 'hidden';
+    if (id === 'registerModal') fillRegistrationLocation();
+}
+
+/* Completa ciudad y estado desde la ubicación autorizada por la persona usuaria. */
+function fillRegistrationLocation() {
+    const locationEl = document.getElementById('regLocation');
+    if (!locationEl || locationEl.value || !navigator.geolocation) return;
+
+    locationEl.placeholder = 'Autoriza tu ubicación para completar este campo';
+    navigator.geolocation.getCurrentPosition(async function (position) {
+        locationEl.placeholder = 'Detectando ciudad y estado…';
+        try {
+            const { latitude, longitude } = position.coords;
+            const response = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + latitude + '&lon=' + longitude + '&zoom=10');
+            if (!response.ok) throw new Error('No se pudo obtener la dirección');
+            const data = await response.json();
+            const address = data.address || {};
+            const city = address.city || address.town || address.village || address.municipality || '';
+            const state = address.state || '';
+            locationEl.value = [city, state].filter(Boolean).join(', ');
+            if (!locationEl.value) throw new Error('Ubicación no disponible');
+        } catch (error) {
+            locationEl.placeholder = 'Escribe tu ciudad y estado';
+        }
+    }, function () {
+        locationEl.placeholder = 'Escribe tu ciudad y estado';
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
 }
 
 function closeModal(id) {
@@ -291,11 +318,11 @@ const properties = {
         ],
         virtualTour: {
             type: 'iframe',
-            url: 'img/index.html',
-            title: 'Recorrido Interactivo 3D — Residencia Minimalista Las Cumbres',
-            subtitle: 'Haz scroll vertical dentro del recorrido para desplazarte y explorar fluidamente los espacios.',
-            buttonText: 'VER RECORRIDO INTERACTIVO 3D ▶',
-            helpText: '💡 Desplázate (haz scroll con la rueda del ratón o desliza el dedo) para avanzar o retroceder en el recorrido.'
+            url: 'tour/index.html',
+            title: 'Recorrido Interactivo 360° — Residencia Minimalista Las Cumbres',
+            subtitle: 'Explora los espacios en 360°, interactúa con los puntos de navegación y conoce los acabados.',
+            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
+            helpText: '💡 Arrastra para mirar alrededor. Haz clic en las flechas para caminar de una sala a otra o en [i] para ver detalles.'
         }
     },
     3: {
