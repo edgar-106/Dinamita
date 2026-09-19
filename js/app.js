@@ -571,7 +571,7 @@ function openMediaTour(type) {
     if (modalSubtitle) modalSubtitle.innerText = property ? property.title : 'Explorando propiedad';
     if (tourHelpText) {
         tourHelpText.innerText = type === 'interactivo' 
-            ? '💡 Interactúa con el modelo 3D usando tu ratón o pantalla táctil.' 
+            ? (property && property.virtualTour && property.virtualTour.helpText ? property.virtualTour.helpText : '💡 Arrastra para mirar en 360°. Usa las flechas para moverte de sala.') 
             : '💡 Disfruta de la vista guiada en video.';
     }
 
