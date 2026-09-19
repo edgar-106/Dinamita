@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Recorrido Virtual 360° — Residencia Minimalista Las Cumbres</title>
+    
+    <!-- Pannellum CSS -->
+    <link rel="stylesheet" href="lib/pannellum.css">
+    
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-glow: rgba(212, 175, 55, 0.4);
+            --dark-bg: rgba(15, 15, 15, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --white: #ffffff;
+            --font-serif: "Georgia", "Playfair Display", serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0d0d;
+            font-family: var(--font-sans);
+            color: var(--white);
+            user-select: none;
+        }
+
+        /* Contenedor del visor Pannellum */
+        #panorama {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Ocultar elementos predeterminados de Pannellum para usar HUD propio */
+        .pnlm-load-button {
+            display: none !important;
+        }
+        .pnlm-panorama-info {
+            display: none !important;
+        }
+        .pnlm-control {
+            background-color: rgba(20, 20, 20, 0.8) !important;
+            border-radius: 8px !important;
+            border: 1px solid var(--border-glass) !important;
+        }
+
+        /* ==========================================================
+           HUD SUPERIOR (Header flotante)
+           ========================================================== */
+        .tour-header {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .tour-brand {
+            pointer-events: auto;
+            background: var(--dark-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 30px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        .tour-brand-badge {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .tour-brand-title {
+            font-family: var(--font-serif);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--white);
+        }
+
+        .tour-room-indicator {
+            font-size: 12px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tour-room-indicator span {
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        /* Botones de acción superior */
+        .tour-actions {
+            pointer-events: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .tour-btn {
+            background: var(--dark-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            color: var(--white);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            font-size: 16px;
+        }
+
+        .tour-btn:hover {
+            background: var(--gold);
+            color: #111;
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .tour-btn.active {
+            background: var(--gold);
+            color: #111;
+            border-color: var(--gold);
+        }
+
+        /* ==========================================================
+           BARRA INFERIOR DE HABITACIONES (Thumbnails)
+           ========================================================== */
+        .tour-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            max-width: 95vw;
+        }
+
+        .tour-helper-pill {
+            pointer-events: auto;
+            background: rgba(10, 10, 10, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #bbb;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tour-helper-pill svg {
+            color: var(--gold);
+        }
+
+        .rooms-bar {
+            pointer-events: auto;
+            background: var(--dark-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            overflow-x: auto;
+            max-width: 90vw;
+            scrollbar-width: none;
+        }
+        .rooms-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .room-tab {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+            border-radius: 16px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            color: #ccc;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .room-tab:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+        }
+
+        .room-tab.active {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: var(--gold);
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .room-tab-icon {
+            font-size: 14px;
+        }
+
+        /* ==========================================================
+           HOTSPOTS PERSONALIZADOS (Pannellum Custom Hotspots)
+           ========================================================== */
+        /* Hotspot de navegación entre salas */
+        .hotspot-nav {
+            width: 44px;
+            height: 44px;
+            margin-left: -22px;
+            margin-top: -22px;
+            border-radius: 50%;
+            background: rgba(20, 20, 20, 0.85);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 20px var(--gold-glow), 0 4px 12px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s;
+            animation: pulseNav 2.2s infinite;
+        }
+
+        .hotspot-nav:hover {
+            transform: scale(1.18);
+            background: var(--gold);
+        }
+        .hotspot-nav:hover svg {
+            stroke: #111;
+        }
+
+        .hotspot-nav svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--gold);
+            stroke-width: 2.4;
+            fill: none;
+            transition: stroke 0.2s ease;
+        }
+
+        @keyframes pulseNav {
+            0% {
+                box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 16px rgba(212, 175, 55, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+            }
+        }
+
+        /* Hotspot de Información técnica */
+        .hotspot-info {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--white);
+            color: #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+            font-family: var(--font-serif);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s;
+            animation: pulseInfo 2.5s infinite;
+        }
+
+        .hotspot-info:hover {
+            transform: scale(1.2);
+            background: var(--gold);
+            border-color: var(--gold);
+            color: #000;
+        }
+
+        @keyframes pulseInfo {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 14px rgba(255, 255, 255, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            }
+        }
+
+        /* Tooltips flotantes al pasar cursor sobre hotspot */
+        .hotspot-tooltip {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 15, 15, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 8px 14px;
+            white-space: nowrap;
+            color: var(--white);
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s, bottom 0.2s;
+        }
+
+        .hotspot-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(15, 15, 15, 0.92);
+        }
+
+        .hotspot-nav:hover .hotspot-tooltip,
+        .hotspot-info:hover .hotspot-tooltip {
+            opacity: 1;
+            bottom: 54px;
+        }
+
+        /* Modal emergente de información de acabado */
+        .info-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--gold);
+            border-radius: 18px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(212, 175, 55, 0.2);
+            animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translate(-50%, -46%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .info-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .info-modal-close:hover {
+            color: var(--white);
+        }
+
+        .info-modal-tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--gold);
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .info-modal-title {
+            font-family: var(--font-serif);
+            font-size: 19px;
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .info-modal-desc {
+            font-size: 13px;
+            color: #bbb;
+            line-height: 1.6;
+        }
+
+        /* Transición de escena suave */
+        .scene-fader {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .scene-fader.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Visor Pannellum WebGL -->
+    <div id="panorama"></div>
+
+    <!-- Telón de transición suave entre habitaciones -->
+    <div id="sceneFader" class="scene-fader"></div>
+
+    <!-- Header Flotante -->
+    <header class="tour-header">
+        <div class="tour-brand">
+            <div>
+                <div class="tour-brand-badge">Tour Virtual 360°</div>
+                <div class="tour-brand-title">Residencia Las Cumbres</div>
+            </div>
+            <div style="width: 1px; height: 26px; background: var(--border-glass);"></div>
+            <div class="tour-room-indicator">
+                <span>📍 <b id="currentRoomName">Sala Principal</b></span>
+            </div>
+        </div>
+
+        <div class="tour-actions">
+            <button class="tour-btn" id="btnAutoRotate" title="Giro Automático" onclick="toggleAutoRotate()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+            </button>
+            <button class="tour-btn" id="btnFullscreen" title="Pantalla Completa" onclick="toggleFullscreen()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Footer Flotante con Selector de Salas -->
+    <footer class="tour-footer">
+        <div class="tour-helper-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            Arrastra para explorar • Toca las flechas o salas para moverte • Clic en [i] para acabados
+        </div>
+
+        <nav class="rooms-bar" aria-label="Navegación entre habitaciones">
+            <button class="room-tab active" data-scene="sala" onclick="switchScene('sala')">
+                <span class="room-tab-icon">🛋️</span>
+                <span>Sala Principal</span>
+            </button>
+            <button class="room-tab" data-scene="comedor" onclick="switchScene('comedor')">
+                <span class="room-tab-icon">🍽️</span>
+                <span>Comedor & Cocina</span>
+            </button>
+            <button class="room-tab" data-scene="recamara" onclick="switchScene('recamara')">
+                <span class="room-tab-icon">🛏️</span>
+                <span>Recámara Principal</span>
+            </button>
+            <button class="room-tab" data-scene="terraza" onclick="switchScene('terraza')">
+                <span class="room-tab-icon">🌿</span>
+                <span>Terraza & Jardín</span>
+            </button>
+        </nav>
+    </footer>
+
+    <!-- Modal Informativo de Acabados -->
+    <div id="infoModal" class="info-modal" role="dialog" aria-modal="true">
+        <button class="info-modal-close" onclick="closeInfoModal()" aria-label="Cerrar">&times;</button>
+        <div class="info-modal-tag" id="infoTag">DETALLE ARQUITECTÓNICO</div>
+        <h3 class="info-modal-title" id="infoTitle">Acabados de Lujo</h3>
+        <p class="info-modal-desc" id="infoDesc">Descripción detallada del acabado o especificación de este espacio.</p>
+    </div>
+
+    <!-- Pannellum JS -->
+    <script src="lib/pannellum.js"></script>
+
+    <script>
+        /* ==========================================================
+           CONFIGURACIÓN DEL RECORRIDO 360° MULTI-SALA
+           ========================================================== */
+        const scenesConfig = {
+            default: {
+                firstScene: "sala",
+                sceneFadeDuration: 800,
+                autoLoad: true,
+                showZoomCtrl: true,
+                showFullscreenCtrl: false,
+                compass: false,
+                hfov: 105,
+                minHfov: 60,
+                maxHfov: 120
+            },
+            scenes: {
+                sala: {
+                    title: "Sala Principal",
+                    type: "equirectangular",
+                    panorama: "panoramas/sala.jpg",
+                    pitch: 2,
+                    yaw: 10,
+                    hotSpots: [
+                        {
+                            pitch: -4,
+                            yaw: -55,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "comedor",
+                                title: "Ir al Comedor & Cocina"
+                            }
+                        },
+                        {
+                            pitch: -2,
+                            yaw: 110,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "terraza",
+                                title: "Salir a la Terraza"
+                            }
+                        },
+                        {
+                            pitch: 18,
+                            yaw: -15,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "DISEÑO DE INTERIORES",
+                                title: "Doble Altura y Ventanales Térmicos",
+                                desc: "Espacio con plafonería suspendida de iluminación LED perimetral indirecta y ventanales duovent con filtro UV y aislante acústico."
+                            }
+                        },
+                        {
+                            pitch: -24,
+                            yaw: 15,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "PISOS Y MATERIALES",
+                                title: "Piso Porcelánico Gran Formato",
+                                desc: "Piso rectificado de 120x60 cm con acabado mate antiderrapante de alta resistencia al tráfico."
+                            }
+                        }
+                    ]
+                },
+                comedor: {
+                    title: "Comedor & Cocina de Diseño",
+                    type: "equirectangular",
+                    panorama: "panoramas/comedor.jpg",
+                    pitch: -3,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: -5,
+                            yaw: 130,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "sala",
+                                title: "Volver a la Sala"
+                            }
+                        },
+                        {
+                            pitch: -3,
+                            yaw: -70,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "recamara",
+                                title: "Ir a Recámara Principal"
+                            }
+                        },
+                        {
+                            pitch: -12,
+                            yaw: -20,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "EQUIPAMIENTO DE COCINA",
+                                title: "Isla Central con Cubierta de Cuarzo",
+                                desc: "Cocina integral equipada con barra desayunadora de cuarzo blanco calacatta, campana extractora oculta y parrilla de inducción."
+                            }
+                        }
+                    ]
+                },
+                recamara: {
+                    title: "Recámara Principal",
+                    type: "equirectangular",
+                    panorama: "panoramas/recamara.jpg",
+                    pitch: 0,
+                    yaw: -30,
+                    hotSpots: [
+                        {
+                            pitch: -6,
+                            yaw: 145,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "comedor",
+                                title: "Regresar al Comedor"
+                            }
+                        },
+                        {
+                            pitch: 2,
+                            yaw: 40,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "terraza",
+                                title: "Acceso a Terraza"
+                            }
+                        },
+                        {
+                            pitch: 10,
+                            yaw: -95,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "CONFORT & SUITE",
+                                title: "Master Suite con Vista Panorámica",
+                                desc: "Espacio para cama King Size con vestidor independiente (walk-in closet) de madera de nogal y baño completo en suite."
+                            }
+                        }
+                    ]
+                },
+                terraza: {
+                    title: "Terraza & Jardín",
+                    type: "equirectangular",
+                    panorama: "panoramas/terraza.jpg",
+                    pitch: 2,
+                    yaw: 15,
+                    hotSpots: [
+                        {
+                            pitch: -2,
+                            yaw: -120,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "sala",
+                                title: "Entrar a la Sala"
+                            }
+                        },
+                        {
+                            pitch: 0,
+                            yaw: -35,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "recamara",
+                                title: "Ir a Recámara"
+                            }
+                        },
+                        {
+                            pitch: -18,
+                            yaw: 45,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "ÁREAS VERDES Y SOCIALES",
+                                title: "Terraza Techada y Jardín Privado",
+                                desc: "Área social exterior con piso cerámico imitación madera, iluminación cálida empotrada y preparación para asador."
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        /* ==========================================================
+           INICIALIZAR PANNELLUM
+           ========================================================== */
+        let viewer = pannellum.viewer('panorama', scenesConfig);
+
+        /* ==========================================================
+           CREADOR DE HOTSPOT DE NAVEGACIÓN ENTRE SALAS
+           ========================================================== */
+        function createNavHotspot(hotSpotDiv, args) {
+            hotSpotDiv.classList.add('hotspot-nav');
+            hotSpotDiv.innerHTML = `
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+                <div class="hotspot-tooltip">${args.title}</div>
+            `;
+            hotSpotDiv.onclick = function (e) {
+                e.stopPropagation();
+                switchScene(args.targetScene);
+            };
+        }
+
+        /* ==========================================================
+           CREADOR DE HOTSPOT DE INFORMACIÓN ARQUITECTÓNICA
+           ========================================================== */
+        function createInfoHotspot(hotSpotDiv, args) {
+            hotSpotDiv.classList.add('hotspot-info');
+            hotSpotDiv.innerHTML = `
+                <span>i</span>
+                <div class="hotspot-tooltip">${args.title}</div>
+            `;
+            hotSpotDiv.onclick = function (e) {
+                e.stopPropagation();
+                openInfoModal(args.tag, args.title, args.desc);
+            };
+        }
+
+        /* ==========================================================
+           CAMBIO DE SALA Y CONTROL DE HUD
+           ========================================================== */
+        function switchScene(sceneId) {
+            if (!scenesConfig.scenes[sceneId]) return;
+            
+            const fader = document.getElementById('sceneFader');
+            fader.classList.add('active');
+
+            setTimeout(() => {
+                viewer.loadScene(sceneId);
+                updateHudState(sceneId);
+                setTimeout(() => {
+                    fader.classList.remove('active');
+                }, 300);
+            }, 250);
+        }
+
+        function updateHudState(sceneId) {
+            const scene = scenesConfig.scenes[sceneId];
+            if (!scene) return;
+
+            // Actualizar nombre en el badge superior
+            const roomNameEl = document.getElementById('currentRoomName');
+            if (roomNameEl) roomNameEl.innerText = scene.title;
+
+            // Actualizar pestañas activas de la barra inferior
+            document.querySelectorAll('.room-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('data-scene') === sceneId);
+            });
+        }
+
+        viewer.on('load', function() {
+            const currentSceneId = viewer.getScene();
+            updateHudState(currentSceneId);
+        });
+
+        /* ==========================================================
+           GIRO AUTOMÁTICO
+           ========================================================== */
+        let isAutoRotating = false;
+        function toggleAutoRotate() {
+            isAutoRotating = !isAutoRotating;
+            const btn = document.getElementById('btnAutoRotate');
+            if (isAutoRotating) {
+                viewer.startAutoRotate(-2); // Giro suave
+                btn.classList.add('active');
+            } else {
+                viewer.stopAutoRotate();
+                btn.classList.remove('active');
+            }
+        }
+
+        // Si el usuario arrastra manualmente, pausamos el auto-rotate
+        viewer.on('mousedown', function() {
+            if (isAutoRotating) {
+                viewer.stopAutoRotate();
+                document.getElementById('btnAutoRotate').classList.remove('active');
+                isAutoRotating = false;
+            }
+        });
+        viewer.on('touchstart', function() {
+            if (isAutoRotating) {
+                viewer.stopAutoRotate();
+                document.getElementById('btnAutoRotate').classList.remove('active');
+                isAutoRotating = false;
+            }
+        });
+
+        /* ==========================================================
+           PANTALLA COMPLETA
+           ========================================================== */
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        /* ==========================================================
+           MODAL DE INFORMACIÓN
+           ========================================================== */
+        function openInfoModal(tag, title, desc) {
+            document.getElementById('infoTag').innerText = tag;
+            document.getElementById('infoTitle').innerText = title;
+            document.getElementById('infoDesc').innerText = desc;
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Cerrar modal al hacer clic en el panorama
+        document.getElementById('panorama').addEventListener('click', closeInfoModal);
+    </script>
+</body>
+</html>
