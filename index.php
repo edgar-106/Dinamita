@@ -27,6 +27,11 @@ $router->post('/vender/publicar', 'VenderController@publicar');
 $router->get('/api/propiedades', 'PropiedadController@apiList');
 $router->get('/api/propiedades/{id}', 'PropiedadController@apiDetail');
 
+// --- Rutas de Inteligencia Artificial ---
+$router->post('/api/ai/chat', 'AIController@chat');
+$router->post('/api/ai/generate-description', 'AIController@generateDescription');
+$router->get('/api/ai/status', 'AIController@status');
+
 // --- Rutas de Autenticación ---
 $router->post('/auth/login', 'AuthController@login');
 $router->post('/auth/register', 'AuthController@register');

@@ -320,8 +320,13 @@
                         <input type="text" id="pubState" placeholder="Ej. Yucatán" required>
                     </div>
                     <div class="form-group full">
-                        <label>Descripción detallada</label>
-                        <textarea id="pubDesc" placeholder="Describe los detalles, amenidades y estado de la propiedad..." required></textarea>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                            <label style="margin:0;">Descripción detallada</label>
+                            <button type="button" class="btn-ai-generate" onclick="generateAIDescription(this)" title="La IA redactará una ficha atractiva con los datos de tu propiedad">
+                                ✨ Redactar con IA
+                            </button>
+                        </div>
+                        <textarea id="pubDesc" placeholder="Describe los detalles, amenidades y estado de la propiedad (o haz clic en 'Redactar con IA' para generarla automáticamente)..." required></textarea>
                     </div>
                 </div>
 

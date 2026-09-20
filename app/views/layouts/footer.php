@@ -64,14 +64,25 @@
 <div class="chat-box" id="chatBox" role="complementary" aria-label="Chat de asistencia">
 
     <div class="chat-header">
-        <strong>Asistente INFONATEC</strong>
-        <br>
-        <small>Responde tus dudas</small>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>Asistente INFONATEC</strong>
+            <span class="ai-status-badge">✨ IA Activa</span>
+        </div>
+        <small style="color:#cbd5e1;">Asesoría inmobiliaria inteligente</small>
     </div>
 
     <div class="chat-messages" id="chatMessages" aria-live="polite">
-        <div class="message">Hola 👋 ¿En qué podemos ayudarte?</div>
-        <div class="message">Puedes preguntar por propiedades, citas, créditos o requisitos.</div>
+        <div class="message">¡Hola! 👋 Soy tu asesor inteligente de INFONATEC. ¿En qué puedo ayudarte hoy?</div>
+        <div class="message">Pregúntame sobre casas, departamentos, terrenos, créditos o recorridos 3D.</div>
+    </div>
+
+    <!-- Sugerencias Rápidas de un Clic -->
+    <div class="chat-chips-container">
+        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué casas tienen en Monterrey?')">🏡 Casas Mty</button>
+        <button class="chat-chip" onclick="sendQuickQuestion('¿Tienen recorridos virtuales 3D?')">🕶️ Tour 3D</button>
+        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué terrenos tienen en Mérida?')">🌴 Mérida</button>
+        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué opciones de crédito aceptan?')">💳 Créditos</button>
+        <button class="chat-chip" onclick="sendQuickQuestion('¿Cómo puedo vender mi propiedad?')">📝 Vender</button>
     </div>
 
     <div class="chat-input">

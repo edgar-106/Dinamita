@@ -1518,6 +1518,118 @@ footer a:hover {
 }
 
 /* =========================================================
+   ESTILOS DE INTELIGENCIA ARTIFICIAL & CHAT ENRIQUECIDO
+========================================================= */
+
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 14px;
+    background: #f0eee9;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    width: fit-content;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: typingPulse 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1.15); opacity: 1; background: #c9a86a; }
+}
+
+.ai-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(201, 168, 106, 0.22);
+    border: 1px solid rgba(201, 168, 106, 0.45);
+    color: #e5cf9c;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.chat-chips-container {
+    padding: 8px 12px;
+    background: #faf9f6;
+    border-top: 1px solid #edebe6;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+.chat-chips-container::-webkit-scrollbar {
+    display: none;
+}
+
+.chat-chip {
+    background: #fff;
+    border: 1px solid #dcd8cf;
+    color: #172033;
+    padding: 5px 11px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.chat-chip:hover {
+    background: #c9a86a;
+    border-color: #c9a86a;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-ai-generate {
+    background: linear-gradient(135deg, #172033 0%, #2a3b5c 100%);
+    color: #c9a86a;
+    border: 1px solid #c9a86a;
+    padding: 7px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+    margin-bottom: 8px;
+}
+
+.btn-ai-generate:hover {
+    background: #c9a86a;
+    color: #172033;
+    box-shadow: 0 4px 12px rgba(201, 168, 106, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-ai-generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* =========================================================
    TOAST NOTIFICATIONS
 ========================================================= */
 

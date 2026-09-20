@@ -869,14 +869,49 @@ function toggleChat() {
     }
 }
 
-function sendMessage() {
-    const input    = document.getElementById('chatInput');
-    const text     = input.value.trim();
+/* =========================================================
+   INTELIGENCIA ARTIFICIAL & ASISTENTE VIRTUAL
+========================================================= */
+
+function getApiUrl(endpoint) {
+    if (typeof window.APP_BASE_URL !== 'undefined' && window.APP_BASE_URL) {
+        return window.APP_BASE_URL.replace(/\/+$/, '') + '/' + endpoint.replace(/^\/+/, '');
+    }
+    // Detección automática en entornos locales XAMPP
+    const pathname = window.location.pathname;
+    const dir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+    return dir + endpoint;
+}
+
+function formatBotText(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    let safe = div.innerHTML;
+    // Negritas Markdown
+    safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Saltos de línea
+    safe = safe.replace(/\n/g, '<br>');
+    return safe;
+}
+
+function sendQuickQuestion(questionText) {
+    const input = document.getElementById('chatInput');
+    if (input) {
+        input.value = questionText;
+        sendMessage();
+    }
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    if (!input) return;
+    const text = input.value.trim();
     if (text === '') return;
 
     const messages = document.getElementById('chatMessages');
+    if (!messages) return;
 
-    // Sanitizar texto del usuario antes de insertar
+    // 1. Mostrar mensaje del usuario
     const userDiv = document.createElement('div');
     userDiv.className = 'message user';
     userDiv.textContent = text;
@@ -885,13 +920,129 @@ function sendMessage() {
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
 
-    setTimeout(function () {
+    // 2. Mostrar indicador de escritura
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'typing-indicator';
+    typingDiv.id = 'chatTypingIndicator';
+    typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+    messages.appendChild(typingDiv);
+    messages.scrollTop = messages.scrollHeight;
+
+    // 3. Enviar a la API de forma asíncrona
+    try {
+        const response = await fetch(getApiUrl('api/chat.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
+
+        const data = await response.json();
+
+        // Quitar indicador de escritura
+        if (typingDiv.parentNode) {
+            typingDiv.remove();
+        }
+
         const botDiv = document.createElement('div');
         botDiv.className = 'message';
-        botDiv.textContent = 'Gracias por comunicarte con Bienes Raíces. Un monitor podrá ayudarte con tu consulta.';
+        botDiv.innerHTML = formatBotText(data.reply || 'Gracias por tu consulta. Un asesor te atenderá a la brevedad.');
+        messages.appendChild(botDiv);
+
+        // Si la IA recomendó propiedades específicas, añadir tarjetas interactivas
+        if (data.related && Array.isArray(data.related) && data.related.length > 0) {
+            data.related.forEach(function(propId) {
+                const prop = typeof properties !== 'undefined' ? properties[propId] : null;
+                if (prop) {
+                    const card = document.createElement('div');
+                    card.className = 'chat-prop-card';
+                    card.innerHTML = `
+                        <div>
+                            <strong>${prop.title}</strong><br>
+                            <span style="color:#c9a86a;font-weight:700;">${prop.price}</span> · <span style="color:#64748b;">${prop.location}</span>
+                        </div>
+                        <button class="chat-prop-btn" onclick="handleMoreInfo(${propId})">Ver Ficha</button>
+                    `;
+                    messages.appendChild(card);
+                }
+            });
+        }
+
+        messages.scrollTop = messages.scrollHeight;
+
+    } catch (error) {
+        console.warn('Fallo al conectar con endpoint IA, usando respuesta de respaldo:', error);
+        if (typingDiv.parentNode) {
+            typingDiv.remove();
+        }
+
+        const botDiv = document.createElement('div');
+        botDiv.className = 'message';
+        botDiv.textContent = '¡Hola! Estoy listo para ayudarte con información sobre casas, departamentos, terrenos y recorridos 3D en INFONATEC. ¿Qué estás buscando?';
         messages.appendChild(botDiv);
         messages.scrollTop = messages.scrollHeight;
-    }, 700);
+    }
+}
+
+/**
+ * Asistente de Redacción con IA para el formulario de publicación (Vender)
+ */
+async function generateAIDescription(btnElement) {
+    const titleInput = document.getElementById('pubTitle') || document.getElementById('publishTitle');
+    const typeSelect = document.getElementById('pubType') || document.getElementById('publishType');
+    const priceInput = document.getElementById('pubPrice') || document.getElementById('publishPrice');
+    const locInput   = document.getElementById('pubLocation') || document.getElementById('publishLocation');
+    const cityInput  = document.getElementById('pubCity');
+    const stateInput = document.getElementById('pubState');
+    const descArea   = document.getElementById('pubDesc') || document.getElementById('publishDesc');
+    
+    const roomsInput = document.querySelector('input[placeholder*="habitaciones"]') || document.querySelector('input[placeholder*="Recámaras"]');
+    const bathsInput = document.querySelector('input[placeholder*="baños"]') || document.querySelector('input[placeholder*="Baños"]');
+
+    if (!descArea) {
+        showToast('No se encontró el campo de descripción.', 'error');
+        return;
+    }
+
+    const originalText = btnElement ? btnElement.innerHTML : '';
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '✨ Redactando con IA...';
+    }
+
+    const payload = {
+        title: titleInput ? titleInput.value.trim() : '',
+        type: typeSelect ? typeSelect.value : 'Casa',
+        price: priceInput ? priceInput.value.trim() : '',
+        location: locInput ? locInput.value.trim() : '',
+        city: cityInput ? cityInput.value.trim() : '',
+        state: stateInput ? stateInput.value.trim() : '',
+        bedrooms: roomsInput ? roomsInput.value.trim() : '',
+        bathrooms: bathsInput ? bathsInput.value.trim() : '',
+        details: descArea.value.trim()
+    };
+
+    try {
+        const res = await fetch(getApiUrl('api/generate-desc.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data && data.description) {
+            descArea.value = data.description;
+            showToast('¡Ficha descriptiva redactada con éxito con IA!', 'success');
+        } else {
+            showToast('No fue posible generar la descripción automática.', 'error');
+        }
+    } catch (e) {
+        console.error('Error generando descripción:', e);
+        showToast('Error de conexión con el asistente de redacción.', 'error');
+    } finally {
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
+        }
+    }
 }
 
 /* =========================================================
