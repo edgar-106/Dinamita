@@ -631,8 +631,15 @@ img {
     background-size: cover;
     background-position: center;
     border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 18px;
+    isolation: isolate;
     cursor: pointer;
     transition: var(--transition);
+}
+
+.chooser-card {
+    border-radius: 18px;
+    isolation: isolate;
 }
 
 .category::after {
@@ -640,6 +647,7 @@ img {
     position: absolute;
     inset: 0;
     background: linear-gradient(transparent 30%, rgba(0, 0, 0, .88));
+    border-radius: inherit;
 }
 
 .category:hover {

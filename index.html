@@ -180,9 +180,9 @@
 .chooser-header h2 { font: normal clamp(38px, 5vw, 64px) Georgia, serif; }
 .chooser-header p { max-width: 410px; color: #c7d0df; line-height: 1.8; }
 .chooser-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; max-width: 1420px; margin: auto; }
-.chooser-card { position: relative; min-height: clamp(330px, 48vh, 500px); overflow: hidden; display: flex; align-items: end; padding: 32px; border: 1px solid rgba(255,255,255,.15); background: center / cover; color: #fff; text-align: left; font: inherit; cursor: pointer; transition: transform .3s ease, border-color .3s ease; }
-.chooser-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(0,0,0,.86)); }
-.chooser-card:hover, .chooser-card:focus-visible { transform: translateY(-6px); border-color: #c9a86a; outline: none; }
+.chooser-card { position: relative; min-height: clamp(330px, 48vh, 500px); overflow: hidden; display: flex; align-items: end; padding: 32px; border: 1px solid rgba(255,255,255,.15); border-radius: 18px; isolation: isolate; background: center / cover; color: #fff; text-align: left; font: inherit; cursor: pointer; transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
+.chooser-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(0,0,0,.86)); border-radius: inherit; }
+.chooser-card:hover, .chooser-card:focus-visible { transform: translateY(-6px); border-color: #c9a86a; box-shadow: 0 16px 36px rgba(0,0,0,.45); outline: none; }
 .chooser-card span { position: relative; z-index: 1; }
 .chooser-card strong { display: block; font: normal clamp(32px, 3vw, 46px) Georgia, serif; margin-bottom: 8px; }
 .chooser-card small { font-size: 14px; }
