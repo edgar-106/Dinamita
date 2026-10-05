@@ -338,6 +338,8 @@
 
         <p id="detailLocation" class="modal-subtitle"></p>
 
+        <p id="detailPrice" class="property-price"></p>
+
         <div class="detail-grid">
 
             <div class="detail-box">

@@ -6,7 +6,7 @@
     <title>Recorrido Virtual 360° — Residencia Minimalista Las Cumbres</title>
     
     <!-- Pannellum CSS -->
-    <link rel="stylesheet" href="lib/pannellum.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>tour/lib/pannellum.css">
     
     <style>
         :root {
@@ -521,7 +521,7 @@
     </div>
 
     <!-- Pannellum JS -->
-    <script src="lib/pannellum.js"></script>
+    <script src="<?= BASE_URL ?>tour/lib/pannellum.js"></script>
 
     <script>
         /* ==========================================================
@@ -543,7 +543,7 @@
                 sala: {
                     title: "Sala Principal",
                     type: "equirectangular",
-                    panorama: "panoramas/sala.jpg",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/sala.jpg",
                     pitch: 2,
                     yaw: 10,
                     hotSpots: [
@@ -598,7 +598,7 @@
                 comedor: {
                     title: "Comedor & Cocina de Diseño",
                     type: "equirectangular",
-                    panorama: "panoramas/comedor.jpg",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/comedor.jpg",
                     pitch: -3,
                     yaw: 0,
                     hotSpots: [
@@ -641,7 +641,7 @@
                 recamara: {
                     title: "Recámara Principal",
                     type: "equirectangular",
-                    panorama: "panoramas/recamara.jpg",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/recamara.jpg",
                     pitch: 0,
                     yaw: -30,
                     hotSpots: [
@@ -684,7 +684,7 @@
                 terraza: {
                     title: "Terraza & Jardín",
                     type: "equirectangular",
-                    panorama: "panoramas/terraza.jpg",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/terraza.jpg",
                     pitch: 2,
                     yaw: 15,
                     hotSpots: [

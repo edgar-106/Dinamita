@@ -3,9 +3,6 @@
  * Controlador para Vender / Publicar Propiedades
  */
 
-require_once __DIR__ . '/../core/Controller.php';
-require_once __DIR__ . '/../models/Propiedad.php';
-
 class VenderController extends Controller {
 
     public function index(): void {

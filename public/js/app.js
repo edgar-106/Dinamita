@@ -81,7 +81,7 @@
         if (operation === 'vender') {
             // Esperar un poco a que el splash se desvanezca y redirigir
             setTimeout(function() {
-                window.location.href = 'vender.html';
+                window.location.href = (window.APP_BASE_URL || '/') + 'vender';
             }, 100);
         } else if (operation === 'comprar') {
             setTimeout(function() {
@@ -322,7 +322,7 @@ const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_
         ],
         virtualTour: {
             type: 'iframe',
-            url: 'tour/index.html',
+            url: 'tour',
             title: 'Recorrido Interactivo 360° — Residencia Minimalista Las Cumbres',
             subtitle: 'Explora los espacios en 360°, interactúa con los puntos de navegación y conoce los acabados.',
             buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
@@ -952,7 +952,7 @@ async function sendMessage() {
 
     // 3. Enviar a la API de forma asíncrona
     try {
-        const response = await fetch(getApiUrl('api/chat.php'), {
+        const response = await fetch(getApiUrl('api/ai/chat'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
@@ -1044,7 +1044,7 @@ async function generateAIDescription(btnElement) {
     };
 
     try {
-        const res = await fetch(getApiUrl('api/generate-desc.php'), {
+        const res = await fetch(getApiUrl('api/ai/generate-description'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

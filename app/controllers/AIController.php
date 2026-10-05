@@ -4,9 +4,7 @@
  * INFONATEC Inmobiliaria
  */
 
-require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../config/ai_config.php';
-require_once __DIR__ . '/../models/Propiedad.php';
 
 class AIController extends Controller {
 

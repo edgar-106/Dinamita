@@ -1,0 +1,7 @@
+{
+  "name": "infonatec/dinami",
+  "description": "Aplicación inmobiliaria organizada con MVC.",
+  "type": "project",
+  "autoload": {"classmap": ["app/"]},
+  "require": {"php": ">=8.0"}
+}

@@ -3,9 +3,6 @@
  * Controlador de Propiedad (API y Ficha)
  */
 
-require_once __DIR__ . '/../core/Controller.php';
-require_once __DIR__ . '/../models/Propiedad.php';
-
 class PropiedadController extends Controller {
 
     /**

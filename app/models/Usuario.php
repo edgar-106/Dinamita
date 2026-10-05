@@ -4,8 +4,6 @@
  * Gestiona el registro, autenticación y sesión de usuarios
  */
 
-require_once __DIR__ . '/../core/Model.php';
-
 class Usuario extends Model {
 
     /**

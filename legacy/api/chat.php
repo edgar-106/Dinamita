@@ -14,12 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Cargar dependencias de la aplicación
-require_once __DIR__ . '/../app/config/config.php';
-require_once __DIR__ . '/../app/config/Database.php';
-require_once __DIR__ . '/../app/core/Controller.php';
-require_once __DIR__ . '/../app/core/Model.php';
-require_once __DIR__ . '/../app/controllers/AIController.php';
+// Adaptador temporal para clientes antiguos. La lógica vive en AIController.
+require_once __DIR__ . '/../app/bootstrap.php';
 
 // Despachar llamada
 $controller = new AIController();

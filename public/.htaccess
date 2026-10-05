@@ -5,6 +5,9 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # El recorrido es una vista MVC; sus recursos siguen disponibles en /tour/.
+    RewriteRule ^tour/?$ index.php?url=tour [QSA,L]
+
     # Si la petición apunta a un archivo, directorio o enlace simbólico real, servirlo directamente
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

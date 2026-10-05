@@ -3,9 +3,6 @@
  * Controlador de la Página Principal (Home)
  */
 
-require_once __DIR__ . '/../core/Controller.php';
-require_once __DIR__ . '/../models/Propiedad.php';
-
 class HomeController extends Controller {
 
     public function index(): void {

@@ -3,9 +3,6 @@
  * Controlador para Explorar / Catálogo de Propiedades
  */
 
-require_once __DIR__ . '/../core/Controller.php';
-require_once __DIR__ . '/../models/Propiedad.php';
-
 class ExplorarController extends Controller {
 
     public function index(): void {

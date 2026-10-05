@@ -4,8 +4,6 @@
  * Gestiona el catálogo de inmuebles (casas, departamentos, terrenos)
  */
 
-require_once __DIR__ . '/../core/Model.php';
-
 class Propiedad extends Model {
 
     /**
@@ -50,7 +48,7 @@ class Propiedad extends Model {
             'operation_details' => ['Venta', 'Efectivo', 'Crédito bancario', 'Financiamiento sujeto a condiciones'],
             'virtualTour' => [
                 'type' => 'iframe',
-                'url' => 'tour/index.html',
+                'url' => 'tour',
                 'title' => 'Recorrido Interactivo 360° — Residencia Minimalista Las Cumbres',
                 'subtitle' => 'Explora los espacios en 360°, interactúa con los puntos de navegación y conoce los acabados.',
                 'buttonText' => 'VER RECORRIDO INTERACTIVO 360° ▶',
@@ -238,7 +236,17 @@ class Propiedad extends Model {
      */
     public function getById(int $id): ?array {
         $all = $this->getAll();
-        return $all[$id] ?? null;
+
+        // El catálogo de respaldo usa el ID como índice, pero PDO devuelve
+        // arreglos con índices consecutivos. Buscar por el campo `id` permite
+        // que la API responda correctamente en ambos casos.
+        foreach ($all as $property) {
+            if ((int) ($property['id'] ?? 0) === $id) {
+                return $property;
+            }
+        }
+
+        return null;
     }
 
     /**
