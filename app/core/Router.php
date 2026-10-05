@@ -71,7 +71,7 @@ class Router {
 
         // Prioridad 2: REQUEST_URI quitando la ruta base
         $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-        $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+        $path = rawurldecode(parse_url($requestUri, PHP_URL_PATH) ?? '/');
 
         $basePath = BASE_PATH;
         if ($basePath !== '/' && strpos($path, $basePath) === 0) {
