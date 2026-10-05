@@ -453,8 +453,16 @@
 
 </div>
 
+<!-- Catálogo único: las fichas, el chat y las tarjetas usan estos mismos datos. -->
+<script>
+    window.INFONATEC_PROPERTIES = <?= json_encode(
+        $properties ?? [],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    ) ?>;
+</script>
+
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=5.0"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=5.1"></script>
 
 </body>
 </html>

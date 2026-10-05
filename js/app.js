@@ -276,7 +276,11 @@ window.addEventListener('keydown', function (e) {
    PROPIEDADES — datos
 ========================================================= */
 
-const properties = {
+// En las vistas MVC se recibe el catálogo del servidor. El bloque siguiente
+// conserva datos de respaldo para las páginas HTML antiguas del proyecto.
+const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_PROPERTIES).length)
+    ? window.INFONATEC_PROPERTIES
+    : {
     1: {
         title: 'Lote Residencial Montebello',
         type: 'Terreno',
@@ -492,6 +496,11 @@ function showProperty(id) {
     currentPropertyId = id;
     const property = properties[id];
 
+    if (!property) {
+        showToast('No fue posible encontrar la información de esta propiedad.', 'error');
+        return;
+    }
+
     document.getElementById('detailImage').src = property.image;
     document.getElementById('detailImage').alt = property.title;
     document.getElementById('detailTitle').innerText = property.title;
@@ -510,7 +519,8 @@ function showProperty(id) {
     // Detalles de operación
     const operation = document.getElementById('operationDetails');
     operation.innerHTML = '';
-    property.operation.forEach(function (item) {
+    const operationDetails = property.operation_details || property.operation || [];
+    (Array.isArray(operationDetails) ? operationDetails : [operationDetails]).forEach(function (item) {
         const li = document.createElement('li');
         li.textContent = item;
         operation.appendChild(li);
@@ -547,9 +557,15 @@ function openMediaTour(type) {
 
     const propertyId = currentPropertyId || 3;
     const property = properties[propertyId];
+
+    // El botón se conserva para informar al visitante, pero nunca se muestra
+    // un recorrido ajeno a la propiedad seleccionada.
+    if (type === 'interactivo' && !(property && property.virtualTour && property.virtualTour.url)) {
+        showToast('En este momento no contamos con el recorrido virtual de esta propiedad.', 'info', 4200);
+        return;
+    }
     
-    // Fallback content in case they don't have specific virtual tours defined yet
-    let tourUrl = 'https://my.matterport.com/show/?m=J2b34X5T5zM'; // Default interactive
+    let tourUrl = '';
     let videoUrl = 'casa 1.mp4'; // Default video
 
     if (property && property.virtualTour) {
@@ -566,9 +582,15 @@ function openMediaTour(type) {
     const iframePlayer = document.getElementById('tourIframePlayer');
 
     if (modalTitle) {
-        modalTitle.innerText = type === 'interactivo' ? 'Recorrido Interactivo' : 'Recorrido en Video';
+        modalTitle.innerText = property && property.virtualTour && property.virtualTour.title
+            ? property.virtualTour.title
+            : (type === 'interactivo' ? 'Recorrido Interactivo' : 'Recorrido en Video');
     }
-    if (modalSubtitle) modalSubtitle.innerText = property ? property.title : 'Explorando propiedad';
+    if (modalSubtitle) {
+        modalSubtitle.innerText = property && property.virtualTour && property.virtualTour.subtitle
+            ? property.virtualTour.subtitle
+            : (property ? property.title : 'Explorando propiedad');
+    }
     if (tourHelpText) {
         tourHelpText.innerText = type === 'interactivo' 
             ? (property && property.virtualTour && property.virtualTour.helpText ? property.virtualTour.helpText : '💡 Arrastra para mirar en 360°. Usa las flechas para moverte de sala.') 

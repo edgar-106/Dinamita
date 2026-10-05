@@ -126,11 +126,13 @@ class AIController extends Controller {
      */
     public function status(): void {
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
+        $hasApiKey = !empty($apiKey);
         $this->json([
             'ready'    => true,
-            'provider' => AI_PROVIDER,
+            'provider' => $hasApiKey && AI_PROVIDER !== 'local' ? AI_PROVIDER : 'local_expert',
+            'configured_provider' => AI_PROVIDER,
             'model'    => AI_MODEL,
-            'has_key'  => !empty($apiKey)
+            'has_key'  => $hasApiKey
         ]);
     }
 

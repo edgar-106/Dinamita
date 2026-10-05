@@ -4,12 +4,17 @@
  */
 
 require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../models/Propiedad.php';
 
 class VenderController extends Controller {
 
     public function index(): void {
+        // El layout compartido también usa el catálogo para las fichas y el chat.
+        $propiedadModel = new Propiedad();
+
         $this->renderView('vender/index', [
             'pageTitle'  => 'Vende o Publica tu Propiedad | INFONATEC',
+            'properties' => $propiedadModel->getAll(),
             'activePage' => 'vender',
             'showSplash' => false
         ]);
