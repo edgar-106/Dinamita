@@ -217,6 +217,8 @@ class Propiedad extends Model {
      * Retorna todas las propiedades (desde BD si existe tabla, o fallback a mock)
      */
     public function getAll(): array {
+        // La base de datos tiene prioridad para que el catálogo pueda crecer
+        // sin modificar código; el arreglo estático mantiene la demo operativa.
         if ($this->db !== null) {
             try {
                 $stmt = $this->db->query("SELECT * FROM propiedades ORDER BY id ASC");
@@ -253,6 +255,7 @@ class Propiedad extends Model {
      * Filtra propiedades por tipo y/o tipo de operación
      */
     public function filter(?string $type = null, ?string $operation = null): array {
+        // "all" y null representan ausencia de filtro, no un tipo real.
         $properties = $this->getAll();
         return array_filter($properties, function($item) use ($type, $operation) {
             $matchType = ($type === null || $type === 'all' || $item['type'] === $type);

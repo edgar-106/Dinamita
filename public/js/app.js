@@ -1,6 +1,7 @@
 /* =========================================================
-   app.js — NIDUS Inmobiliaria
-   JavaScript extraído de index.html
+   app.js — INFONATEC Inmobiliaria
+   Coordinador del comportamiento del cliente: navegación, modales, catálogo,
+   tour, autenticación local y solicitudes a la API MVC.
 ========================================================= */
 
 /* =========================================================
@@ -207,6 +208,8 @@ if (mobileMenu) {
 ========================================================= */
 
 function openModal(id) {
+    // Todos los modales bloquean el fondo; Registro añade la ubicación como
+    // ayuda opcional, únicamente si la persona autoriza el navegador.
     document.getElementById(id).classList.add('active');
     document.body.style.overflow = 'hidden';
     if (id === 'registerModal') fillRegistrationLocation();
@@ -239,6 +242,7 @@ function fillRegistrationLocation() {
 }
 
 function closeModal(id) {
+    // Cada cierre restituye el scroll para no dejar la página inmovilizada.
     document.getElementById(id).classList.remove('active');
     document.body.style.overflow = '';
 }

@@ -12,7 +12,8 @@ class Controller {
      * @param bool $withLayout Indica si se debe incluir el layout estándar (header y footer)
      */
     public function renderView(string $view, array $data = [], bool $withLayout = true): void {
-        // Extraer variables para que estén disponibles directamente en la vista
+        // Las claves de $data se convierten en variables para que la vista use
+        // $properties, $pageTitle, etc. sin acoplarse al controlador.
         extract($data);
 
         $viewFile = __DIR__ . '/../views/' . $view . '.php';
@@ -27,6 +28,8 @@ class Controller {
             $headerFile = __DIR__ . '/../views/layouts/header.php';
             $footerFile = __DIR__ . '/../views/layouts/footer.php';
 
+            // El header y footer son compartidos por las páginas convencionales.
+            // Las vistas inmersivas, como el tour, pueden omitirlos.
             if (file_exists($headerFile)) {
                 require $headerFile;
             }
@@ -48,6 +51,8 @@ class Controller {
      * @param int $statusCode
      */
     public function json($data, int $statusCode = 200): void {
+        // Los endpoints terminan aquí para impedir que un layout HTML se añada
+        // accidentalmente a la respuesta JSON.
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -60,6 +65,8 @@ class Controller {
      * @param string $path
      */
     public function redirect(string $path): void {
+        // Las rutas internas conservan el prefijo de instalación; las URLs
+        // externas se redirigen sin modificarse.
         if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
             header("Location: " . $path);
         } else {

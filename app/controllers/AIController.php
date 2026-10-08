@@ -12,7 +12,7 @@ class AIController extends Controller {
      * Endpoint para procesar mensajes del chat
      */
     public function chat(): void {
-        // Leer cuerpo JSON o POST
+        // Acepta JSON del cliente moderno y POST clásico para compatibilidad.
         $raw = file_get_contents('php://input');
         $input = json_decode($raw, true);
         if (!is_array($input)) {
@@ -29,7 +29,8 @@ class AIController extends Controller {
         $propiedadModel = new Propiedad();
         $properties = $propiedadModel->getAll();
 
-        // 1. Si hay clave configurada, intentar llamar al LLM
+        // Primero usa Gemini si hay una clave disponible. Si la llamada falla,
+        // continúa con el motor local para no dejar el chat sin respuesta.
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
         if (!empty($apiKey) && AI_PROVIDER !== 'local') {
             $llmResponse = $this->callGeminiApi($userMessage, $properties, $apiKey);
@@ -43,7 +44,8 @@ class AIController extends Controller {
             }
         }
 
-        // 2. Fallback Inteligente Local (alta velocidad, cero fallos, funciona 100% offline)
+        // El motor local responde con reglas basadas en el catálogo real y no
+        // requiere conexión externa ni consume cuotas de IA.
         $localResponse = $this->localExpertEngine($userMessage, $properties);
         $this->json([
             'status' => 'success',
@@ -74,6 +76,8 @@ class AIController extends Controller {
         $baths     = trim($input['bathrooms'] ?? '');
         $details   = trim($input['details'] ?? '');
 
+        // Se concentra la información proporcionada por el formulario antes de
+        // usarla tanto en Gemini como en la plantilla local.
         $promptContext = "Tipo: {$type}, Operación: {$operation}, Título base: {$title}, Precio: {$price}, Ubicación: {$location}, {$city}, {$state}. Recámaras: {$rooms}, Baños: {$baths}. Amenidades extra: {$details}.";
 
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
@@ -124,6 +128,8 @@ class AIController extends Controller {
      */
     public function status(): void {
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
+        // "ready" significa que existe una respuesta posible; provider aclara
+        // si esa respuesta vendrá del proveedor externo o del motor local.
         $hasApiKey = !empty($apiKey);
         $this->json([
             'ready'    => true,

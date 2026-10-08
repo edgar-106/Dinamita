@@ -17,6 +17,8 @@ class Usuario extends Model {
         $location = trim($userData['location'] ?? '');
         $password = $userData['password'] ?? '';
 
+        // Esta validación rápida protege los dos modos de persistencia: base de
+        // datos y sesión temporal para demostración.
         if (empty($name) || empty($email) || empty($password)) {
             return ['success' => false, 'message' => 'Por favor completa los campos requeridos.'];
         }
@@ -30,6 +32,8 @@ class Usuario extends Model {
                     return ['success' => false, 'message' => 'El correo electrónico ya está registrado.'];
                 }
 
+                // Nunca se almacena la contraseña original; PHP elige el
+                // algoritmo seguro actual mediante PASSWORD_DEFAULT.
                 $hash = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $this->db->prepare(
                     "INSERT INTO usuarios (nombre, apellidos, email, telefono, ubicacion, password, created_at) 
@@ -88,7 +92,8 @@ class Usuario extends Model {
             }
         }
 
-        // Fallback para pruebas rápidas
+        // Fallback para pruebas rápidas: no sustituye autenticación real y sólo
+        // conserva la sesión mientras el navegador permanezca activo.
         if (!empty($email) && !empty($password)) {
             $user = [
                 'id'       => 1,
@@ -108,6 +113,7 @@ class Usuario extends Model {
      * Obtiene el usuario actual logueado
      */
     public static function current(): ?array {
+        // Devuelve null cuando no existe sesión autenticada.
         return $_SESSION['user'] ?? null;
     }
 
@@ -115,6 +121,7 @@ class Usuario extends Model {
      * Cierra la sesión activa
      */
     public static function logout(): void {
+        // Se eliminan los datos y se invalida el identificador de la sesión.
         unset($_SESSION['user']);
         session_destroy();
     }

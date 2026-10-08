@@ -4,14 +4,19 @@
  */
 
 class Database {
+    // Se comparte una única conexión PDO durante toda la petición actual.
     private static ?PDO $instance = null;
+    // Evita reintentos repetidos cuando MySQL no está disponible.
     private static bool $connectionAttempted = false;
 
+    /** Obtiene la conexión disponible o null para activar los datos de respaldo. */
     public static function getConnection(): ?PDO {
         if (self::$instance === null && !self::$connectionAttempted) {
             self::$connectionAttempted = true;
             try {
                 $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+                // Excepciones y consultas preparadas reales hacen visibles los
+                // errores y evitan que PDO emule sentencias en el cliente.
                 $options = [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

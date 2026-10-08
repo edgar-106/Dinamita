@@ -6,6 +6,7 @@
 class HomeController extends Controller {
 
     public function index(): void {
+        // La página inicial recibe los destacados directamente del modelo.
         $propiedadModel = new Propiedad();
         $properties = $propiedadModel->getFeatured();
 
