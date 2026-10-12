@@ -42,6 +42,15 @@ class AppController extends Controller {
 
     public function tour(): void {
         // El recorrido ocupa toda la ventana y por ello no usa el layout común.
+        $prop = $_GET['prop'] ?? $_GET['id'] ?? null;
+        if ($prop === 'industrial' || $prop === '6' || $prop === '10') {
+            $this->renderView('tour/industrial', [], false);
+            return;
+        }
         $this->renderView('tour/index', [], false);
+    }
+
+    public function tourIndustrial(): void {
+        $this->renderView('tour/industrial', [], false);
     }
 }

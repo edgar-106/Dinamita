@@ -399,23 +399,31 @@ const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_
         ]
     },
     6: {
-        title: 'Casa Moderna Cancún',
-        type: 'Casa',
-        location: 'Cancún, Quintana Roo',
-        image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=90',
-        price: '$5,200,000',
+        title: 'Terreno Industrial Querétaro',
+        type: 'Terreno',
+        location: 'Querétaro, QRO',
+        image: 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1400&q=90',
+        price: '$4,100,000',
         details: [
-            '280 m² de construcción',
-            '3 habitaciones',
-            'Alberca privada',
-            'Acabados de lujo',
-            'A 10 min de la playa'
+            '1,200 m² de superficie regular',
+            'Uso de suelo industrial y logístico I-3',
+            'Plataforma nivelada con mecánica de suelos',
+            'Factibilidad eléctrica en media tensión',
+            'Acceso a vialidades para tractocamiones'
         ],
         operation: [
-            'Venta',
-            'Crédito bancario',
-            'Efectivo'
-        ]
+            'Venta directa',
+            'Escritura inmediata',
+            'Facilidades de pago y esquemas de crédito'
+        ],
+        virtualTour: {
+            type: 'iframe',
+            url: 'tour/industrial',
+            title: 'Recorrido Interactivo 360° — Terreno Industrial',
+            subtitle: 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y acceso para transporte pesado.',
+            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
+            helpText: '💡 Arrastra para mirar en 360°. Usa las flechas de navegación o la barra inferior para moverte entre zonas.'
+        }
     },
     7: {
         title: 'Loft Centro Histórico',
@@ -475,22 +483,31 @@ const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_
         ]
     },
     10: {
-        title: 'Terreno Industrial',
+        title: 'Macrolote Industrial Apodaca',
         type: 'Terreno',
         location: 'Apodaca, N.L.',
         image: 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1400&q=90',
         price: '$12,500,000',
         details: [
-            '5,000 m²',
-            'Uso de suelo industrial',
-            'Acceso a vialidades principales',
-            'Servicios de alta tensión'
+            '5,000 m² a 12,500 m²',
+            'Uso de suelo industrial pesado I-3',
+            'Acceso directo a autopista y libramiento',
+            'Subestación eléctrica (115 kV) y gas natural',
+            'Caseta blindada 24/7 y báscula de 80 ton'
         ],
         operation: [
             'Venta',
-            'Esquemas de financiamiento',
-            'Efectivo'
-        ]
+            'Esquemas de financiamiento industrial',
+            'Escrituración inmediata'
+        ],
+        virtualTour: {
+            type: 'iframe',
+            url: 'tour/industrial',
+            title: 'Recorrido Interactivo 360° — Terreno & Parque Industrial',
+            subtitle: 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y acceso para transporte pesado.',
+            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
+            helpText: '💡 Arrastra para mirar en 360°. Usa las flechas de navegación o la barra inferior para moverte entre zonas.'
+        }
     }
 };
 
@@ -536,9 +553,15 @@ function showProperty(id) {
         mediaSection.hidden = false; // Todas las propiedades tienen al menos fotografías.
     }
     
-    // Si es terreno, ocultar el botón de video
+    // Si es terreno, ocultar el botón de video a menos que tenga video
     if (btnVideo) {
-        btnVideo.hidden = property.type.toLowerCase() === 'terreno';
+        btnVideo.hidden = property.type.toLowerCase() === 'terreno' && (!property.virtualTour || !property.virtualTour.video);
+    }
+    const btnInteractivo = document.getElementById('btnMediaInteractivo');
+    if (btnInteractivo) {
+        const hasTour = !!(property.virtualTour && property.virtualTour.url);
+        btnInteractivo.style.opacity = hasTour ? '1' : '0.5';
+        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo no disponible';
     }
     const logged = localStorage.getItem('br_usuario');
     document.getElementById('fullInformation').style.display  = logged ? 'block' : 'none';
@@ -610,7 +633,12 @@ function openMediaTour(type) {
         }
         if (iframeContainer) iframeContainer.style.display = 'block';
         if (iframePlayer) {
-            iframePlayer.src = tourUrl;
+            let finalUrl = tourUrl;
+            if (tourUrl && !tourUrl.startsWith('http') && !tourUrl.startsWith('/')) {
+                const base = window.APP_BASE_URL || '';
+                finalUrl = base + tourUrl;
+            }
+            iframePlayer.src = finalUrl;
         }
     } else if (type === 'video') {
         if (iframeContainer) iframeContainer.style.display = 'none';

@@ -458,14 +458,22 @@
 
     <!-- Header Flotante -->
     <header class="tour-header">
-        <div class="tour-brand">
-            <div>
-                <div class="tour-brand-badge">Tour Virtual 360°</div>
-                <div class="tour-brand-title">Residencia Las Cumbres</div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; pointer-events:auto;">
+            <div class="tour-brand">
+                <div>
+                    <div class="tour-brand-badge">Tour Virtual 360°</div>
+                    <div class="tour-brand-title">Residencia Las Cumbres</div>
+                </div>
+                <div style="width: 1px; height: 26px; background: var(--border-glass);"></div>
+                <div class="tour-room-indicator">
+                    <span>📍 <b id="currentRoomName">Sala Principal</b></span>
+                </div>
             </div>
-            <div style="width: 1px; height: 26px; background: var(--border-glass);"></div>
-            <div class="tour-room-indicator">
-                <span>📍 <b id="currentRoomName">Sala Principal</b></span>
+
+            <div style="background:rgba(15,23,42,0.85); backdrop-filter:blur(16px); border:1px solid var(--border-glass); border-radius:20px; padding:6px 12px; font-size:11px; display:flex; align-items:center; gap:6px;">
+                <span style="color:#aaa;">Ver:</span>
+                <a href="<?= BASE_URL ?>tour" style="background:var(--gold); color:#111; font-weight:700; padding:2px 8px; border-radius:12px; text-decoration:none;">🏡 Residencia</a>
+                <a href="<?= BASE_URL ?>tour/industrial" style="color:#cbd5e1; padding:2px 8px; border-radius:12px; text-decoration:none;">🏭 Terreno Industrial</a>
             </div>
         </div>
 

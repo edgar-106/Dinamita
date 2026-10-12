@@ -118,22 +118,29 @@ class Propiedad extends Model {
         ],
         6 => [
             'id' => 6,
-            'title' => 'Terreno Campestre El Manantial',
+            'title' => 'Terreno Industrial Querétaro',
             'type' => 'terreno',
             'type_label' => 'Terreno',
             'operation' => 'comprar',
             'operation_label' => 'Venta',
-            'location' => 'Arteaga, COAH',
-            'full_location' => 'Arteaga, Coahuila',
-            'tag' => 'NUEVO',
-            'price' => '$980,000 MXN',
-            'raw_price' => 980000,
+            'location' => 'Querétaro, QRO',
+            'full_location' => 'Querétaro, Querétaro',
+            'tag' => 'VENTA',
+            'price' => '$4,100,000 MXN',
+            'raw_price' => 4100000,
             'video' => 'casa 1.mp4',
-            'image' => 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80',
-            'stats' => ['1,000 m²'],
-            'details' => ['1,000 m² campestre', 'Vistas a la sierra', 'Luz y agua a pie de lote'],
-            'operation_details' => ['Venta de contado', 'Financiamiento directo a 24 meses'],
-            'virtualTour' => null
+            'image' => 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1200&q=80',
+            'stats' => ['1,200 m²'],
+            'details' => ['1,200 m² de superficie regular', 'Uso industrial I-3', 'Plataforma nivelada con mecánica de suelo', 'Servicios de media y alta tensión'],
+            'operation_details' => ['Venta directa', 'Escritura inmediata', 'Facilidades de pago y esquemas de crédito'],
+            'virtualTour' => [
+                'type' => 'iframe',
+                'url' => 'tour/industrial',
+                'title' => 'Recorrido Interactivo 360° — Terreno Industrial',
+                'subtitle' => 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y caseta de control.',
+                'buttonText' => 'VER RECORRIDO INTERACTIVO 360° ▶',
+                'helpText' => '💡 Arrastra para mirar en 360°. Haz clic en las flechas de navegación o en los puntos de información técnica.'
+            ]
         ],
         7 => [
             'id' => 7,
@@ -194,22 +201,29 @@ class Propiedad extends Model {
         ],
         10 => [
             'id' => 10,
-            'title' => 'Terreno Comercial Periférico',
+            'title' => 'Macrolote Industrial Apodaca',
             'type' => 'terreno',
             'type_label' => 'Terreno',
             'operation' => 'comprar',
             'operation_label' => 'Venta',
-            'location' => 'Querétaro, QRO',
-            'full_location' => 'Santiago de Querétaro, QRO',
-            'tag' => 'COMERCIAL',
-            'price' => '$5,400,000 MXN',
-            'raw_price' => 5400000,
+            'location' => 'Apodaca, NL',
+            'full_location' => 'Apodaca, Nuevo León',
+            'tag' => 'INDUSTRIAL',
+            'price' => '$12,500,000 MXN',
+            'raw_price' => 12500000,
             'video' => 'casa 1.mp4',
-            'image' => 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
-            'stats' => ['800 m²'],
-            'details' => ['800 m² sobre avenida principal', 'Uso de suelo mixto/comercial', 'Todos los servicios'],
-            'operation_details' => ['Venta', 'Escritura inmediata'],
-            'virtualTour' => null
+            'image' => 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1200&q=80',
+            'stats' => ['5,000 m²'],
+            'details' => ['5,000 m² a 12,500 m²', 'Uso de suelo industrial pesado I-3', 'Acceso directo a autopista y libramiento', 'Subestación eléctrica (115 kV) y gas natural'],
+            'operation_details' => ['Venta', 'Esquemas de financiamiento industrial', 'Escritura inmediata'],
+            'virtualTour' => [
+                'type' => 'iframe',
+                'url' => 'tour/industrial',
+                'title' => 'Recorrido Interactivo 360° — Terreno & Parque Industrial',
+                'subtitle' => 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y caseta de control.',
+                'buttonText' => 'VER RECORRIDO INTERACTIVO 360° ▶',
+                'helpText' => '💡 Arrastra para mirar en 360°. Haz clic en las flechas de navegación o en los puntos de información técnica.'
+            ]
         ]
     ];
 

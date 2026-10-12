@@ -17,6 +17,7 @@ $router->get('/explorar', 'ExplorarController@index');
 $router->get('/vender', 'AppController@sell');
 $router->post('/vender/publicar', 'AppController@publish');
 $router->get('/tour', 'AppController@tour');
+$router->get('/tour/industrial', 'AppController@tourIndustrial');
 
 // --- Rutas de API y Datos ---
 $router->get('/api/propiedades', 'ApiController@properties');

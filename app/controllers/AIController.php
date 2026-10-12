@@ -236,13 +236,19 @@ class AIController extends Controller {
 
         // 1. Detección de Recorrido 3D
         if (str_contains($q, '3d') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
+            if (str_contains($q, 'industrial') || str_contains($q, 'terreno')) {
+                return [
+                    'reply' => "¡Sí! Contamos con un **Recorrido Virtual 360° del Terreno Industrial**. En él puedes explorar en 360° la plataforma nivelada, la subestación eléctrica de alta tensión, el patio logístico de maniobras y la caseta de acceso para transporte pesado, además de consultar la ficha técnica y el master plan del parque.",
+                    'related' => [6, 10]
+                ];
+            }
             $tourProps = array_filter($properties, fn($p) => !empty($p['virtualTour']));
             $first = reset($tourProps) ?: ($properties[2] ?? null);
             $title = $first ? $first['title'] : 'Residencia Las Cumbres';
             $id = $first ? $first['id'] : 2;
             return [
-                'reply' => "¡Sí! Contamos con recorridos virtuales interactivos 3D. Por ejemplo, en **{$title}** puedes explorar el interior en 360° haciendo clic en la tarjeta o seleccionando 'Ver Recorrido 3D'.",
-                'related' => [$id]
+                'reply' => "¡Sí! Contamos con recorridos virtuales interactivos 3D en **{$title}** (casa residencial) y en el **Terreno Industrial** (parque logístico). Puedes explorar las áreas en 360°, ver especificaciones y cambiar de zona con navegación interactiva.",
+                'related' => [$id, 6]
             ];
         }
 

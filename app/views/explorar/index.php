@@ -117,6 +117,11 @@
             <div class="property-image">
                 <video src="<?= BASE_URL . htmlspecialchars($prop['video']) ?>" class="property-video" muted playsinline loop onmouseover="this.play()" onmouseout="this.pause()" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;"></video>
                 <span class="property-tag"><?= htmlspecialchars($prop['tag']) ?></span>
+                <?php if (!empty($prop['virtualTour'])): ?>
+                <span style="position:absolute; bottom:12px; left:12px; background:rgba(15,23,42,0.88); backdrop-filter:blur(8px); border:1px solid rgba(201,168,106,0.5); color:#c9a86a; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; display:flex; align-items:center; gap:5px; box-shadow:0 4px 10px rgba(0,0,0,0.5); z-index:2;">
+                    🕶️ Tour 360°
+                </span>
+                <?php endif; ?>
                 <button class="favorite-btn" onclick="event.stopPropagation(); this.classList.toggle('active')">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>

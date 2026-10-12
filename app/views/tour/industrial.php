@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Recorrido Virtual 360° — Terreno Industrial & Parque Logístico | INFONATEC</title>
+    
+    <!-- Pannellum CSS -->
+    <link rel="stylesheet" href="<?= BASE_URL ?>tour/lib/pannellum.css">
+    
+    <style>
+        :root {
+            --primary: #c9a86a;
+            --primary-glow: rgba(201, 168, 106, 0.45);
+            --industrial-blue: #0284c7;
+            --industrial-glow: rgba(2, 132, 199, 0.4);
+            --accent-green: #10b981;
+            --dark-bg: rgba(15, 23, 42, 0.88);
+            --dark-card: rgba(15, 23, 42, 0.95);
+            --border-glass: rgba(255, 255, 255, 0.14);
+            --white: #ffffff;
+            --text-muted: #94a3b8;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0f17;
+            font-family: var(--font-sans);
+            color: var(--white);
+            user-select: none;
+        }
+
+        /* Contenedor del visor Pannellum */
+        #panorama {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .pnlm-load-button, .pnlm-panorama-info {
+            display: none !important;
+        }
+        .pnlm-control {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            border-radius: 8px !important;
+            border: 1px solid var(--border-glass) !important;
+        }
+
+        /* ==========================================================
+           HUD SUPERIOR
+           ========================================================== */
+        .tour-header {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            gap: 12px;
+        }
+
+        .tour-brand-container {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tour-brand {
+            background: var(--dark-bg);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border-glass);
+            border-radius: 30px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+        }
+
+        .tour-brand-badge {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tour-brand-badge::before {
+            content: '';
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulseDot 1.5s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .tour-brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: var(--white);
+        }
+
+        .tour-zone-indicator {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tour-zone-indicator b {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* Selector de propiedad (Casa vs Terreno) */
+        .property-switcher {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .property-switcher a {
+            color: #e2e8f0;
+            text-decoration: none;
+            padding: 3px 8px;
+            border-radius: 12px;
+            transition: 0.2s;
+        }
+        .property-switcher a:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        .property-switcher a.active {
+            background: var(--primary);
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        /* Botones de acción superior */
+        .tour-actions {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tour-btn {
+            background: var(--dark-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            color: var(--white);
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .tour-btn-icon-only {
+            width: 40px;
+            padding: 0;
+            border-radius: 50%;
+        }
+
+        .tour-btn:hover {
+            background: var(--primary);
+            color: #0f172a;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .tour-btn.active {
+            background: var(--primary);
+            color: #0f172a;
+            border-color: var(--primary);
+        }
+
+        /* ==========================================================
+           BARRA INFERIOR DE ZONAS (Navegación Industrial)
+           ========================================================== */
+        .tour-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            max-width: 96vw;
+        }
+
+        .tour-helper-pill {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #cbd5e1;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tour-helper-pill svg {
+            color: var(--primary);
+        }
+
+        .zones-bar {
+            pointer-events: auto;
+            background: var(--dark-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 26px;
+            padding: 6px 8px;
+            display: flex;
+            gap: 6px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.65);
+            overflow-x: auto;
+            max-width: 92vw;
+            scrollbar-width: none;
+        }
+        .zones-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .zone-tab {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .zone-tab:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+        }
+
+        .zone-tab.active {
+            background: rgba(201, 168, 106, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 15px rgba(201, 168, 106, 0.25);
+        }
+
+        .zone-tab-icon {
+            font-size: 15px;
+        }
+
+        /* ==========================================================
+           HOTSPOTS PERSONALIZADOS (Pannellum Custom Hotspots)
+           ========================================================== */
+        /* Hotspot de navegación entre zonas */
+        .hotspot-nav {
+            width: 46px;
+            height: 46px;
+            margin-left: -23px;
+            margin-top: -23px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 22px var(--primary-glow), 0 4px 14px rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+            animation: pulseNavInd 2.2s infinite;
+        }
+
+        .hotspot-nav:hover {
+            transform: scale(1.22);
+            background: var(--primary);
+        }
+        .hotspot-nav:hover svg {
+            stroke: #0f172a;
+        }
+
+        .hotspot-nav svg {
+            width: 22px;
+            height: 22px;
+            stroke: var(--primary);
+            stroke-width: 2.4;
+            fill: none;
+            transition: stroke 0.2s ease;
+        }
+
+        @keyframes pulseNavInd {
+            0% {
+                box-shadow: 0 0 0 0 rgba(201, 168, 106, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 18px rgba(201, 168, 106, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(201, 168, 106, 0);
+            }
+        }
+
+        /* Hotspot de Información técnica industrial */
+        .hotspot-info {
+            width: 40px;
+            height: 40px;
+            margin-left: -20px;
+            margin-top: -20px;
+            border-radius: 50%;
+            background: rgba(2, 132, 199, 0.92);
+            border: 2px solid #38bdf8;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 0 20px var(--industrial-glow), 0 4px 12px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: transform 0.25s ease, background 0.2s;
+            animation: pulseInfoInd 2.5s infinite;
+        }
+
+        .hotspot-info:hover {
+            transform: scale(1.24);
+            background: #38bdf8;
+            border-color: #ffffff;
+            color: #0f172a;
+        }
+
+        @keyframes pulseInfoInd {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 16px rgba(56, 189, 248, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+            }
+        }
+
+        /* Tooltips flotantes */
+        .hotspot-tooltip {
+            position: absolute;
+            bottom: 52px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 7px 14px;
+            white-space: nowrap;
+            color: var(--white);
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s, bottom 0.2s;
+        }
+
+        .hotspot-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(15, 23, 42, 0.95);
+        }
+
+        .hotspot-nav:hover .hotspot-tooltip,
+        .hotspot-info:hover .hotspot-tooltip {
+            opacity: 1;
+            bottom: 56px;
+        }
+
+        /* ==========================================================
+           MODALES (INFORMACIÓN & FICHA TÉCNICA)
+           ========================================================= */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .info-modal {
+            background: var(--dark-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 35px rgba(2, 132, 199, 0.2);
+            position: relative;
+            animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.94); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: var(--white);
+            background: rgba(255,255,255,0.18);
+        }
+
+        .info-badge-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #38bdf8;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .info-modal-desc {
+            font-size: 13.5px;
+            color: #cbd5e1;
+            line-height: 1.65;
+            margin-bottom: 20px;
+        }
+
+        .info-metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .info-metric-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px 14px;
+        }
+        .info-metric-label {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .info-metric-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: var(--font-mono);
+        }
+
+        /* Ficha Técnica Modal Grande */
+        .ficha-modal {
+            max-width: 680px;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        .ficha-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 13px;
+        }
+        .ficha-table th, .ficha-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .ficha-table th {
+            color: #94a3b8;
+            font-weight: 600;
+            width: 40%;
+        }
+        .ficha-table td {
+            color: #f1f5f9;
+            font-weight: 500;
+        }
+
+        /* Transición de escena suave */
+        .scene-fader {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+        .scene-fader.active {
+            opacity: 1;
+        }
+
+        /* Minimapa industrial flotante */
+        .minimap-card {
+            position: absolute;
+            top: 76px;
+            right: 16px;
+            z-index: 20;
+            background: var(--dark-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 12px;
+            width: 220px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+        .minimap-card.active {
+            display: block;
+        }
+        .minimap-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .minimap-svg {
+            width: 100%;
+            height: 140px;
+            background: #0a0f18;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .minimap-pin {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .minimap-pin:hover {
+            transform: scale(1.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsividad en móviles */
+        @media (max-width: 640px) {
+            .tour-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .tour-brand-container {
+                justify-content: space-between;
+            }
+            .tour-actions {
+                justify-content: flex-end;
+            }
+            .zone-tab span:last-child {
+                font-size: 11px;
+            }
+            .minimap-card {
+                top: auto;
+                bottom: 120px;
+                right: 16px;
+                width: 190px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Visor Pannellum WebGL -->
+    <div id="panorama"></div>
+
+    <!-- Telón de transición suave -->
+    <div id="sceneFader" class="scene-fader"></div>
+
+    <!-- Header Flotante -->
+    <header class="tour-header">
+        <div class="tour-brand-container">
+            <div class="tour-brand">
+                <div>
+                    <div class="tour-brand-badge">Tour Industrial 360°</div>
+                    <div class="tour-brand-title">Terreno & Parque Industrial</div>
+                </div>
+                <div style="width: 1px; height: 26px; background: var(--border-glass);"></div>
+                <div class="tour-zone-indicator">
+                    <span>📍 <b id="currentZoneName">Vista Aérea Master Plan</b></span>
+                </div>
+            </div>
+
+            <div class="property-switcher">
+                <span>Ver:</span>
+                <a href="#" class="active">🏭 Terreno Industrial</a>
+                <a href="<?= BASE_URL ?>tour">🏡 Residencia Las Cumbres</a>
+            </div>
+        </div>
+
+        <div class="tour-actions">
+            <button class="tour-btn" id="btnFichaTecnica" onclick="openFichaModal()" title="Ficha Técnica Industrial">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <span>Ficha Técnica</span>
+            </button>
+
+            <button class="tour-btn tour-btn-icon-only" id="btnMinimap" title="Master Plan / Mapa del Parque" onclick="toggleMinimap()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                    <line x1="8" y1="2" x2="8" y2="18"/>
+                    <line x1="16" y1="6" x2="16" y2="22"/>
+                </svg>
+            </button>
+
+            <button class="tour-btn tour-btn-icon-only" id="btnAutoRotate" title="Giro Automático" onclick="toggleAutoRotate()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+            </button>
+
+            <button class="tour-btn tour-btn-icon-only" id="btnFullscreen" title="Pantalla Completa" onclick="toggleFullscreen()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Minimapa Interactivo / Master Plan Flotante -->
+    <div class="minimap-card" id="minimapCard">
+        <div class="minimap-header">
+            <span>🗺️ Master Plan</span>
+            <button onclick="toggleMinimap()" style="background:none;border:none;color:#94a3b8;cursor:pointer;">✕</button>
+        </div>
+        <svg class="minimap-svg" viewBox="0 0 200 140">
+            <!-- Calles y Manzanas -->
+            <rect x="15" y="15" width="75" height="45" fill="#1e293b" rx="4" stroke="#334155" stroke-width="1.5"/>
+            <rect x="105" y="15" width="80" height="45" fill="#1e293b" rx="4" stroke="#334155" stroke-width="1.5"/>
+            <rect x="15" y="75" width="75" height="50" fill="#1e293b" rx="4" stroke="#334155" stroke-width="1.5"/>
+            <rect x="105" y="75" width="80" height="50" fill="#1e293b" rx="4" stroke="#334155" stroke-width="1.5"/>
+            <!-- Vialidades Principales -->
+            <line x1="0" y1="67" x2="200" y2="67" stroke="#475569" stroke-width="8"/>
+            <line x1="97" y1="0" x2="97" y2="140" stroke="#475569" stroke-width="8"/>
+            <!-- Lote Destacado en Venta -->
+            <rect x="18" y="78" width="69" height="44" fill="rgba(201, 168, 106, 0.25)" stroke="#c9a86a" stroke-width="2" stroke-dasharray="3,2"/>
+            <text x="52" y="103" fill="#c9a86a" font-size="8" font-weight="bold" text-anchor="middle">LOTE EN VENTA</text>
+            <!-- Pines de Zonas -->
+            <circle class="minimap-pin" id="mapPinAerea" cx="100" cy="35" r="5" fill="#38bdf8" onclick="switchScene('aerea')"/>
+            <circle class="minimap-pin" id="mapPinAcceso" cx="97" cy="130" r="5" fill="#22c55e" onclick="switchScene('acceso')"/>
+            <circle class="minimap-pin" id="mapPinLote" cx="52" cy="100" r="6" fill="#c9a86a" onclick="switchScene('lote')"/>
+            <circle class="minimap-pin" id="mapPinSubestacion" cx="145" cy="38" r="5" fill="#eab308" onclick="switchScene('subestacion')"/>
+            <circle class="minimap-pin" id="mapPinManiobras" cx="145" cy="100" r="5" fill="#f97316" onclick="switchScene('maniobras')"/>
+        </svg>
+        <div style="font-size:10px;color:#94a3b8;margin-top:6px;text-align:center;">
+            Toca un punto para viajar a esa zona
+        </div>
+    </div>
+
+    <!-- Footer Flotante con Selector de Zonas -->
+    <footer class="tour-footer">
+        <div class="tour-helper-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            Arrastra para explorar en 360° • Clic en flechas para moverte • Clic en puntos azules para ver especificaciones
+        </div>
+
+        <nav class="zones-bar" aria-label="Navegación entre zonas industriales">
+            <button class="zone-tab active" data-scene="aerea" onclick="switchScene('aerea')">
+                <span class="zone-tab-icon">🛰️</span>
+                <span>Vista Aérea (Master Plan)</span>
+            </button>
+            <button class="zone-tab" data-scene="acceso" onclick="switchScene('acceso')">
+                <span class="zone-tab-icon">🚛</span>
+                <span>Acceso & Caseta de Control</span>
+            </button>
+            <button class="zone-tab" data-scene="lote" onclick="switchScene('lote')">
+                <span class="zone-tab-icon">📐</span>
+                <span>Plataforma Nivelada (Lote)</span>
+            </button>
+            <button class="zone-tab" data-scene="subestacion" onclick="switchScene('subestacion')">
+                <span class="zone-tab-icon">⚡</span>
+                <span>Subestación Eléctrica</span>
+            </button>
+            <button class="zone-tab" data-scene="maniobras" onclick="switchScene('maniobras')">
+                <span class="zone-tab-icon">📦</span>
+                <span>Patio Logístico & Andenes</span>
+            </button>
+        </nav>
+    </footer>
+
+    <!-- Modal Informativo de Especificación Técnica -->
+    <div class="modal-overlay" id="infoModalOverlay" onclick="if(event.target===this) closeInfoModal()">
+        <div class="info-modal" role="dialog" aria-modal="true">
+            <button class="modal-close-btn" onclick="closeInfoModal()" aria-label="Cerrar">&times;</button>
+            <div class="info-badge-tag" id="infoTag">INFRAESTRUCTURA INDUSTRIAL</div>
+            <h3 class="info-modal-title" id="infoTitle">Título del Componente</h3>
+            <p class="info-modal-desc" id="infoDesc">Descripción técnica del área.</p>
+            
+            <div class="info-metric-grid" id="infoMetricsContainer">
+                <div class="info-metric-card">
+                    <div class="info-metric-label" id="metricLabel1">Capacidad</div>
+                    <div class="info-metric-value" id="metricVal1">6.5 ton/m²</div>
+                </div>
+                <div class="info-metric-card">
+                    <div class="info-metric-label" id="metricLabel2">Normativa</div>
+                    <div class="info-metric-value" id="metricVal2">I-3 Pesada</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end;">
+                <button class="tour-btn" onclick="openFichaModal(); closeInfoModal();" style="width:100%; border-radius:12px; background:var(--primary); color:#0f172a; justify-content:center;">
+                    Ver Ficha Técnica Completa ➔
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Completo: Ficha Técnica del Terreno Industrial -->
+    <div class="modal-overlay" id="fichaModalOverlay" onclick="if(event.target===this) closeFichaModal()">
+        <div class="info-modal ficha-modal" role="dialog" aria-modal="true">
+            <button class="modal-close-btn" onclick="closeFichaModal()" aria-label="Cerrar">&times;</button>
+            <div class="info-badge-tag" style="color:var(--primary);">DOCUMENTO DE INGENIERÍA & FACTIBILIDAD</div>
+            <h3 class="info-modal-title">Ficha Técnica — Macrolote Industrial</h3>
+            <p class="info-modal-desc">
+                Resumen ejecutivo de especificaciones técnicas, capacidad de servicios y marco normativo para el desarrollo de naves industriales, manufactura o centros de distribución (CEDIS).
+            </p>
+
+            <table class="ficha-table">
+                <tbody>
+                    <tr>
+                        <th>Superficie Total</th>
+                        <td><strong>12,500 m²</strong> (Módulos divisibles desde 5,000 m²)</td>
+                    </tr>
+                    <tr>
+                        <th>Ubicación y Corredor</th>
+                        <td>Parque Industrial Logístico • Acceso directo a Autopista / Libramiento</td>
+                    </tr>
+                    <tr>
+                        <th>Uso de Suelo</th>
+                        <td>Industrial I-3 (Industria Mediana, Pesada, Logística y Almacenaje)</td>
+                    </tr>
+                    <tr>
+                        <th>Topografía y Plataforma</th>
+                        <td>100% plana, terraplén compactado al 95% Proctor Modificado</td>
+                    </tr>
+                    <tr>
+                        <th>Capacidad de Carga de Suelo</th>
+                        <td><strong>6.5 a 8.0 ton/m²</strong> (Apta para maquinaria pesada y racks de 12m)</td>
+                    </tr>
+                    <tr>
+                        <th>Energía Eléctrica</th>
+                        <td>Media y Alta Tensión (115 kV / 13.8 kV) • Factibilidad hasta 20 MVA</td>
+                    </tr>
+                    <tr>
+                        <th>Gas Natural Industrial</th>
+                        <td>Ducto de 4" a 4 kg/cm² a pie de lote</td>
+                    </tr>
+                    <tr>
+                        <th>Agua y Drenaje</th>
+                        <td>Red hidráulica municipal + Pozo profundo concesionado + Planta de tratamiento</td>
+                    </tr>
+                    <tr>
+                        <th>Sistema Contra Incendio</th>
+                        <td>Cisterna de 1.2M L bajo norma internacional NFPA 20 / 25</td>
+                    </tr>
+                    <tr>
+                        <th>Vialidades Interiores</th>
+                        <td>Pavimento de concreto hidráulico MR-45 espesor 22 cm (Tráileres 53' Full)</td>
+                    </tr>
+                    <tr>
+                        <th>Seguridad y Acceso</th>
+                        <td>Caseta blindada 24/7, control CCTV LPR, báscula de 80 ton y barda perimetral</td>
+                    </tr>
+                    <tr>
+                        <th>Situación Legal</th>
+                        <td>Escritura pública inmediata, libre de gravamen, permisos MIA y factibilidades vigentes</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="tour-btn" onclick="contactAgent()" style="flex:1;min-width:200px;border-radius:12px;background:var(--primary);color:#0f172a;justify-content:center;">
+                    📞 Solicitar Cotización & Visita
+                </button>
+                <button class="tour-btn" onclick="closeFichaModal()" style="border-radius:12px;justify-content:center;">
+                    Cerrar Ficha
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pannellum JS -->
+    <script src="<?= BASE_URL ?>tour/lib/pannellum.js"></script>
+
+    <script>
+        /* ==========================================================
+           CONFIGURACIÓN DEL RECORRIDO 360° TERRENO INDUSTRIAL
+           ========================================================== */
+        const scenesConfig = {
+            default: {
+                firstScene: "aerea",
+                sceneFadeDuration: 600,
+                autoLoad: true,
+                showZoomCtrl: true,
+                showFullscreenCtrl: false,
+                compass: true,
+                northOffset: 45,
+                hfov: 100,
+                minHfov: 55,
+                maxHfov: 120
+            },
+            scenes: {
+                // ======================================================
+                // 1. VISTA AÉREA (MASTER PLAN)
+                // ======================================================
+                aerea: {
+                    title: "Vista Aérea (Master Plan & Polígono)",
+                    type: "equirectangular",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/industrial/aerea_360.jpg",
+                    pitch: -12,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: -20,
+                            yaw: 0,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "lote",
+                                title: "Bajar a la Plataforma Nivelada"
+                            }
+                        },
+                        {
+                            pitch: -18,
+                            yaw: 55,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "maniobras",
+                                title: "Ir al Patio de Maniobras Logístico"
+                            }
+                        },
+                        {
+                            pitch: -22,
+                            yaw: -60,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "acceso",
+                                title: "Ir al Acceso Principal & Caseta"
+                            }
+                        },
+                        {
+                            pitch: -14,
+                            yaw: -28,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "subestacion",
+                                title: "Ver Subestación Eléctrica"
+                            }
+                        },
+                        // Hotspots informativos
+                        {
+                            pitch: -8,
+                            yaw: 15,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "POLÍGONO INDUSTRIAL",
+                                title: "Superficie de 12,500 m² Nivelada",
+                                desc: "Lote regular con frentes a vialidades de alta capacidad. Topografía 100% plana con terracerías terminadas y lista para arrancar cimentación.",
+                                metric1: { label: "Área Total", val: "12,500 m²" },
+                                metric2: { label: "Topografía", val: "Plana 0.5%" }
+                            }
+                        },
+                        {
+                            pitch: 2,
+                            yaw: 85,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "CONECTIVIDAD ESTRATÉGICA",
+                                title: "Acceso Directo a Corredor Logístico",
+                                desc: "Ubicación en polo industrial de alta plusvalía, con conexión inmediata al libramiento de carga pesada y rutas clave hacia la frontera y el centro del país.",
+                                metric1: { label: "Autopista", val: "A 1.8 km" },
+                                metric2: { label: "Tránsito", val: "Full T3-S2" }
+                            }
+                        }
+                    ]
+                },
+
+                // ======================================================
+                // 2. ACCESO PRINCIPAL & CASETA DE CONTROL
+                // ======================================================
+                acceso: {
+                    title: "Acceso Principal & Caseta de Control",
+                    type: "equirectangular",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/industrial/acceso_360.jpg",
+                    pitch: 0,
+                    yaw: 0,
+                    hotSpots: [
+                        {
+                            pitch: 2,
+                            yaw: -4,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "lote",
+                                title: "Ingresar al Macrolote Industrial"
+                            }
+                        },
+                        {
+                            pitch: 18,
+                            yaw: -30,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "aerea",
+                                title: "Elevarse a Vista Aérea"
+                            }
+                        },
+                        {
+                            pitch: 0,
+                            yaw: 42,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "maniobras",
+                                title: "Ir al Patio Logístico"
+                            }
+                        },
+                        // Hotspots de info
+                        {
+                            pitch: -3,
+                            yaw: 8,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "CONTROL DE ACCESO 24/7",
+                                title: "Caseta Blindada y Báscula Camionera",
+                                desc: "Caseta con esclusa de seguridad, circuito cerrado CCTV con reconocimiento automático de placas (LPR) y báscula de pesaje de 80 toneladas.",
+                                metric1: { label: "Capacidad Báscula", val: "80 Ton" },
+                                metric2: { label: "Monitoreo", val: "24/7/365" }
+                            }
+                        },
+                        {
+                            pitch: -15,
+                            yaw: -12,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "VIALIDAD PESADA MR-45",
+                                title: "Pavimento Hidráulico de Alta Resistencia",
+                                desc: "Calzada de concreto hidráulico MR-45 con 22 cm de espesor reforzado con fibra metálica estructural y radio de giro amplio para semirremolques de 53 pies.",
+                                metric1: { label: "Espesor Losa", val: "22 cm" },
+                                metric2: { label: "Módulo MR", val: "MR-45" }
+                            }
+                        }
+                    ]
+                },
+
+                // ======================================================
+                // 3. MACROLOTE & PLATAFORMA NIVELADA
+                // ======================================================
+                lote: {
+                    title: "Plataforma Nivelada (Huella de Construcción)",
+                    type: "equirectangular",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/industrial/lote_360.jpg",
+                    pitch: -4,
+                    yaw: 15,
+                    hotSpots: [
+                        {
+                            pitch: 2,
+                            yaw: -60,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "acceso",
+                                title: "Volver a la Caseta de Entrada"
+                            }
+                        },
+                        {
+                            pitch: 1,
+                            yaw: 55,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "subestacion",
+                                title: "Ver Subestación Eléctrica"
+                            }
+                        },
+                        {
+                            pitch: 16,
+                            yaw: 10,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "aerea",
+                                title: "Subir a Vista Aérea"
+                            }
+                        },
+                        // Hotspots de info
+                        {
+                            pitch: -16,
+                            yaw: 22,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "ESTUDIO GEOTÉCNICO",
+                                title: "Capacidad Portante de 6.5 ton/m²",
+                                desc: "Plataforma conformada con material granular y compactada al 95% Proctor Modificado. Capacidad ideal para naves de manufactura pesada y racks automáticos.",
+                                metric1: { label: "Capacidad Carga", val: "6.5 ton/m²" },
+                                metric2: { label: "Compactación", val: "95% P.M." }
+                            }
+                        },
+                        {
+                            pitch: -10,
+                            yaw: -20,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "INFRAESTRUCTURA HIDRÁULICA",
+                                title: "Drenaje Pluvial y Vaso Regulador",
+                                desc: "Canalizaciones perimetrales subterráneas de concreto prefabricado con descarga controlada hacia vaso de regulación pluvial del parque.",
+                                metric1: { label: "Escorrentía", val: "100 Años TR" },
+                                metric2: { label: "Diámetro Tubo", val: "36 Pulgadas" }
+                            }
+                        }
+                    ]
+                },
+
+                // ======================================================
+                // 4. SUBESTACIÓN ELÉCTRICA & SERVICIOS
+                // ======================================================
+                subestacion: {
+                    title: "Subestación Eléctrica & Servicios de Alta Tensión",
+                    type: "equirectangular",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/industrial/subestacion_360.jpg",
+                    pitch: 0,
+                    yaw: -10,
+                    hotSpots: [
+                        {
+                            pitch: -2,
+                            yaw: -45,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "lote",
+                                title: "Regresar a la Plataforma del Lote"
+                            }
+                        },
+                        {
+                            pitch: 18,
+                            yaw: 0,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "aerea",
+                                title: "Vista Panorámica Aérea"
+                            }
+                        },
+                        {
+                            pitch: -3,
+                            yaw: 70,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "maniobras",
+                                title: "Ir al Patio Logístico"
+                            }
+                        },
+                        // Hotspots de info
+                        {
+                            pitch: -2,
+                            yaw: -8,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "ENERGÍA EN ALTA TENSIÓN",
+                                title: "Subestación 115 kV / 13.8 kV",
+                                desc: "Alimentación eléctrica industrial con transformadores de potencia dedicados, capacidad escalable hasta 20 MVA y doble circuito de respaldo.",
+                                metric1: { label: "Tensión", val: "115 / 13.8 kV" },
+                                metric2: { label: "Potencia Max", val: "20 MVA" }
+                            }
+                        },
+                        {
+                            pitch: -6,
+                            yaw: 35,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "GAS INDUSTRIAL & FIBRA",
+                                title: "Red de Gas Natural y Fibra Óptica",
+                                desc: "Línea de gas natural industrial de 4\" con presión regulada de 4 kg/cm² y anillo redundante subterráneo de fibra óptica multicarrier.",
+                                metric1: { label: "Gasoducto", val: "4 Pulg - 4 kg" },
+                                metric2: { label: "Telecom", val: "Fibra Anillo" }
+                            }
+                        }
+                    ]
+                },
+
+                // ======================================================
+                // 5. PATIO LOGÍSTICO & ANDENES DE CARGA
+                // ======================================================
+                maniobras: {
+                    title: "Patio Logístico & Andenes de Carga",
+                    type: "equirectangular",
+                    panorama: "<?= BASE_URL ?>tour/panoramas/industrial/maniobras_360.jpg",
+                    pitch: -2,
+                    yaw: -15,
+                    hotSpots: [
+                        {
+                            pitch: -1,
+                            yaw: -75,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "lote",
+                                title: "Ir a la Plataforma del Lote"
+                            }
+                        },
+                        {
+                            pitch: 20,
+                            yaw: -5,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "aerea",
+                                title: "Subir a Vista Aérea"
+                            }
+                        },
+                        {
+                            pitch: -3,
+                            yaw: 45,
+                            type: "custom",
+                            cssClass: "hotspot-nav-wrap",
+                            createTooltipFunc: createNavHotspot,
+                            createTooltipArgs: {
+                                targetScene: "acceso",
+                                title: "Salir a la Caseta Principal"
+                            }
+                        },
+                        // Hotspots de info
+                        {
+                            pitch: -5,
+                            yaw: -25,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "LOGÍSTICA PESADA",
+                                title: "Patio de Maniobras de 50 Metros",
+                                desc: "Frente amplio con losas de concreto de alto rendimiento para estacionamiento de remolques y fácil acoplamiento en andenes de carga rápida.",
+                                metric1: { label: "Fondo Maniobra", val: "50 Metros" },
+                                metric2: { label: "Capacidad", val: "Full 53ft" }
+                            }
+                        },
+                        {
+                            pitch: -4,
+                            yaw: -50,
+                            type: "custom",
+                            cssClass: "hotspot-info-wrap",
+                            createTooltipFunc: createInfoHotspot,
+                            createTooltipArgs: {
+                                tag: "ANDENES CON RAMPA HIDRÁULICA",
+                                title: "Bahías de Carga y Descarga Rápida",
+                                desc: "Espacios proyectados para rampas niveladoras electrohidráulicas de 30,000 lbs con sellos de andén y cortinas automáticas enrollables.",
+                                metric1: { label: "Rampas", val: "30,000 lbs" },
+                                metric2: { label: "Nivelación", val: "Hidráulica" }
+                            }
+                        }
+                    ]
+                }
+            }
+        };
+
+        /* ==========================================================
+           INICIALIZAR PANNELLUM
+           ========================================================== */
+        let viewer = pannellum.viewer('panorama', scenesConfig);
+
+        /* ==========================================================
+           CREADOR DE HOTSPOT DE NAVEGACIÓN
+           ========================================================== */
+        function createNavHotspot(hotSpotDiv, args) {
+            hotSpotDiv.classList.add('hotspot-nav');
+            hotSpotDiv.innerHTML = `
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+                <div class="hotspot-tooltip">${args.title}</div>
+            `;
+            hotSpotDiv.onclick = function (e) {
+                e.stopPropagation();
+                switchScene(args.targetScene);
+            };
+        }
+
+        /* ==========================================================
+           CREADOR DE HOTSPOT DE INFORMACIÓN TÉCNICA
+           ========================================================== */
+        function createInfoHotspot(hotSpotDiv, args) {
+            hotSpotDiv.classList.add('hotspot-info');
+            hotSpotDiv.innerHTML = `
+                <span>ℹ</span>
+                <div class="hotspot-tooltip">${args.title}</div>
+            `;
+            hotSpotDiv.onclick = function (e) {
+                e.stopPropagation();
+                openInfoModal(args.tag, args.title, args.desc, args.metric1, args.metric2);
+            };
+        }
+
+        /* ==========================================================
+           CAMBIO DE ZONA / ESCENA
+           ========================================================== */
+        function switchScene(sceneId) {
+            if (!scenesConfig.scenes[sceneId]) return;
+            
+            const fader = document.getElementById('sceneFader');
+            fader.classList.add('active');
+
+            setTimeout(() => {
+                viewer.loadScene(sceneId);
+                updateHudState(sceneId);
+                setTimeout(() => {
+                    fader.classList.remove('active');
+                }, 300);
+            }, 200);
+        }
+
+        function updateHudState(sceneId) {
+            const scene = scenesConfig.scenes[sceneId];
+            if (!scene) return;
+
+            // Actualizar nombre de la zona en el badge superior
+            const zoneNameEl = document.getElementById('currentZoneName');
+            if (zoneNameEl) zoneNameEl.innerText = scene.title;
+
+            // Actualizar pestañas activas de la barra inferior
+            document.querySelectorAll('.zone-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.getAttribute('data-scene') === sceneId);
+            });
+
+            // Resaltar pin del minimapa
+            const pinMap = {
+                aerea: 'mapPinAerea',
+                acceso: 'mapPinAcceso',
+                lote: 'mapPinLote',
+                subestacion: 'mapPinSubestacion',
+                maniobras: 'mapPinManiobras'
+            };
+            document.querySelectorAll('.minimap-pin').forEach(pin => {
+                pin.setAttribute('stroke', 'none');
+            });
+            const activePin = document.getElementById(pinMap[sceneId]);
+            if (activePin) {
+                activePin.setAttribute('stroke', '#ffffff');
+                activePin.setAttribute('stroke-width', '2');
+            }
+        }
+
+        viewer.on('load', function() {
+            const currentSceneId = viewer.getScene();
+            updateHudState(currentSceneId);
+        });
+
+        /* ==========================================================
+           GIRO AUTOMÁTICO
+           ========================================================== */
+        let isAutoRotating = false;
+        function toggleAutoRotate() {
+            isAutoRotating = !isAutoRotating;
+            const btn = document.getElementById('btnAutoRotate');
+            if (isAutoRotating) {
+                viewer.startAutoRotate(-1.8);
+                btn.classList.add('active');
+            } else {
+                viewer.stopAutoRotate();
+                btn.classList.remove('active');
+            }
+        }
+
+        viewer.on('mousedown', function() {
+            if (isAutoRotating) {
+                viewer.stopAutoRotate();
+                document.getElementById('btnAutoRotate').classList.remove('active');
+                isAutoRotating = false;
+            }
+        });
+        viewer.on('touchstart', function() {
+            if (isAutoRotating) {
+                viewer.stopAutoRotate();
+                document.getElementById('btnAutoRotate').classList.remove('active');
+                isAutoRotating = false;
+            }
+        });
+
+        /* ==========================================================
+           PANTALLA COMPLETA
+           ========================================================== */
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        /* ==========================================================
+           MINIMAPA / MASTER PLAN
+           ========================================================== */
+        function toggleMinimap() {
+            const card = document.getElementById('minimapCard');
+            const btn = document.getElementById('btnMinimap');
+            card.classList.toggle('active');
+            btn.classList.toggle('active');
+        }
+
+        /* ==========================================================
+           MODALES (INFORMACIÓN & FICHA TÉCNICA)
+           ========================================================== */
+        function openInfoModal(tag, title, desc, metric1, metric2) {
+            document.getElementById('infoTag').innerText = tag || 'ESPECIFICACIÓN TÉCNICA';
+            document.getElementById('infoTitle').innerText = title;
+            document.getElementById('infoDesc').innerText = desc;
+            
+            const m1 = metric1 || { label: 'Capacidad', val: '6.5 ton/m²' };
+            const m2 = metric2 || { label: 'Norma', val: 'I-3 Pesada' };
+            
+            document.getElementById('metricLabel1').innerText = m1.label;
+            document.getElementById('metricVal1').innerText = m1.val;
+            document.getElementById('metricLabel2').innerText = m2.label;
+            document.getElementById('metricVal2').innerText = m2.val;
+
+            document.getElementById('infoModalOverlay').classList.add('active');
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModalOverlay').classList.remove('active');
+        }
+
+        function openFichaModal() {
+            document.getElementById('fichaModalOverlay').classList.add('active');
+        }
+
+        function closeFichaModal() {
+            document.getElementById('fichaModalOverlay').classList.remove('active');
+        }
+
+        function contactAgent() {
+            closeFichaModal();
+            alert('¡Gracias por tu interés en el Macrolote Industrial! Un asesor de INFONATEC se comunicará contigo de inmediato para coordinar la visita técnica.');
+        }
+
+        // Atajos de teclado: ESC para cerrar modales, M para minimapa, R para rotar
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeInfoModal();
+                closeFichaModal();
+                const card = document.getElementById('minimapCard');
+                if (card.classList.contains('active')) toggleMinimap();
+            }
+            if (e.key === 'm' || e.key === 'M') {
+                toggleMinimap();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                toggleAutoRotate();
+            }
+        });
+    </script>
+</body>
+</html>
