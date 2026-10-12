@@ -464,7 +464,7 @@
 </script>
 
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=5.1"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=5.2"></script>
 
 </body>
 </html>
