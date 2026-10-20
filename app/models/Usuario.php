@@ -26,7 +26,7 @@ class Usuario extends Model {
         // Si hay base de datos conectada
         if ($this->db !== null) {
             try {
-                $check = $this->db->prepare("SELECT id FROM usuarios WHERE email = ?");
+                $check = $this->db->prepare("SELECT id_usuario FROM usuario WHERE correo = ?");
                 $check->execute([$email]);
                 if ($check->fetch()) {
                     return ['success' => false, 'message' => 'El correo electrónico ya está registrado.'];
@@ -35,11 +35,13 @@ class Usuario extends Model {
                 // Nunca se almacena la contraseña original; PHP elige el
                 // algoritmo seguro actual mediante PASSWORD_DEFAULT.
                 $hash = password_hash($password, PASSWORD_DEFAULT);
+                $usernameBase = strtolower((string) preg_replace('/[^a-z0-9]/', '', strstr($email, '@', true)));
+                $username = substr($usernameBase ?: 'usuario', 0, 52) . '_' . substr(bin2hex(random_bytes(4)), 0, 7);
                 $stmt = $this->db->prepare(
-                    "INSERT INTO usuarios (nombre, apellidos, email, telefono, ubicacion, password, created_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, NOW())"
+                    "INSERT INTO usuario (nombre, apellido_paterno, correo, telefono, usuario, contrasena)
+                     VALUES (?, ?, ?, ?, ?, ?)"
                 );
-                $stmt->execute([$name, $last, $email, $phone, $location, $hash]);
+                $stmt->execute([$name, $last ?: 'Sin apellido', $email, $phone ?: null, $username, $hash]);
                 $userId = $this->db->lastInsertId();
 
                 $user = [
@@ -79,13 +81,20 @@ class Usuario extends Model {
 
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE email = ?");
+                $stmt = $this->db->prepare("SELECT * FROM usuario WHERE correo = ? AND activo = 1");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
-                if ($user && password_verify($password, $user['password'])) {
-                    unset($user['password']);
-                    $_SESSION['user'] = $user;
-                    return ['success' => true, 'user' => $user];
+                if ($user && password_verify($password, $user['contrasena'])) {
+                    $sessionUser = [
+                        'id' => $user['id_usuario'],
+                        'name' => $user['nombre'],
+                        'last' => $user['apellido_paterno'],
+                        'email' => $user['correo'],
+                        'phone' => $user['telefono'],
+                        'location' => '',
+                    ];
+                    $_SESSION['user'] = $sessionUser;
+                    return ['success' => true, 'user' => $sessionUser];
                 }
             } catch (Exception $e) {
                 error_log("Error al iniciar sesión: " . $e->getMessage());

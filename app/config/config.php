@@ -32,7 +32,8 @@ define('APP_TITLE', 'INFONATEC | Tu hogar, tu nido');
 // Credenciales locales por defecto. En producción deben sustituirse mediante
 // variables de entorno o un archivo de configuración fuera del repositorio.
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'infonatec_db');
+// Nombre de la base importada en MySQL/MariaDB de XAMPP.
+define('DB_NAME', 'sistema_inmobiliario');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');

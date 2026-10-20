@@ -235,8 +235,44 @@ class Propiedad extends Model {
         // sin modificar código; el arreglo estático mantiene la demo operativa.
         if ($this->db !== null) {
             try {
-                $stmt = $this->db->query("SELECT * FROM propiedades ORDER BY id ASC");
-                $dbProps = $stmt->fetchAll();
+                // La base usa nombres normalizados en español; aquí se adaptan
+                // al contrato que ya consumen las vistas y la API del sitio.
+                $stmt = $this->db->query(
+                    "SELECT
+                        p.id_propiedad AS id,
+                        p.titulo AS title,
+                        p.descripcion,
+                        p.ubicacion AS location,
+                        p.precio AS raw_price,
+                        p.superficie,
+                        p.habitaciones,
+                        p.banos,
+                        p.situacion_legal,
+                        LOWER(c.nombre) AS type,
+                        c.nombre AS type_label,
+                        CASE WHEN UPPER(p.operacion) = 'RENTA' THEN 'rentar' ELSE 'comprar' END AS operation,
+                        CASE WHEN UPPER(p.operacion) = 'RENTA' THEN 'Renta' ELSE 'Venta' END AS operation_label,
+                        e.nombre AS tag,
+                        COALESCE((
+                            SELECT ip.url_imagen
+                            FROM imagen_propiedad ip
+                            WHERE ip.id_propiedad = p.id_propiedad
+                            ORDER BY ip.orden_visualizacion, ip.id_imagen
+                            LIMIT 1
+                        ), '') AS image,
+                        COALESCE((
+                            SELECT pv.url_3d
+                            FROM paseo_virtual pv
+                            WHERE pv.id_propiedad = p.id_propiedad
+                            LIMIT 1
+                        ), '') AS tour_url
+                    FROM propiedad p
+                    INNER JOIN categoria c ON c.id_categoria = p.id_categoria
+                    INNER JOIN estado_propiedad e ON e.id_estado = p.id_estado
+                    WHERE e.nombre = 'DISPONIBLE'
+                    ORDER BY p.fecha_publicacion DESC, p.id_propiedad DESC"
+                );
+                $dbProps = array_map([$this, 'mapDatabaseProperty'], $stmt->fetchAll());
                 if (!empty($dbProps)) {
                     return $dbProps;
                 }
@@ -245,6 +281,53 @@ class Propiedad extends Model {
             }
         }
         return self::$mockProperties;
+    }
+
+    /** Convierte un registro del esquema inmobiliario al formato de la UI. */
+    private function mapDatabaseProperty(array $property): array {
+        $stats = [];
+        if ($property['superficie'] !== null) {
+            $stats[] = number_format((float) $property['superficie'], 0) . ' m²';
+        }
+        if ($property['habitaciones'] !== null) {
+            $stats[] = $property['habitaciones'] . ' Rec';
+        }
+        if ($property['banos'] !== null) {
+            $stats[] = $property['banos'] . ' Baños';
+        }
+
+        $isRent = $property['operation'] === 'rentar';
+        $details = array_values(array_filter([
+            $property['descripcion'] ?: null,
+            $property['superficie'] !== null ? number_format((float) $property['superficie'], 0) . ' m²' : null,
+            $property['habitaciones'] !== null ? $property['habitaciones'] . ' habitaciones' : null,
+            $property['banos'] !== null ? $property['banos'] . ' baños' : null,
+        ]));
+
+        return [
+            'id' => (int) $property['id'],
+            'title' => $property['title'],
+            'type' => $property['type'],
+            'type_label' => ucfirst(strtolower($property['type_label'])),
+            'operation' => $property['operation'],
+            'operation_label' => $property['operation_label'],
+            'location' => $property['location'],
+            'full_location' => $property['location'],
+            'tag' => $property['tag'],
+            'price' => '$' . number_format((float) $property['raw_price'], 0) . ($isRent ? ' / mes' : ' MXN'),
+            'raw_price' => (float) $property['raw_price'],
+            // La UI actual usa un video para las tarjetas; conservar el recurso
+            // local evita tratar una fotografía como archivo multimedia.
+            'video' => 'casa 1.mp4',
+            'image' => $property['image'],
+            'stats' => $stats,
+            'details' => $details,
+            'operation_details' => array_values(array_filter([
+                $property['operation_label'],
+                $property['situacion_legal'] ?: null,
+            ])),
+            'virtualTour' => $property['tour_url'] !== '' ? ['type' => 'iframe', 'url' => $property['tour_url']] : null,
+        ];
     }
 
     /**
@@ -283,5 +366,93 @@ class Propiedad extends Model {
      */
     public function getFeatured(): array {
         return $this->getAll();
+    }
+
+    /** Registra una propiedad publicada desde el formulario de Vender. */
+    public function create(array $data): array {
+        if ($this->db === null) {
+            return ['success' => false, 'message' => 'La base de datos no está disponible.'];
+        }
+
+        $title = trim($data['title'] ?? '');
+        $type = strtoupper(trim($data['type'] ?? ''));
+        $price = filter_var($data['price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $location = trim($data['location'] ?? '');
+        $ownerName = trim($data['owner_name'] ?? '');
+        $ownerEmail = trim($data['owner_email'] ?? '');
+
+        if ($title === '' || !in_array($type, ['CASA', 'DEPARTAMENTO', 'TERRENO'], true) || $price === false || $price < 0 || $location === '' || $ownerName === '' || !filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'message' => 'Completa los datos requeridos de la propiedad y del propietario.'];
+        }
+
+        try {
+            // Permite que esta operación forme parte de una transacción mayor,
+            // por ejemplo durante pruebas o flujos administrativos compuestos.
+            $ownsTransaction = !$this->db->inTransaction();
+            if ($ownsTransaction) {
+                $this->db->beginTransaction();
+            }
+
+            $ownerQuery = $this->db->prepare('SELECT id_usuario FROM usuario WHERE correo = ?');
+            $ownerQuery->execute([$ownerEmail]);
+            $ownerId = $ownerQuery->fetchColumn();
+
+            if (!$ownerId) {
+                $nameParts = preg_split('/\s+/', $ownerName, 2);
+                $usernameBase = strtolower((string) preg_replace('/[^a-z0-9]/', '', strstr($ownerEmail, '@', true)));
+                $username = substr($usernameBase ?: 'propietario', 0, 52) . '_' . substr(bin2hex(random_bytes(4)), 0, 7);
+                $ownerInsert = $this->db->prepare(
+                    'INSERT INTO usuario (nombre, apellido_paterno, correo, telefono, usuario, contrasena) VALUES (?, ?, ?, ?, ?, ?)'
+                );
+                $ownerInsert->execute([
+                    $nameParts[0],
+                    $nameParts[1] ?? 'Sin apellido',
+                    $ownerEmail,
+                    trim($data['owner_phone'] ?? '') ?: null,
+                    $username,
+                    password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+                ]);
+                $ownerId = (int) $this->db->lastInsertId();
+            }
+
+            $categoryQuery = $this->db->prepare('SELECT id_categoria FROM categoria WHERE nombre = ?');
+            $categoryQuery->execute([$type]);
+            $categoryId = $categoryQuery->fetchColumn();
+            $stateId = $this->db->query("SELECT id_estado FROM estado_propiedad WHERE nombre = 'DISPONIBLE'")->fetchColumn();
+
+            if (!$categoryId || !$stateId) {
+                throw new RuntimeException('Faltan los catálogos iniciales de la base de datos.');
+            }
+
+            $propertyInsert = $this->db->prepare(
+                'INSERT INTO propiedad (id_propietario, id_categoria, id_estado, titulo, descripcion, ubicacion, precio, superficie, habitaciones, banos, operacion)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $propertyInsert->execute([
+                $ownerId,
+                $categoryId,
+                $stateId,
+                $title,
+                trim($data['description'] ?? '') ?: null,
+                $location,
+                $price,
+                filter_var($data['area'] ?? null, FILTER_VALIDATE_FLOAT) ?: null,
+                filter_var($data['bedrooms'] ?? null, FILTER_VALIDATE_INT) ?: null,
+                filter_var($data['bathrooms'] ?? null, FILTER_VALIDATE_INT) ?: null,
+                strtoupper(trim($data['operation'] ?? 'VENTA')),
+            ]);
+            $propertyId = (int) $this->db->lastInsertId();
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+
+            return ['success' => true, 'id' => $propertyId, 'message' => 'Propiedad registrada correctamente.'];
+        } catch (Throwable $e) {
+            if (($ownsTransaction ?? false) && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('Error al publicar propiedad: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'No fue posible registrar la propiedad.'];
+        }
     }
 }

@@ -37,7 +37,7 @@ class AppController extends Controller {
             $this->redirect('vender');
         }
 
-        $this->json(['success' => true, 'message' => '¡Propiedad publicada con éxito!', 'data' => $_POST]);
+        $this->json((new Propiedad())->create($_POST));
     }
 
     public function tour(): void {

@@ -342,11 +342,11 @@
                 <div class="form-grid" id="fields-vivienda">
                     <div class="form-group">
                         <label>Número de habitaciones</label>
-                        <input type="number" placeholder="Ej. 3">
+                        <input type="number" id="pubBedrooms" placeholder="Ej. 3">
                     </div>
                     <div class="form-group">
                         <label>Número de baños</label>
-                        <input type="number" placeholder="Ej. 2">
+                        <input type="number" id="pubBathrooms" placeholder="Ej. 2">
                     </div>
                     <div class="form-group">
                         <label>Lugares de estacionamiento</label>
@@ -354,14 +354,14 @@
                     </div>
                     <div class="form-group">
                         <label>Metros cuadrados (Construcción)</label>
-                        <input type="number" placeholder="m²">
+                        <input type="number" id="pubArea" placeholder="m²">
                     </div>
                 </div>
 
                 <div class="form-grid" id="fields-terreno" style="display: none;">
                     <div class="form-group">
                         <label>Metros cuadrados (Superficie total)</label>
-                        <input type="number" placeholder="m²">
+                        <input type="number" id="pubLandArea" placeholder="m²">
                     </div>
                     <div class="form-group">
                         <label>Uso de suelo</label>
@@ -495,7 +495,42 @@ function prevStep(step) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function publishProperty() {
+async function publishProperty() {
+    const location = [
+        document.getElementById('pubLocation').value.trim(),
+        document.getElementById('pubCity').value.trim(),
+        document.getElementById('pubState').value.trim()
+    ].filter(Boolean).join(', ');
+    const payload = new URLSearchParams({
+        title: document.getElementById('pubTitle').value.trim(),
+        type: selectedType,
+        price: document.getElementById('pubPrice').value,
+        location,
+        description: document.getElementById('pubDesc').value.trim(),
+        bedrooms: document.getElementById('pubBedrooms').value,
+        bathrooms: document.getElementById('pubBathrooms').value,
+        area: (selectedType === 'terreno' ? document.getElementById('pubLandArea') : document.getElementById('pubArea')).value,
+        operation: 'VENTA',
+        owner_name: document.getElementById('ownerName').value.trim(),
+        owner_phone: document.getElementById('ownerPhone').value.trim(),
+        owner_email: document.getElementById('ownerEmail').value.trim()
+    });
+
+    try {
+        const response = await fetch('<?= BASE_URL ?>vender/publicar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+            body: payload.toString()
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'No fue posible publicar la propiedad.');
+        }
+    } catch (error) {
+        alert(error.message || 'No fue posible publicar la propiedad.');
+        return;
+    }
+
     const progressBar = document.querySelector('.progress-bar');
     if (progressBar) progressBar.style.display = 'none';
 
