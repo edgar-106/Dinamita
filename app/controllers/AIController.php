@@ -410,7 +410,25 @@ class AIController extends Controller {
         $q = mb_strtolower($query, 'UTF-8');
         $related = [];
 
-        // 1. Detección de Recorrido 3D
+        // 0. Saludos
+        if (preg_match('/^(hola|hey|saludos|buenas|buenos dias|buenas tardes|buenas noches|good (morning|afternoon|evening))\b/', $q) && mb_strlen(trim($query)) <= 60) {
+            return [
+                'reply' => "¡Hola! 😊 ¡Qué gusto saludarte! Soy el asistente virtual de **INFONATEC**. Estoy aquí para ayudarte a encontrar el inmueble ideal o resolver dudas sobre compra, renta, recorridos virtuales o créditos.
+
+Cuéntame, ¿qué tienes en mente hoy? Por ejemplo: una casa en Monterrey, un terreno en Mérida, un departamento en renta en CDMX.",
+                'related' => []
+            ];
+        }
+
+        // 1. Agradecimientos
+        if (str_contains($q, 'gracias') || str_contains($q, 'thank')) {
+            return [
+                'reply' => "¡Con mucho gusto! 😊 Si necesitas algo más, aquí estoy. ¡Mucho éxito con tu búsqueda!",
+                'related' => []
+            ];
+        }
+
+        // 2. Recorrido 3D
         if (str_contains($q, '3d') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
             if (str_contains($q, 'industrial') || str_contains($q, 'terreno')) {
                 return [
@@ -428,23 +446,28 @@ class AIController extends Controller {
             ];
         }
 
-        // 2. Consulta de Créditos / Infonavit / Financiamiento
+        // 3. Consulta de Créditos / Financiamiento
         if (str_contains($q, 'credito') || str_contains($q, 'crédito') || str_contains($q, 'infonavit') || str_contains($q, 'banco') || str_contains($q, 'bancario') || str_contains($q, 'financiamiento')) {
             return [
-                'reply' => "En **INFONATEC** aceptamos diversas modalidades de pago:\n• Crédito Infonavit y Fovissste.\n• Créditos bancarios (BBVA, Santander, Banorte, Scotiabank).\n• Pago de contado o financiamiento directo sujeto a evaluación.\n\nPuedes solicitar una asesoría personalizada sin costo en el botón 'Solicitar Asesoría' de la página principal.",
+                'reply' => "En **INFONATEC** aceptamos diversas modalidades de pago:
+• Crédito Infonavit y Fovissste.
+• Créditos bancarios (BBVA, Santander, Banorte, Scotiabank).
+• Pago de contado o financiamiento directo sujeto a evaluación.
+
+Si quieres una asesoría personalizada sin costo, tienes el botón **'Solicitar Asesoría'** en la página principal.",
                 'related' => []
             ];
         }
 
-        // 3. Vender o Publicar
+        // 4. Vender o Publicar
         if (str_contains($q, 'vender') || str_contains($q, 'publicar') || str_contains($q, 'anunciar') || str_contains($q, 'comision') || str_contains($q, 'comisión')) {
             return [
-                'reply' => "Para vender o rentar tu propiedad con nosotros, visita nuestra sección **Vender** en el menú superior. Contamos con un formulario guiado e inteligencia artificial para redactar el anuncio con máxima atracción a compradores.",
+                'reply' => "Para vender o rentar tu propiedad con nosotros, visita la sección **Vender** en el menú superior. Contamos con un formulario guiado e inteligencia artificial para redactar el anuncio con máxima atracción para compradores.",
                 'related' => []
             ];
         }
 
-        // 4. Búsqueda por Ubicación
+        // 5. Búsqueda por Ubicación
         $locations = [
             'monterrey' => ['Monterrey, NL', 'San Pedro, NL'],
             'mida'     => ['Mérida, YUC'],
@@ -454,7 +477,6 @@ class AIController extends Controller {
             'mexico'    => ['CDMX'],
             'polanco'   => ['CDMX'],
             'cancun'    => ['Cancún, Q.Roo'],
-            'cancún'    => ['Cancún, Q.Roo'],
             'san pedro' => ['San Pedro, NL']
         ];
 
@@ -468,7 +490,8 @@ class AIController extends Controller {
                 });
 
                 if (!empty($matches)) {
-                    $reply = "Encontramos las siguientes opciones disponibles en esa zona:\n";
+                    $reply = "Encontramos las siguientes opciones disponibles en esa zona:
+";
                     $ids = [];
                     foreach ($matches as $m) {
                         $reply .= "• **{$m['title']}** ({$m['type_label']}): {$m['price']} — {$m['full_location']}\n";
@@ -480,13 +503,15 @@ class AIController extends Controller {
             }
         }
 
-        // 5. Búsqueda por tipo de propiedad
+        // 6. Búsqueda por tipo de propiedad
         if (str_contains($q, 'terreno') || str_contains($q, 'lote')) {
             $terrenos = array_filter($properties, fn($p) => $p['type'] === 'terreno');
-            $reply = "Tenemos excelentes terrenos y lotes residenciales:\n";
+            $reply = "Tenemos excelentes terrenos y lotes residenciales:
+";
             $ids = [];
             foreach ($terrenos as $t) {
-                $reply .= "• **{$t['title']}** en {$t['location']} por {$t['price']}\n";
+                $reply .= "• **{$t['title']}** en {$t['location']} por {$t['price']}
+";
                 $ids[] = $t['id'];
             }
             return ['reply' => $reply, 'related' => $ids];
@@ -494,28 +519,33 @@ class AIController extends Controller {
 
         if (str_contains($q, 'casa') || str_contains($q, 'residencia')) {
             $casas = array_filter($properties, fn($p) => $p['type'] === 'casa');
-            $reply = "Aquí tienes algunas de nuestras mejores casas en catálogo:\n";
+            $reply = "Aquí tienes algunas de nuestras mejores casas en catálogo:
+";
             $ids = [];
             foreach ($casas as $c) {
-                $reply .= "• **{$c['title']}** ({$c['location']}) — {$c['price']}\n";
+                $reply .= "• **{$c['title']}** ({$c['location']}) — {$c['price']}
+";
                 $ids[] = $c['id'];
             }
-            $reply .= "\n¿Te gustaría ver alguna en específico o agendar un recorrido?";
+            $reply .= "
+¿Te gustaría ver alguna en específico o agendar un recorrido?";
             return ['reply' => $reply, 'related' => $ids];
         }
 
         if (str_contains($q, 'renta') || str_contains($q, 'rentar') || str_contains($q, 'departamento') || str_contains($q, 'penthouse')) {
             $deptos = array_filter($properties, fn($p) => $p['operation'] === 'rentar' || $p['type'] === 'departamento');
-            $reply = "Tenemos opciones en renta y departamentos exclusivos:\n";
+            $reply = "Tenemos opciones en renta y departamentos exclusivos:
+";
             $ids = [];
             foreach ($deptos as $d) {
-                $reply .= "• **{$d['title']}** ({$d['location']}) — {$d['price']}\n";
+                $reply .= "• **{$d['title']}** ({$d['location']}) — {$d['price']}
+";
                 $ids[] = $d['id'];
             }
             return ['reply' => $reply, 'related' => $ids];
         }
 
-        // 6. Citas / Contacto
+        // 9. Citas / Contacto
         if (str_contains($q, 'cita') || str_contains($q, 'contacto') || str_contains($q, 'horario') || str_contains($q, 'asesor')) {
             return [
                 'reply' => "¡Con gusto! Puedes agendar una cita directamente desde la ficha de cualquier propiedad seleccionando 'Agendar Cita', o mediante la sección 'Asesoría' en la página de inicio.",
@@ -523,9 +553,19 @@ class AIController extends Controller {
             ];
         }
 
-        // Respuesta cordial por defecto
+        // Respuesta cordial final: conversacional y abierta
         return [
-            'reply' => "¡Hola! Con gusto puedo ayudarte. Puedes consultarme sobre:\n• 🏡 Casas o departamentos disponibles (ej. *'casas en Monterrey'* o *'rentas en CDMX'*).\n• 📐 Terrenos y lotes para inversión.\n• 🕶️ Recorridos virtuales 3D.\n• 💳 Opciones de crédito y financiamiento.\n\n¿Qué tipo de propiedad estás buscando hoy?",
+            'reply' => "¡Buena pregunta! 😊 Para poder darte la mejor respuesta, necesito entender un poco mejor lo que tienes en mente.
+
+¿Buscas una **compra** o una **renta**?, ¿en qué **zona** te gustaría y qué tipo de propiedad (**casa, departamento o terreno**) te interesa? Con esa información puedo orientarte hacia las opciones más cercanas.
+
+Mientras me cuentas un poco más, aquí tienes lo que puedo atender:
+• 🏡 Casas y departamentos en venta o renta.
+• 📐 Terrenos y lotes.
+• 🕶️ Recorridos virtuales 3D.
+• 💳 Créditos y financiamiento.
+
+¿Qué tipo de propiedad estás buscando hoy?",
             'related' => []
         ];
     }
