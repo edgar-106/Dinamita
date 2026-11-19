@@ -29,12 +29,23 @@ class AIController extends Controller {
         $propiedadModel = new Propiedad();
         $properties = $propiedadModel->getAll();
 
+        // Memoria conversacional: se toma el historial reciente de la sesión,
+        // se agrega el mensaje actual y se consulta al motor de IA.
+        $history = $this->getChatHistory();
+        $history[] = ['role' => 'user', 'content' => $userMessage];
+        $this->saveChatHistory($history);
+
         // Primero usa Gemini si hay una clave disponible. Si la llamada falla,
         // continúa con el motor local para no dejar el chat sin respuesta.
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
         if (!empty($apiKey) && AI_PROVIDER !== 'local') {
-            $llmResponse = $this->callGeminiApi($userMessage, $properties, $apiKey);
+            $llmResponse = $this->callGeminiApi($userMessage, $properties, $apiKey, $history);
             if ($llmResponse !== null) {
+                // Se guardan ambos turnos (usuario + asistente) para el siguiente mensaje.
+                $this->saveChatHistory(array_merge($history, [
+                    ['role' => 'model', 'content' => $llmResponse]
+                ]));
+
                 $this->json([
                     'status' => 'success',
                     'reply'  => $llmResponse,
@@ -47,12 +58,106 @@ class AIController extends Controller {
         // El motor local responde con reglas basadas en el catálogo real y no
         // requiere conexión externa ni consume cuotas de IA.
         $localResponse = $this->localExpertEngine($userMessage, $properties);
+        $replyText = $localResponse['reply'];
+
+        // Se conserva el intercambio completo (usuario + asistente) en la sesión.
+        $this->saveChatHistory(array_merge($history, [
+            ['role' => 'model', 'content' => $replyText]
+        ]));
+
         $this->json([
             'status' => 'success',
-            'reply'  => $localResponse['reply'],
+            'reply'  => $replyText,
             'engine' => 'local_expert',
             'related' => $localResponse['related'] ?? []
         ]);
+    }
+
+    /**
+     * Endpoint para procesar mensajes del chat con respuesta en streaming (SSE)
+     */
+    public function streamChat(): void {
+        $raw = file_get_contents('php://input');
+        $input = json_decode($raw, true);
+        if (!is_array($input)) {
+            $input = !empty($_POST) ? $_POST : [];
+        }
+        $userMessage = trim($input['message'] ?? '');
+
+        if (empty($userMessage)) {
+            $this->json(['error' => 'Mensaje vacío'], 400);
+            return;
+        }
+
+        $propiedadModel = new Propiedad();
+        $properties = $propiedadModel->getAll();
+
+        $history = $this->getChatHistory();
+        $history[] = ['role' => 'user', 'content' => $userMessage];
+        $this->saveChatHistory($history);
+
+        $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
+        $reply = null;
+        $engine = 'local_expert';
+        $related = [];
+
+        if (!empty($apiKey) && AI_PROVIDER !== 'local') {
+            $reply = $this->callGeminiApi($userMessage, $properties, $apiKey, $history);
+            if ($reply !== null) {
+                $engine = 'gemini';
+            }
+        }
+        if ($reply === null) {
+            $localResponse = $this->localExpertEngine($userMessage, $properties);
+            $reply = $localResponse['reply'];
+            $engine = 'local_expert';
+            $related = $localResponse['related'] ?? [];
+        }
+
+        $this->saveChatHistory(array_merge($history, [
+            ['role' => 'user', 'content' => $userMessage],
+            ['role' => 'model', 'content' => $reply],
+        ]));
+
+        // Emitir la respuesta completa en formato Server-Sent Events (SSE).
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        while (ob_get_level() > 0) { ob_end_flush(); }
+
+        echo "retry: 3000\n\n";
+        echo "event: meta\n";
+        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related]) . "\n\n";
+        flush();
+        if (ob_get_level() > 0) { ob_flush(); }
+
+        $chunks = [];
+        $buffer = '';
+        $words = preg_split('/\s+/', trim($reply), -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($words as $word) {
+            $buffer .= ($buffer === '' ? '' : ' ') . $word;
+            if (strlen($buffer) >= 3) {
+                $chunks[] = $buffer;
+                $buffer = '';
+            }
+        }
+        if ($buffer !== '') {
+            $chunks[] = $buffer;
+        }
+
+        foreach ($chunks as $chunk) {
+            echo "event: token\n";
+            echo 'data: ' . json_encode(['token' => $chunk]) . "\n\n";
+            flush();
+            if (ob_get_level() > 0) { ob_flush(); }
+            usleep(12000);
+        }
+
+        echo "event: done\n";
+        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related]) . "\n\n";
+        flush();
+        if (ob_get_level() > 0) { ob_flush(); }
+        exit;
     }
 
     /**
@@ -141,9 +246,55 @@ class AIController extends Controller {
     }
 
     /**
+     * Historial máximo de mensajes guardados por sesión (máx. 6 turnos).
+     */
+    private const CHAT_HISTORY_LIMIT = 12;
+
+    /**
+     * Obtiene el historial de conversación de la sesión actual.
+     * @return array Lista de ['role' => 'user'|'model', 'content' => string]
+     */
+    private function getChatHistory(): array {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $history = $_SESSION['ai_chat_history'] ?? [];
+        if (!is_array($history)) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($history as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+            $role = (isset($message['role']) && $message['role'] === 'assistant') ? 'model' : 'user';
+            $content = trim((string)($message['content'] ?? ''));
+            if ($content === '') {
+                continue;
+            }
+            $clean[] = ['role' => $role, 'content' => $content];
+        }
+
+        // Se conservan los últimos mensajes para no crecer ilimitadamente.
+        return array_slice($clean, -self::CHAT_HISTORY_LIMIT);
+    }
+
+    /**
+     * Persiste el historial de la conversación actual.
+     */
+    private function saveChatHistory(array $history): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['ai_chat_history'] = array_slice($history, -self::CHAT_HISTORY_LIMIT);
+    }
+
+    /**
      * Llamada a Google Gemini API
      */
-    private function callGeminiApi(string $userMsg, array $properties, string $apiKey): ?string {
+    private function callGeminiApi(string $userMsg, array $properties, string $apiKey, array $history = []): ?string {
         $catalogSummary = "CATÁLOGO DE PROPIEDADES EN INFONATEC:\n";
         foreach ($properties as $p) {
             $tour = !empty($p['virtualTour']) ? ' (Cuenta con Recorrido Virtual 3D)' : '';
@@ -151,6 +302,38 @@ class AIController extends Controller {
         }
 
         $systemInstruction = AI_SYSTEM_PROMPT . "\n\n" . $catalogSummary;
+
+        // Historial reciente convertido al formato de contenidos de Gemini.
+        $contents = [];
+        foreach ($history as $message) {
+            $contents[] = [
+                'role'  => $message['role'],
+                'parts' => [
+                    ['text' => $message['content']]
+                ]
+            ];
+        }
+
+        // Gemini requiere que el primer turno tenga rol 'user' y que los roles
+        // se alternen; se normaliza el historial antes de enviarlo.
+        $geminiContents = [];
+        $lastRole = null;
+        foreach ($contents as $content) {
+            if ($content['role'] === $lastRole) {
+                continue;
+            }
+            $geminiContents[] = $content;
+            $lastRole = $content['role'];
+        }
+
+        if (empty($geminiContents) || $geminiContents[0]['role'] !== 'user') {
+            $geminiContents = [
+                [
+                    'role'  => 'user',
+                    'parts' => [['text' => $userMsg]]
+                ]
+            ];
+        }
 
         $url = "https://generativelanguage.googleapis.com/v1beta/models/" . AI_MODEL . ":generateContent?key=" . urlencode($apiKey);
 
@@ -160,14 +343,7 @@ class AIController extends Controller {
                     ['text' => $systemInstruction]
                 ]
             ],
-            'contents' => [
-                [
-                    'role' => 'user',
-                    'parts' => [
-                        ['text' => $userMsg]
-                    ]
-                ]
-            ],
+            'contents' => $geminiContents,
             'generationConfig' => [
                 'temperature'     => 0.7,
                 'maxOutputTokens' => 380

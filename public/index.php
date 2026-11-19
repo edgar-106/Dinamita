@@ -25,6 +25,7 @@ $router->get('/api/propiedades/{id}', 'ApiController@property');
 
 // --- Rutas de Inteligencia Artificial ---
 $router->post('/api/ai/chat', 'ApiController@chat');
+$router->post('/api/ai/chat/stream', 'ApiController@streamChat');
 $router->post('/api/ai/generate-description', 'ApiController@generateDescription');
 $router->get('/api/ai/status', 'ApiController@status');
 
@@ -32,6 +33,20 @@ $router->get('/api/ai/status', 'ApiController@status');
 $router->post('/auth/login', 'AuthController@login');
 $router->post('/auth/register', 'AuthController@register');
 $router->get('/auth/logout', 'AuthController@logout');
+
+// --- Rutas de Administración ---
+$router->get('/admin', 'AdminController@index');
+$router->get('/admin/reservas', 'AdminController@reservas');
+$router->post('/admin/reservas/{id}/estado', 'AdminController@cambiarEstado');
+$router->get('/admin/pagos', 'AdminController@pagos');
+$router->post('/admin/pagos/{id}/confirmar', 'AdminController@confirmarPago');
+$router->get('/admin/eventos', 'AdminController@eventos');
+$router->post('/admin/eventos/tour', 'AdminController@registrarTour');
+$router->post('/admin/eventos/tour/{id}/eliminar', 'AdminController@eliminarTour');
+$router->get('/admin/logistica', 'AdminController@logistica');
+$router->post('/admin/logistica/vehiculo', 'AdminController@crearVehiculo');
+$router->post('/admin/logistica/vehiculo/{id}/estado', 'AdminController@cambiarEstadoVehiculo');
+$router->post('/admin/logistica/asignar', 'AdminController@asignarTransporte');
 
 // 3. Despacho de la petición
 $router->dispatch();

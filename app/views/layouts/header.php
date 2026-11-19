@@ -407,6 +407,26 @@
         <li><a href="<?= BASE_URL ?>vender">Vender</a></li>
         <li><a href="<?= BASE_URL ?>#asesor">Asesor</a></li>
         <li><a href="<?= BASE_URL ?>#legal">Legal</a></li>
+        <?php
+        $adminNavUser = null;
+        if (!empty($_SESSION['user']['id'] ?? null)) {
+            $adminDbConn = Database::getConnection();
+            if ($adminDbConn !== null) {
+                try {
+                    $adminStmt = $adminDbConn->prepare("SELECT r.nombre AS rol FROM usuario_rol ur INNER JOIN rol r ON r.id_rol = ur.id_rol WHERE ur.id_usuario = ? AND r.nombre = 'ADMIN' LIMIT 1");
+                    $adminStmt->execute([$_SESSION['user']['id']]);
+                    if ($adminStmt->fetch()) {
+                        $adminNavUser = $_SESSION['user'];
+                    }
+                } catch (Exception $e) {
+                    // Sin acceso a base de datos: se mantiene la sesion actual.
+                }
+            }
+        }
+        ?>
+        <?php if (!empty($adminNavUser) && !empty($adminNavUser['id'])): ?>
+        <li><a href="<?= BASE_URL ?>admin">Administración</a></li>
+        <?php endif; ?>
     </ul>
 
     <div class="nav-actions">

@@ -147,5 +147,6 @@ explorar_content = f'''
 {footer}
 '''
 
+
 with open('explorar.html', 'w', encoding='utf-8') as f:
     f.write(head + explorar_content)

@@ -2,7 +2,7 @@
 /**
  * Endpoint Universal de Chat con IA (INFONATEC)
  * Compatible tanto para invocaciones directas como para MVC
- */
+ */  
 
 // Headers CORS y JSON
 header('Content-Type: application/json; charset=utf-8');
@@ -20,3 +20,4 @@ require_once __DIR__ . '/../app/bootstrap.php';
 // Despachar llamada
 $controller = new AIController();
 $controller->chat();
+

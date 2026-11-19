@@ -788,6 +788,15 @@ function handleMoreInfo(propertyId) {
     showProperty(propertyId);
 }
 
+/**
+ * Desde el chat: abre la ficha de la propiedad y lanza directamente el
+ * recorrido virtual interactivo correspondiente.
+ */
+function handleChatTour(propertyId) {
+    showProperty(propertyId);
+    openMediaTour('interactivo');
+}
+
 /* =========================================================
    CARRUSEL DE PROPIEDADES (REMOVIDO PARA USAR GRID)
 ========================================================= */
@@ -838,13 +847,49 @@ function register(event) {
    LOGIN
 ========================================================= */
 
-function login(event) {
+async function login(event) {
     event.preventDefault();
 
     const email    = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const saved    = localStorage.getItem('br_usuario');
 
+    // 1. Intento de autenticación en el servidor (cuentas reales: admin y clientes).
+    try {
+        const formData = new URLSearchParams();
+        formData.append('email', email);
+        formData.append('password', password);
+
+        const response = await fetch(getApiUrl('auth/login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const user = data.user || {};
+            localStorage.setItem('br_usuario', JSON.stringify({
+                name: user.name || email.split('@')[0],
+                email: user.email || email,
+                password: password
+            }));
+            closeModal('loginModal');
+            showToast('¡Bienvenido, ' + user.name + '!', 'success');
+            setTimeout(function () { location.reload(); }, 1500);
+            return;
+        }
+
+        if (data.message) {
+            showToast(data.message, 'error');
+            return;
+        }
+    } catch (error) {
+        // Si el backend no responde, se mantiene el flujo local.
+    }
+
+    // 2. Fallback local (registro previo guardado en el navegador).
     if (!saved) {
         showToast('No existe una cuenta local. Primero regístrate.', 'error');
         return;
@@ -855,9 +900,7 @@ function login(event) {
     if (user.email === email && user.password === password) {
         closeModal('loginModal');
         showToast('¡Bienvenido, ' + user.name + '!', 'success');
-        setTimeout(function () {
-            location.reload();
-        }, 1500);
+        setTimeout(function () { location.reload(); }, 1500);
     } else {
         showToast('Correo o contraseña incorrectos.', 'error');
     }
@@ -982,15 +1025,13 @@ async function sendMessage() {
     messages.appendChild(typingDiv);
     messages.scrollTop = messages.scrollHeight;
 
-    // 3. Enviar a la API de forma asíncrona
+    // 3. Enviar a la API de forma asíncrona con streaming (SSE)
     try {
-        const response = await fetch(getApiUrl('api/ai/chat'), {
+        const response = await fetch(getApiUrl('api/ai/chat/stream'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
         });
-
-        const data = await response.json();
 
         // Quitar indicador de escritura
         if (typingDiv.parentNode) {
@@ -999,12 +1040,60 @@ async function sendMessage() {
 
         const botDiv = document.createElement('div');
         botDiv.className = 'message';
-        botDiv.innerHTML = formatBotText(data.reply || 'Gracias por tu consulta. Un asesor te atenderá a la brevedad.');
+        botDiv.innerHTML = '';
         messages.appendChild(botDiv);
 
-        // Si la IA recomendó propiedades específicas, añadir tarjetas interactivas
-        if (data.related && Array.isArray(data.related) && data.related.length > 0) {
-            data.related.forEach(function(propId) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+        let meta = { engine: 'local_expert', related: [] };
+
+        const processEventBlock = (block) => {
+            const lines = block.split('\n');
+            let eventName = '';
+            let dataStr = '';
+            for (const line of lines) {
+                if (line.startsWith('event:')) {
+                    eventName = line.slice(6).trim();
+                } else if (line.startsWith('data:')) {
+                    dataStr = line.slice(5).trim();
+                }
+            }
+            if (!dataStr) {
+                return;
+            }
+            const data = JSON.parse(dataStr);
+            if (eventName === 'meta') {
+                meta = data;
+            } else if (eventName === 'token') {
+                fullText += data.token || '';
+                botDiv.innerHTML = formatBotText(fullText);
+            }
+        };
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split('\n\n');
+            buffer = blocks.pop() || '';
+            blocks.forEach((block) => {
+                const cleanBlock = block.trim();
+                if (cleanBlock) {
+                    processEventBlock(cleanBlock);
+                }
+            });
+        }
+        if (buffer.trim()) {
+            processEventBlock(buffer.trim());
+        }
+
+        const related = meta.related;
+        if (related && Array.isArray(related) && related.length > 0) {
+            related.forEach(function(propId) {
                 const prop = typeof properties !== 'undefined' ? properties[propId] : null;
                 if (prop) {
                     const card = document.createElement('div');
@@ -1014,7 +1103,10 @@ async function sendMessage() {
                             <strong>${prop.title}</strong><br>
                             <span style="color:#c9a86a;font-weight:700;">${prop.price}</span> · <span style="color:#64748b;">${prop.location}</span>
                         </div>
-                        <button class="chat-prop-btn" onclick="handleMoreInfo(${propId})">Ver Ficha</button>
+                        <div class="chat-prop-actions">
+                            <button class="chat-prop-btn" onclick="handleMoreInfo(${propId})">Ver Ficha</button>
+                            <button class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(${propId})">🕶️ Recorrido 3D</button>
+                        </div>
                     `;
                     messages.appendChild(card);
                 }
@@ -1034,6 +1126,241 @@ async function sendMessage() {
         botDiv.textContent = '¡Hola! Estoy listo para ayudarte con información sobre casas, departamentos, terrenos y recorridos 3D en INFONATEC. ¿Qué estás buscando?';
         messages.appendChild(botDiv);
         messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN - GESTIÓN DE RESERVAS
+========================================================= */
+
+async function adminCambiarEstado(citaId, estado) {
+    try {
+        const response = await fetch(getApiUrl('admin/reservas/' + citaId + '/estado'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'estado=' + encodeURIComponent(estado)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Reserva #' + citaId + ' actualizada a: ' + estado, 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo actualizar la reserva.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al actualizar el estado de la reserva:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al actualizar la reserva.', 'error');
+        }
+    }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN - VALIDACIÓN DE PAGOS
+========================================================= */
+
+async function adminConfirmarPago(transaccionId) {
+    try {
+        const response = await fetch(getApiUrl('admin/pagos/' + transaccionId + '/confirmar'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Pago confirmado correctamente. Propiedad liberada.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo confirmar el pago.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al confirmar el pago:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al confirmar el pago.', 'error');
+        }
+    }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN - EVENTOS / TOURS
+========================================================= */
+
+async function adminRegistrarTour(event) {
+    event.preventDefault();
+    const form = event.target;
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('id_propiedad', form.id_propiedad.value);
+        formData.append('url_3d', form.url_3d.value);
+        formData.append('descripcion', form.descripcion.value);
+
+        const response = await fetch(getApiUrl('admin/eventos/tour'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Tour registrado exitosamente.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo registrar el tour.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al registrar el tour:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al registrar el tour.', 'error');
+        }
+    }
+}
+
+async function adminEliminarTour(paseoId) {
+    try {
+        const response = await fetch(getApiUrl('admin/eventos/tour/' + paseoId + '/eliminar'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Tour eliminado correctamente.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo eliminar el tour.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al eliminar el tour:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al eliminar el tour.', 'error');
+        }
+    }
+}
+
+/* =========================================================
+   ADMINISTRACIÓN - LOGÍSTICA / TRANSPORTE
+========================================================= */
+
+async function adminCrearVehiculo(event) {
+    event.preventDefault();
+    const form = event.target;
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('placa', form.placa.value);
+        formData.append('tipo', form.tipo.value);
+        formData.append('marca', form.marca.value);
+        formData.append('modelo', form.modelo.value);
+        formData.append('capacidad', form.capacidad.value);
+        formData.append('estado', form.estado.value);
+        formData.append('observaciones', form.observaciones.value);
+
+        const response = await fetch(getApiUrl('admin/logistica/vehiculo'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Vehículo registrado exitosamente.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo registrar el vehículo.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al registrar el vehículo:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al registrar el vehículo.', 'error');
+        }
+    }
+}
+
+async function adminCambiarEstadoVehiculo(vehiculoId, estado) {
+    try {
+        const response = await fetch(getApiUrl('admin/logistica/vehiculo/' + vehiculoId + '/estado'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'estado=' + encodeURIComponent(estado)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Vehículo actualizado correctamente.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo actualizar el vehículo.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al actualizar el estado del vehículo:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al actualizar el vehículo.', 'error');
+        }
+    }
+}
+
+async function adminAsignarTransporte(event) {
+    event.preventDefault();
+    const form = event.target;
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('id_propiedad', form.id_propiedad.value);
+        formData.append('id_vehiculo', form.id_vehiculo.value);
+        formData.append('id_cita', form.id_cita ? form.id_cita.value : '');
+        formData.append('fecha_salida', form.fecha_salida ? form.fecha_salida.value.replace('T', ' ') : '');
+        formData.append('fecha_llegada', form.fecha_llegada ? form.fecha_llegada.value.replace('T', ' ') : '');
+        formData.append('estado', form.estado.value);
+        formData.append('observaciones', form.observaciones.value);
+
+        const response = await fetch(getApiUrl('admin/logistica/asignar'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast('Transporte asignado exitosamente.', 'success');
+            }
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.message || 'No se pudo asignar el transporte.', 'error');
+            }
+        }
+    } catch (error) {
+        console.warn('Error al asignar transporte:', error);
+        if (typeof showToast === 'function') {
+            showToast('Error de conexión al asignar transporte.', 'error');
+        }
     }
 }
 
