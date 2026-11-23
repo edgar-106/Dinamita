@@ -124,3 +124,243 @@ APROBADA - Chat JSON
 APROBADA - Chat SSE y espacios
 APROBADA - Generación de descripción
 APROBADA - Salir invalida sesión
+
+REVISION ADICIONAL DE BOTONES
+22 de noviembre de 2026
+
+207 comprobaciones de interfaz aprobadas mediante acciones en el navegador.
+Las 62 pruebas automáticas de servidor se repitieron y aprobaron después de las correcciones.
+Se volvieron a comprobar 33 archivos PHP, 23 bloques JavaScript y 28 recursos locales.
+
+Esta matriz registra comprobaciones, incluidas variantes y estados de un mismo control.
+Se probaron los controles de las vistas activas de Inicio, Explorar, Vender, Legal, ambos recorridos y el panel de administración.
+Las pruebas móviles se realizaron a 390 píxeles de ancho.
+
+Fallos encontrados y corregidos en esta revisión
+1. Fotos solo mostraba la primera imagen. Ahora la ficha consulta todas las imágenes guardadas y permite avanzar y retroceder con un contador.
+2. Asignar transporte cambiaba el separador de fecha y el servidor rechazaba el formulario. Se corrigió el envío y el servidor admite el formato anterior.
+3. Registrar tour utilizaba un campo URL que rechazaba las rutas locales admitidas por el servidor. Se comprobó el registro, la actualización y la eliminación con tour/industrial y tour.
+
+Comprobación de operaciones administrativas en MySQL
+La cita creada desde la interfaz pasó por CONFIRMADA, CANCELADA, COMPLETADA y PENDIENTE.
+El vehículo creado desde la interfaz pasó por EN_USO, MANTENIMIENTO y DISPONIBLE.
+Se crearon asignaciones de transporte PROGRAMADA, EN_CAMINO, COMPLETADA y CANCELADA.
+El pago parcial dejó la transacción EN_PROCESO y la propiedad APARTADA.
+El saldo total de venta dejó la transacción COMPLETADA y la propiedad VENDIDA.
+El pago de renta dejó la transacción COMPLETADA y la propiedad RENTADA.
+
+Limpieza
+La cuenta, los dos inmuebles, dos fotografías, citas, solicitudes, recorridos, pagos, transacciones, vehículo y asignaciones temporales de esta revisión se retiraron.
+La base conserva un administrador y los diez inmuebles de demostración.
+
+Dependencia externa
+Gemini continúa sin clave API. El chat y el generador de descripciones se comprobaron con el motor local.
+
+Matriz de controles comprobados
+001 APROBADA - Bienvenida · Adquirir
+002 APROBADA - Inicio · comprar casa
+003 APROBADA - Inicio · comprar departamento
+004 APROBADA - Inicio · comprar terreno
+005 APROBADA - Inicio · rentar casa
+006 APROBADA - Inicio · rentar departamento
+007 APROBADA - Inicio · rentar terreno
+008 APROBADA - Favorito · activar
+009 APROBADA - Favorito · desactivar
+010 APROBADA - Ficha invitado · Registrarme
+011 APROBADA - Registro · cerrar
+012 APROBADA - Navegación · Ingresar
+013 APROBADA - Acceso · enlace Regístrate
+014 APROBADA - Navegación · Registrarme
+015 APROBADA - Registro · valida casilla requerida
+016 APROBADA - Registro · crear cuenta y sesión
+017 APROBADA - Sesión · salir
+018 APROBADA - Bienvenida · Venta
+019 APROBADA - Vender invitado · solicita acceso
+020 APROBADA - Acceso · rechaza contraseña incorrecta
+021 APROBADA - Acceso · cerrar modal
+022 APROBADA - Acceso · cuenta registrada
+023 APROBADA - Vender · abrir formulario
+024 APROBADA - Publicación · elegir departamento
+025 APROBADA - Publicación · redactar con IA
+026 APROBADA - Publicación · terreno muestra uso y servicios
+027 APROBADA - Publicación · Atrás del paso 2
+028 APROBADA - Publicación · elegir casa
+029 APROBADA - Publicación · Siguiente del paso 2
+030 APROBADA - Publicación · Atrás del paso 3
+031 APROBADA - Publicación · seleccionar dos fotos
+032 APROBADA - Publicación · Siguiente del paso 3
+033 APROBADA - Publicación · Atrás del paso 4
+034 APROBADA - Publicación · PUBLICAR PROPIEDAD
+035 APROBADA - Publicación · Volver al Inicio
+036 APROBADA - Fotos · siguiente
+037 APROBADA - Fotos · anterior
+038 APROBADA - Ficha · informa recorrido no disponible
+039 APROBADA - Ficha · Video
+040 APROBADA - Video · cerrar con X
+041 APROBADA - Video · Cerrar Recorrido
+042 APROBADA - Cita · cerrar modal
+043 APROBADA - Interés · cerrar con X
+044 APROBADA - Interés · ENVIAR SOLICITUD
+045 APROBADA - Cita · CONFIRMAR CITA
+046 APROBADA - Asesoría · SOLICITAR ASESORÍA
+047 APROBADA - Asesor · Abrir chat en vivo
+048 APROBADA - Chat · Casas Mty
+049 APROBADA - Chat · Tour 3D
+050 APROBADA - Chat · Mérida
+051 APROBADA - Chat · Créditos
+052 APROBADA - Chat · Vender
+053 APROBADA - Chat · Enviar mensaje
+054 APROBADA - Chat · Ver Ficha
+055 APROBADA - Ficha · cerrar con X
+056 APROBADA - Chat · Recorrido 3D
+057 APROBADA - Recorrido residencial · sala comedor
+058 APROBADA - Recorrido residencial · sala recamara
+059 APROBADA - Recorrido residencial · sala terraza
+060 APROBADA - Recorrido residencial · sala sala
+061 APROBADA - Recorrido residencial · activar giro
+062 APROBADA - Recorrido residencial · detener giro
+063 APROBADA - Recorrido residencial · entrar en pantalla completa - Comprobación visual del visor ocupando todo el navegador
+064 APROBADA - Recorrido residencial · salir de pantalla completa
+065 APROBADA - Chat · cerrar
+066 APROBADA - Explorar · comprar casa
+067 APROBADA - Explorar · comprar departamento
+068 APROBADA - Explorar · comprar terreno
+069 APROBADA - Explorar · rentar casa
+070 APROBADA - Explorar · rentar departamento
+071 APROBADA - Explorar · rentar terreno
+072 APROBADA - Explorar · favorito QA Auditoría botones
+073 APROBADA - Explorar · ficha QA Auditoría botones
+074 APROBADA - Explorar · favorito Villa Paraíso
+075 APROBADA - Explorar · ficha Villa Paraíso
+076 APROBADA - Explorar · favorito Casa Bosques del Valle
+077 APROBADA - Explorar · ficha Casa Bosques del Valle
+078 APROBADA - Explorar · favorito Residencia Las Cumbres
+079 APROBADA - Explorar · ficha Residencia Las Cumbres
+080 APROBADA - Explorar · favorito Loft Santa Fe
+081 APROBADA - Explorar · ficha Loft Santa Fe
+082 APROBADA - Explorar · favorito Macrolote Industrial Apodaca
+083 APROBADA - Explorar · ficha Macrolote Industrial Apodaca
+084 APROBADA - Explorar · favorito Terreno Industrial Querétaro
+085 APROBADA - Explorar · ficha Terreno Industrial Querétaro
+086 APROBADA - Explorar · favorito Lote Montebello
+087 APROBADA - Explorar · ficha Lote Montebello
+088 APROBADA - Explorar · favorito Estudio Roma Norte
+089 APROBADA - Explorar · ficha Estudio Roma Norte
+090 APROBADA - Explorar · favorito Departamento Condesa Garden
+091 APROBADA - Explorar · ficha Departamento Condesa Garden
+092 APROBADA - Explorar · favorito Penthouse Polanco Sky View
+093 APROBADA - Explorar · ficha Penthouse Polanco Sky View
+094 APROBADA - Legal independiente · abrir Promesa de Compraventa
+095 APROBADA - Legal independiente · cerrar Promesa de Compraventa
+096 APROBADA - Legal independiente · abrir Arrendamiento Seguro
+097 APROBADA - Legal independiente · cerrar Arrendamiento Seguro
+098 APROBADA - Legal independiente · abrir Auditoría Registral
+099 APROBADA - Legal independiente · cerrar Auditoría Registral
+100 APROBADA - Legal independiente · abrir Protección de Datos
+101 APROBADA - Legal independiente · cerrar Protección de Datos
+102 APROBADA - Pie de página · Términos y condiciones
+103 APROBADA - Pie de página · Política de privacidad
+104 APROBADA - Pie de página · Aviso legal
+105 APROBADA - Legal · volver a explorar
+106 APROBADA - Legal inicio · abrir Promesa de Compraventa
+107 APROBADA - Legal inicio · cerrar Promesa de Compraventa
+108 APROBADA - Legal inicio · abrir Arrendamiento Seguro
+109 APROBADA - Legal inicio · cerrar Arrendamiento Seguro
+110 APROBADA - Legal inicio · abrir Auditoría Registral (RPP)
+111 APROBADA - Legal inicio · cerrar Auditoría Registral (RPP)
+112 APROBADA - Legal inicio · abrir Protección de Datos
+113 APROBADA - Legal inicio · cerrar Protección de Datos
+114 APROBADA - Asesor · Contactar asesor
+115 APROBADA - Acceso · administrador desde formulario
+116 APROBADA - Navegación · Administración
+117 APROBADA - Panel · Ver reservas
+118 APROBADA - Reservas · interés visible
+119 APROBADA - Reservas · asesoría visible
+120 APROBADA - Reservas · Actualizar a CONFIRMADA
+121 APROBADA - Reservas · Actualizar a CANCELADA
+122 APROBADA - Reservas · Actualizar a COMPLETADA
+123 APROBADA - Reservas · Actualizar a PENDIENTE
+124 APROBADA - Reservas · Volver al panel
+125 APROBADA - Panel · Ver todas las reservas
+126 APROBADA - Transporte · Registrar vehículo
+127 APROBADA - Transporte · Actualizar a EN_USO
+128 APROBADA - Transporte · Actualizar a MANTENIMIENTO
+129 APROBADA - Transporte · Actualizar a DISPONIBLE
+130 APROBADA - Transporte · Asignar transporte - Formato corregido y reprobado desde el formulario; traslado visible en la tabla.
+131 APROBADA - Transporte · asignación visible
+132 APROBADA - Transporte · asignar estado EN_CAMINO
+133 APROBADA - Transporte · asignar estado COMPLETADA
+134 APROBADA - Transporte · asignar estado CANCELADA
+135 APROBADA - Panel · Eventos y Recorridos
+136 APROBADA - Recorridos · Registrar tour con ruta local
+137 APROBADA - Recorridos · actualizar existente
+138 APROBADA - Recorridos · Eliminar
+139 APROBADA - Panel · Validación de pagos
+140 APROBADA - Pagos · confirmar pago parcial desde botón
+141 APROBADA - Pagos · confirmar saldo total de venta
+142 APROBADA - Pagos · confirmar renta
+143 APROBADA - Pagos · todos los pagos validados
+144 APROBADA - Pagos · Volver al panel
+145 APROBADA - Panel · Panel de indicadores
+146 APROBADA - Panel · Gestión de reservas
+147 APROBADA - Panel · Coordinación con asesores
+148 APROBADA - Panel · Coordinación de paseos
+149 APROBADA - Recorrido residencial · punto informativo
+150 APROBADA - Recorrido residencial · cerrar información
+151 APROBADA - Recorrido residencial · acercar - Control activado con panorama cargado
+152 APROBADA - Recorrido residencial · alejar - Control activado con panorama cargado
+153 APROBADA - Recorrido · enlace residencial a industrial
+154 APROBADA - Recorrido industrial · zona acceso
+155 APROBADA - Recorrido industrial · zona lote
+156 APROBADA - Recorrido industrial · zona subestacion
+157 APROBADA - Recorrido industrial · zona maniobras
+158 APROBADA - Recorrido industrial · zona aerea
+159 APROBADA - Recorrido industrial · abrir mapa
+160 APROBADA - Mapa industrial · acceso
+161 APROBADA - Mapa industrial · lote
+162 APROBADA - Mapa industrial · subestacion
+163 APROBADA - Mapa industrial · maniobras
+164 APROBADA - Mapa industrial · aerea
+165 APROBADA - Recorrido industrial · cerrar mapa
+166 APROBADA - Recorrido industrial · activar giro
+167 APROBADA - Recorrido industrial · detener giro
+168 APROBADA - Recorrido industrial · Ficha Técnica
+169 APROBADA - Ficha técnica · Cerrar Ficha
+170 APROBADA - Recorrido industrial · punto informativo
+171 APROBADA - Información industrial · cerrar con X
+172 APROBADA - Información industrial · Ver Ficha Técnica Completa
+173 APROBADA - Ficha técnica · cerrar con X
+174 APROBADA - Recorrido industrial · acercar
+175 APROBADA - Recorrido industrial · alejar
+176 APROBADA - Recorrido industrial · entrar en pantalla completa - Verificado visualmente
+177 APROBADA - Recorrido industrial · flecha dentro del panorama
+178 APROBADA - Recorrido industrial · salir de pantalla completa
+179 APROBADA - Recorrido · enlace industrial a residencia
+180 APROBADA - Recorrido residencial · arrastrar panorama - La flecha cambió de posición y entró en el campo visible
+181 APROBADA - Recorrido residencial · flecha dentro del panorama
+182 APROBADA - Ficha técnica · Solicitar Cotización & Visita
+183 APROBADA - Móvil · abrir menú
+184 APROBADA - Móvil · cerrar menú
+185 APROBADA - Móvil · enlace Explorar
+186 APROBADA - Móvil · enlace Vender
+187 APROBADA - Móvil · enlace Asesor
+188 APROBADA - Móvil · enlace Legal
+189 APROBADA - Móvil · enlace Administración
+190 APROBADA - Móvil · ancho del panel sin desbordamiento
+191 APROBADA - Móvil · transporte accesible
+192 APROBADA - Móvil · tabla de pagos accesible
+193 APROBADA - Móvil · Actualizar vehículo desde tabla desplazable
+194 APROBADA - Ficha invitado · INICIAR SESIÓN en móvil
+195 APROBADA - Móvil · Registrarme
+196 APROBADA - Móvil · modal sin desbordamiento
+197 APROBADA - Móvil · Ingresar
+198 APROBADA - Móvil invitado · sin enlace de administrador
+199 APROBADA - Pie de página · Vender propiedad
+200 APROBADA - Publicación · no avanza sin datos requeridos
+201 APROBADA - Publicación · rechaza precio negativo
+202 APROBADA - Publicación · límite de diez fotografías
+203 APROBADA - Pie de página · Asesoría
+204 APROBADA - Navegación · Legal en inicio
+205 APROBADA - Navegación · Explorar
+206 APROBADA - Navegación · logotipo Inicio
+207 APROBADA - Cierre final · sesión temporal cerrada

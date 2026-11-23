@@ -219,6 +219,19 @@ img {
     transition: var(--transition);
 }
 
+#propertyPhotoControls:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+#propertyPhotoControls .btn-dark {
+    padding: 9px 12px;
+    font-size: 12px;
+}
+
 .btn-outline:hover {
     background: rgba(255, 255, 255, .1);
 }

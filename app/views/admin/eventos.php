@@ -84,7 +84,7 @@
             </div>
             <div class="form-group full">
                 <label for="tourUrl">URL del recorrido 3D / Tour</label>
-                <input type="url" id="tourUrl" name="url_3d" placeholder="https://tours.infonatec.com/..." required>
+                <input type="text" inputmode="url" id="tourUrl" name="url_3d" placeholder="tour/industrial o https://..." required>
             </div>
             <div class="form-group full">
                 <label for="tourDescripcion">Descripción del recorrido</label>

@@ -25,7 +25,7 @@
     </script>
 
     <!-- CSS Principal -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=5.1">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=5.2">
 
     <style>
     /* =========================================================

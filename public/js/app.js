@@ -512,6 +512,16 @@ const properties = window.INFONATEC_PROPERTIES
 };
 
 let currentPropertyId = null;
+let currentPhotoIndex = 0;
+
+function changePropertyPhoto(direction) {
+    const property = properties[currentPropertyId];
+    const photos = property.images?.length ? property.images : [property.image];
+    currentPhotoIndex = (currentPhotoIndex + direction + photos.length) % photos.length;
+    document.getElementById('detailImage').src = photos[currentPhotoIndex];
+    document.getElementById('propertyPhotoCounter').textContent = `${currentPhotoIndex + 1} / ${photos.length}`;
+    document.getElementById('propertyPhotoControls').hidden = photos.length < 2;
+}
 
 function showProperty(id) {
     // id puede llegar desde una tarjeta del HTML o una recomendación del chat.
@@ -526,7 +536,8 @@ function showProperty(id) {
 
     // Las vistas comparten este modal. Si se cambia un id del footer, mantener
     // estos nodos o añadir comprobaciones como las usadas más abajo.
-    document.getElementById('detailImage').src = property.image;
+    currentPhotoIndex = 0;
+    changePropertyPhoto(0);
     document.getElementById('detailImage').alt = property.title;
     document.getElementById('detailTitle').innerText = property.title;
     document.getElementById('detailLocation').innerText = property.location;
@@ -581,7 +592,7 @@ function showProperty(id) {
 
 function openMediaTour(type) {
     if (type === 'fotos') {
-        // En un futuro se podría abrir una galería, por ahora indicamos que están arriba
+        // La galería conserva todas las fotografías de la propiedad.
         document.querySelector('#propertyModal .modal-content').scrollTo({top: 0, behavior: 'smooth'});
         showToast('Explora las fotografías en la parte superior.', 'info');
         return;
@@ -1330,8 +1341,8 @@ async function adminAsignarTransporte(event) {
         formData.append('id_propiedad', form.id_propiedad.value);
         formData.append('id_vehiculo', form.id_vehiculo.value);
         formData.append('id_cita', form.id_cita ? form.id_cita.value : '');
-        formData.append('fecha_salida', form.fecha_salida ? form.fecha_salida.value.replace('T', ' ') : '');
-        formData.append('fecha_llegada', form.fecha_llegada ? form.fecha_llegada.value.replace('T', ' ') : '');
+        formData.append('fecha_salida', form.fecha_salida ? form.fecha_salida.value : '');
+        formData.append('fecha_llegada', form.fecha_llegada ? form.fecha_llegada.value : '');
         formData.append('estado', form.estado.value);
         formData.append('observaciones', form.observaciones.value);
 

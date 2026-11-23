@@ -328,6 +328,11 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
         <button class="modal-close" onclick="closeModal('propertyModal')" aria-label="Cerrar detalle de propiedad">×</button>
 
         <img id="detailImage" class="detail-image" src="" alt="">
+        <div id="propertyPhotoControls" hidden>
+            <button type="button" class="btn-dark" onclick="changePropertyPhoto(-1)" aria-label="Fotografía anterior">← Anterior</button>
+            <span id="propertyPhotoCounter" aria-live="polite"></span>
+            <button type="button" class="btn-dark" onclick="changePropertyPhoto(1)" aria-label="Fotografía siguiente">Siguiente →</button>
+        </div>
 
         <!-- Selector de Media -->
         <div id="mediaGallerySection" style="margin-top: 15px; margin-bottom: 25px; display:flex; gap: 10px; justify-content: center; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e4e9f0;">
@@ -469,7 +474,7 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 </script>
 
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=5.8"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=6.0"></script>
 
 </body>
 </html>

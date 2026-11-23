@@ -524,8 +524,8 @@ class AdminController extends Controller {
         $idProp = (int) ($_POST['id_propiedad'] ?? 0);
         $idVeh = (int) ($_POST['id_vehiculo'] ?? 0);
         $idCita = (int) ($_POST['id_cita'] ?? 0);
-        $fechaSalida = trim((string) ($_POST['fecha_salida'] ?? ''));
-        $fechaLlegada = trim((string) ($_POST['fecha_llegada'] ?? ''));
+        $fechaSalida = str_replace(' ', 'T', trim((string) ($_POST['fecha_salida'] ?? '')));
+        $fechaLlegada = str_replace(' ', 'T', trim((string) ($_POST['fecha_llegada'] ?? '')));
         $estado = strtoupper(trim((string) ($_POST['estado'] ?? 'PROGRAMADA')));
         $obs = trim((string) ($_POST['observaciones'] ?? ''));
 

@@ -277,7 +277,18 @@ class Propiedad extends Model {
                     ORDER BY p.fecha_publicacion DESC, p.id_propiedad DESC"
                 );
                 $dbProps = array_map([$this, 'mapDatabaseProperty'], $stmt->fetchAll());
-                return array_column($dbProps, null, 'id');
+                $dbProps = array_column($dbProps, null, 'id');
+                foreach ($dbProps as &$property) {
+                    $property['images'] = [];
+                }
+                unset($property);
+                $images = $this->db->query('SELECT id_propiedad, url_imagen FROM imagen_propiedad ORDER BY orden_visualizacion, id_imagen');
+                foreach ($images as $image) {
+                    if (isset($dbProps[$image['id_propiedad']])) {
+                        $dbProps[$image['id_propiedad']]['images'][] = $this->imageUrl($image['url_imagen']);
+                    }
+                }
+                return $dbProps;
             } catch (Exception $e) {
                 // No se muestra el error al visitante; el catálogo demo permite
                 // que la interfaz siga disponible durante una caída de MySQL.
@@ -323,7 +334,7 @@ class Propiedad extends Model {
             // La UI actual usa un video para las tarjetas; conservar el recurso
             // local evita tratar una fotografía como archivo multimedia.
             'video' => 'casa 1.mp4',
-            'image' => $property['image'] !== '' ? (preg_match('#^https?://|^/#', $property['image']) ? $property['image'] : BASE_URL . $property['image']) : BASE_URL . 'img/ezgif-frame-001.jpg',
+            'image' => $this->imageUrl($property['image']),
             'stats' => $stats,
             'details' => $details,
             'operation_details' => array_values(array_filter([
@@ -332,6 +343,12 @@ class Propiedad extends Model {
             ])),
             'virtualTour' => $property['tour_url'] !== '' ? ['type' => 'iframe', 'url' => $property['tour_url']] : null,
         ];
+    }
+
+    private function imageUrl(string $image): string {
+        if ($image === '') return BASE_URL . 'img/ezgif-frame-001.jpg';
+        if (preg_match('#^https?://|^/#', $image)) return $image;
+        return BASE_URL . $image;
     }
 
     /**
