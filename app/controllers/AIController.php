@@ -115,7 +115,6 @@ class AIController extends Controller {
         }
 
         $this->saveChatHistory(array_merge($history, [
-            ['role' => 'user', 'content' => $userMessage],
             ['role' => 'model', 'content' => $reply],
         ]));
 
@@ -145,9 +144,9 @@ class AIController extends Controller {
             $chunks[] = $buffer;
         }
 
-        foreach ($chunks as $chunk) {
+        foreach ($chunks as $index => $chunk) {
             echo "event: token\n";
-            echo 'data: ' . json_encode(['token' => $chunk]) . "\n\n";
+            echo 'data: ' . json_encode(['token' => ($index > 0 ? ' ' : '') . $chunk]) . "\n\n";
             flush();
             if (ob_get_level() > 0) { ob_flush(); }
             usleep(12000);
@@ -164,6 +163,8 @@ class AIController extends Controller {
      * Endpoint para redactar descripciones de inmuebles en Vender
      */
     public function generateDescription(): void {
+        // La estructura es intencionalmente tolerante: los campos faltantes no
+        // rompen la respuesta, pero una descripción será menos específica.
         $raw = file_get_contents('php://input');
         $input = json_decode($raw, true);
         if (!is_array($input)) {
@@ -377,6 +378,8 @@ class AIController extends Controller {
      * Ejecutar petición cURL con timeout estricto
      */
     private function executeCurlPost(string $url, array $payload): ?string {
+        // cURL puede no estar habilitado en PHP/XAMPP; devolver null activa el
+        // fallback local en lugar de producir un error fatal al visitante.
         if (!function_exists('curl_init')) {
             return null;
         }
@@ -387,7 +390,7 @@ class AIController extends Controller {
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_TIMEOUT, AI_TIMEOUT_SECONDS);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Compatibilidad con entornos locales XAMPP
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -407,6 +410,8 @@ class AIController extends Controller {
      * Motor Experto Local: Responde inteligentemente sin consumir API ni retrasar la web
      */
     private function localExpertEngine(string $query, array $properties): array {
+        // Motor determinista de respaldo. Las palabras clave deben conservarse
+        // normalizadas a minúsculas y coincidir con los valores del catálogo.
         $q = mb_strtolower($query, 'UTF-8');
         $related = [];
 
@@ -430,20 +435,15 @@ Cuéntame, ¿qué tienes en mente hoy? Por ejemplo: una casa en Monterrey, un te
 
         // 2. Recorrido 3D
         if (str_contains($q, '3d') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
+            $tourProps = array_filter($properties, fn($p) => !empty($p['virtualTour']['url']));
             if (str_contains($q, 'industrial') || str_contains($q, 'terreno')) {
-                return [
-                    'reply' => "¡Sí! Contamos con un **Recorrido Virtual 360° del Terreno Industrial**. En él puedes explorar en 360° la plataforma nivelada, la subestación eléctrica de alta tensión, el patio logístico de maniobras y la caseta de acceso para transporte pesado, además de consultar la ficha técnica y el master plan del parque.",
-                    'related' => [6, 10]
-                ];
+                $tourProps = array_filter($tourProps, fn($p) => $p['type'] === 'terreno');
             }
-            $tourProps = array_filter($properties, fn($p) => !empty($p['virtualTour']));
-            $first = reset($tourProps) ?: ($properties[2] ?? null);
-            $title = $first ? $first['title'] : 'Residencia Las Cumbres';
-            $id = $first ? $first['id'] : 2;
-            return [
-                'reply' => "¡Sí! Contamos con recorridos virtuales interactivos 3D en **{$title}** (casa residencial) y en el **Terreno Industrial** (parque logístico). Puedes explorar las áreas en 360°, ver especificaciones y cambiar de zona con navegación interactiva.",
-                'related' => [$id, 6]
-            ];
+            $reply = empty($tourProps) ? 'No hay recorridos interactivos disponibles para esa selección.' : "Puedes iniciar un recorrido interactivo desde estas fichas:\n";
+            foreach ($tourProps as $property) {
+                $reply .= "• **{$property['title']}** ({$property['type_label']}) — {$property['location']}\n";
+            }
+            return ['reply' => $reply, 'related' => array_values(array_column($tourProps, 'id'))];
         }
 
         // 3. Consulta de Créditos / Financiamiento
@@ -470,13 +470,14 @@ Si quieres una asesoría personalizada sin costo, tienes el botón **'Solicitar 
         // 5. Búsqueda por Ubicación
         $locations = [
             'monterrey' => ['Monterrey, NL', 'San Pedro, NL'],
-            'mida'     => ['Mérida, YUC'],
+            'mérida'   => ['Mérida, YUC'],
             'merida'    => ['Mérida, YUC'],
             'yucatan'   => ['Mérida, YUC'],
             'cdmx'      => ['CDMX'],
             'mexico'    => ['CDMX'],
             'polanco'   => ['CDMX'],
-            'cancun'    => ['Cancún, Q.Roo'],
+            'cancun'    => ['Cancún'],
+            'cancún'    => ['Cancún'],
             'san pedro' => ['San Pedro, NL']
         ];
 

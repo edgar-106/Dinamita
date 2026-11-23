@@ -10,6 +10,10 @@ class Propiedad extends Model {
      * Catálogo base de propiedades con información completa
      */
     private static array $mockProperties = [
+        // Contrato de datos que consume PHP y JavaScript:
+        // id, type, operation, details, operation_details y virtualTour.
+        // Si se añade una propiedad desde BD, debe conservar estas claves o la
+        // ficha/modal puede carecer de información esperada.
         1 => [
             'id' => 1,
             'title' => 'Lote Montebello',
@@ -273,10 +277,10 @@ class Propiedad extends Model {
                     ORDER BY p.fecha_publicacion DESC, p.id_propiedad DESC"
                 );
                 $dbProps = array_map([$this, 'mapDatabaseProperty'], $stmt->fetchAll());
-                if (!empty($dbProps)) {
-                    return $dbProps;
-                }
+                return array_column($dbProps, null, 'id');
             } catch (Exception $e) {
+                // No se muestra el error al visitante; el catálogo demo permite
+                // que la interfaz siga disponible durante una caída de MySQL.
                 // Fallback a mock data
             }
         }
@@ -319,7 +323,7 @@ class Propiedad extends Model {
             // La UI actual usa un video para las tarjetas; conservar el recurso
             // local evita tratar una fotografía como archivo multimedia.
             'video' => 'casa 1.mp4',
-            'image' => $property['image'],
+            'image' => $property['image'] !== '' ? (preg_match('#^https?://|^/#', $property['image']) ? $property['image'] : BASE_URL . $property['image']) : BASE_URL . 'img/ezgif-frame-001.jpg',
             'stats' => $stats,
             'details' => $details,
             'operation_details' => array_values(array_filter([
@@ -369,11 +373,15 @@ class Propiedad extends Model {
     }
 
     /** Registra una propiedad publicada desde el formulario de Vender. */
-    public function create(array $data): array {
+    public function create(array $data, array $files = []): array {
         if ($this->db === null) {
             return ['success' => false, 'message' => 'La base de datos no está disponible.'];
         }
 
+        $user = Usuario::current();
+        if (!$user) {
+            return ['success' => false, 'message' => 'Inicia sesión para publicar una propiedad.'];
+        }
         $title = trim($data['title'] ?? '');
         $type = strtoupper(trim($data['type'] ?? ''));
         $price = filter_var($data['price'] ?? null, FILTER_VALIDATE_FLOAT);
@@ -385,35 +393,21 @@ class Propiedad extends Model {
             return ['success' => false, 'message' => 'Completa los datos requeridos de la propiedad y del propietario.'];
         }
 
+        $uploadedPaths = [];
         try {
             // Permite que esta operación forme parte de una transacción mayor,
             // por ejemplo durante pruebas o flujos administrativos compuestos.
             $ownsTransaction = !$this->db->inTransaction();
             if ($ownsTransaction) {
                 $this->db->beginTransaction();
+            } else {
+                $this->db->exec('SAVEPOINT infonatec_publish');
             }
 
-            $ownerQuery = $this->db->prepare('SELECT id_usuario FROM usuario WHERE correo = ?');
-            $ownerQuery->execute([$ownerEmail]);
-            $ownerId = $ownerQuery->fetchColumn();
-
-            if (!$ownerId) {
-                $nameParts = preg_split('/\s+/', $ownerName, 2);
-                $usernameBase = strtolower((string) preg_replace('/[^a-z0-9]/', '', strstr($ownerEmail, '@', true)));
-                $username = substr($usernameBase ?: 'propietario', 0, 52) . '_' . substr(bin2hex(random_bytes(4)), 0, 7);
-                $ownerInsert = $this->db->prepare(
-                    'INSERT INTO usuario (nombre, apellido_paterno, correo, telefono, usuario, contrasena) VALUES (?, ?, ?, ?, ?, ?)'
-                );
-                $ownerInsert->execute([
-                    $nameParts[0],
-                    $nameParts[1] ?? 'Sin apellido',
-                    $ownerEmail,
-                    trim($data['owner_phone'] ?? '') ?: null,
-                    $username,
-                    password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
-                ]);
-                $ownerId = (int) $this->db->lastInsertId();
-            }
+            $ownerId = (int) $user['id'];
+            $this->db->prepare('UPDATE usuario SET telefono = ? WHERE id_usuario = ?')->execute([
+                trim($data['owner_phone'] ?? '') ?: null, $ownerId
+            ]);
 
             $categoryQuery = $this->db->prepare('SELECT id_categoria FROM categoria WHERE nombre = ?');
             $categoryQuery->execute([$type]);
@@ -428,12 +422,17 @@ class Propiedad extends Model {
                 'INSERT INTO propiedad (id_propietario, id_categoria, id_estado, titulo, descripcion, ubicacion, precio, superficie, habitaciones, banos, operacion)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
+            $description = trim($data['description'] ?? '');
+            foreach (['parking' => 'Estacionamientos', 'land_use' => 'Uso de suelo', 'services' => 'Servicios'] as $key => $label) {
+                $value = trim((string) ($data[$key] ?? ''));
+                if ($value !== '') $description .= "\n" . $label . ': ' . $value;
+            }
             $propertyInsert->execute([
                 $ownerId,
                 $categoryId,
                 $stateId,
                 $title,
-                trim($data['description'] ?? '') ?: null,
+                $description ?: null,
                 $location,
                 $price,
                 filter_var($data['area'] ?? null, FILTER_VALIDATE_FLOAT) ?: null,
@@ -442,14 +441,48 @@ class Propiedad extends Model {
                 strtoupper(trim($data['operation'] ?? 'VENTA')),
             ]);
             $propertyId = (int) $this->db->lastInsertId();
+            $photos = $files['photos'] ?? [];
+            if (count($photos['name'] ?? []) > 10) {
+                throw new RuntimeException('Selecciona hasta diez fotografías.');
+            }
+            $types = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            foreach (($photos['tmp_name'] ?? []) as $index => $tmp) {
+                if (($photos['error'][$index] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                if ($photos['error'][$index] !== UPLOAD_ERR_OK || !is_uploaded_file($tmp)) {
+                    throw new RuntimeException('No se pudo recibir la fotografía.');
+                }
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp);
+                if (!isset($types[$mime]) || $photos['size'][$index] > 5 * 1024 * 1024) {
+                    throw new RuntimeException('Revisa el formato y tamaño de las fotografías.');
+                }
+                $directory = dirname(__DIR__, 2) . '/public/uploads';
+                if (!is_dir($directory) && !mkdir($directory, 0755, true)) {
+                    throw new RuntimeException('No se pudo preparar la carpeta de fotografías.');
+                }
+                $filename = bin2hex(random_bytes(16)) . '.' . $types[$mime];
+                $destination = $directory . '/' . $filename;
+                if (!move_uploaded_file($tmp, $destination)) {
+                    throw new RuntimeException('No se pudo guardar la fotografía.');
+                }
+                $uploadedPaths[] = $destination;
+                $this->db->prepare('INSERT INTO imagen_propiedad (id_propiedad, url_imagen, orden_visualizacion) VALUES (?, ?, ?)')->execute([$propertyId, 'uploads/' . $filename, $index]);
+            }
             if ($ownsTransaction) {
                 $this->db->commit();
+            } else {
+                $this->db->exec('RELEASE SAVEPOINT infonatec_publish');
             }
 
             return ['success' => true, 'id' => $propertyId, 'message' => 'Propiedad registrada correctamente.'];
         } catch (Throwable $e) {
             if (($ownsTransaction ?? false) && $this->db->inTransaction()) {
                 $this->db->rollBack();
+            } elseif ($this->db->inTransaction()) {
+                $this->db->exec('ROLLBACK TO SAVEPOINT infonatec_publish');
+                $this->db->exec('RELEASE SAVEPOINT infonatec_publish');
+            }
+            foreach ($uploadedPaths as $path) {
+                if (is_file($path)) unlink($path);
             }
             error_log('Error al publicar propiedad: ' . $e->getMessage());
             return ['success' => false, 'message' => 'No fue posible registrar la propiedad.'];

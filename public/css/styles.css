@@ -1974,7 +1974,8 @@ footer a:hover {
 .admin-hero {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 60px 5% 30px;
+    padding: 140px 5% 30px;
+    background: #12161f;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2258,7 +2259,7 @@ footer a:hover {
 
 .admin-form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
     gap: 18px;
 }
 

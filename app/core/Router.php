@@ -25,6 +25,8 @@ class Router {
      * Almacena internamente la ruta
      */
     private function addRoute(string $method, string $path, $handler): void {
+        // Normalizar evita que '/tour' y '/tour/' se registren como rutas
+        // distintas. Los parámetros dinámicos ({id}) se interpretan después.
         $path = trim($path, '/');
         $this->routes[] = [
             'method'  => strtoupper($method),
@@ -37,6 +39,9 @@ class Router {
      * Resuelve la URL solicitada y despacha el controlador correspondiente
      */
     public function dispatch(): void {
+        // IMPORTANTE: actualmente sólo existen GET y POST. Una solicitud HEAD
+        // no coincide con GET y produce 404; agregarla explícitamente si un
+        // monitor, CDN o verificador de salud la necesita.
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $currentUri = $this->getCurrentUri();
 
@@ -45,7 +50,8 @@ class Router {
                 continue;
             }
 
-            // Convertir la ruta en patrón regex para soportar parámetros {id}
+            // Cada {nombre} se convierte en un segmento sin '/'. Los valores se
+            // pasan al método en el mismo orden en que aparecen en la URL.
             $pattern = preg_replace('#\{([a-zA-Z0-9_]+)\}#', '([^/]+)', $route['path']);
             $pattern = "#^" . $pattern . "$#";
 
@@ -64,12 +70,15 @@ class Router {
      * Extrae la URI limpia sin el prefijo del directorio base ni query params
      */
     private function getCurrentUri(): string {
-        // Prioridad 1: Parámetro 'url' enviado por .htaccess o URL directa ?url=...
+        // Prioridad 1: parámetro inyectado por .htaccess. Si se modifica la
+        // regla RewriteRule, debe seguir enviando el nombre "url".
         if (isset($_GET['url'])) {
             return trim($_GET['url'], '/');
         }
 
-        // Prioridad 2: REQUEST_URI quitando la ruta base
+        // Prioridad 2: REQUEST_URI. rawurldecode es importante para rutas con
+        // caracteres codificados; parse_url elimina query strings antes de
+        // compararlas con la tabla de rutas.
         $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
         $path = rawurldecode(parse_url($requestUri, PHP_URL_PATH) ?? '/');
 
@@ -100,6 +109,8 @@ class Router {
                 return;
             }
 
+            // Aunque bootstrap registra autoload, el require deja un mensaje
+            // de error entendible cuando un controlador fue renombrado/movido.
             require_once $controllerFile;
 
             if (!class_exists($controllerName)) {
@@ -124,6 +135,8 @@ class Router {
      * Manejo de error 404
      */
     private function notFound(string $uri): void {
+        // No exponer detalles internos: sólo se muestra la ruta solicitada con
+        // htmlspecialchars para impedir que una URL maliciosa inserte HTML.
         http_response_code(404);
         echo "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><title>404 No Encontrado</title>";
         echo "<style>body{font-family:sans-serif;background:#0d1015;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;}";

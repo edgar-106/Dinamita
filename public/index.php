@@ -15,6 +15,7 @@ $router->get('/', 'AppController@index');
 $router->get('/home', 'AppController@index');
 $router->get('/explorar', 'ExplorarController@index');
 $router->get('/vender', 'AppController@sell');
+$router->get('/legal', 'AppController@legal');
 $router->post('/vender/publicar', 'AppController@publish');
 $router->get('/tour', 'AppController@tour');
 $router->get('/tour/industrial', 'AppController@tourIndustrial');
@@ -33,6 +34,8 @@ $router->get('/api/ai/status', 'ApiController@status');
 $router->post('/auth/login', 'AuthController@login');
 $router->post('/auth/register', 'AuthController@register');
 $router->get('/auth/logout', 'AuthController@logout');
+$router->post('/contacto', 'ContactController@interest');
+$router->post('/citas', 'ContactController@appointment');
 
 // --- Rutas de Administración ---
 $router->get('/admin', 'AdminController@index');

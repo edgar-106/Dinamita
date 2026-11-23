@@ -13,11 +13,13 @@ class AppController extends Controller {
 
     public function index(): void {
         // El splash solo debe mostrarse en el primer acceso al inicio.
+        $showSplash = empty($_SESSION['intro_seen']);
+        $_SESSION['intro_seen'] = true;
         $this->renderView('home/index', [
             'pageTitle' => APP_TITLE,
             'properties' => (new Propiedad())->getFeatured(),
             'activePage' => 'home',
-            'showSplash' => true,
+            'showSplash' => $showSplash,
         ]);
     }
 
@@ -30,6 +32,16 @@ class AppController extends Controller {
         ]);
     }
 
+    /** Muestra los términos sin obligar a volver a la página de inicio. */
+    public function legal(): void {
+        $this->renderView('legal/index', [
+            'pageTitle' => 'Términos y Legalidad | INFONATEC',
+            'properties' => $this->properties(),
+            'activePage' => 'legal',
+            'showSplash' => false,
+        ]);
+    }
+
     public function publish(): void {
         // La ruta únicamente acepta envíos del formulario; una visita directa
         // vuelve a la sección Vender.
@@ -37,7 +49,8 @@ class AppController extends Controller {
             $this->redirect('vender');
         }
 
-        $this->json((new Propiedad())->create($_POST));
+        $result = (new Propiedad())->create($_POST, $_FILES);
+        $this->json($result, $result['success'] ? 201 : 400);
     }
 
     public function tour(): void {

@@ -1470,7 +1470,7 @@
 
         function contactAgent() {
             closeFichaModal();
-            alert('¡Gracias por tu interés en el Macrolote Industrial! Un asesor de INFONATEC se comunicará contigo de inmediato para coordinar la visita técnica.');
+            window.top.location.href = '<?= BASE_URL ?>#asesor';
         }
 
         // Atajos de teclado: ESC para cerrar modales, M para minimapa, R para rotar

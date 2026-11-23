@@ -12,6 +12,9 @@ class Controller {
      * @param bool $withLayout Indica si se debe incluir el layout estándar (header y footer)
      */
     public function renderView(string $view, array $data = [], bool $withLayout = true): void {
+        if ($withLayout && !array_key_exists('properties', $data)) {
+            $data['properties'] = (new Propiedad())->getAll();
+        }
         // Las claves de $data se convierten en variables para que la vista use
         // $properties, $pageTitle, etc. sin acoplarse al controlador.
         extract($data);

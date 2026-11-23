@@ -19,8 +19,8 @@ class Usuario extends Model {
 
         // Esta validación rápida protege los dos modos de persistencia: base de
         // datos y sesión temporal para demostración.
-        if (empty($name) || empty($email) || empty($password)) {
-            return ['success' => false, 'message' => 'Por favor completa los campos requeridos.'];
+        if (empty($name) || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
+            return ['success' => false, 'message' => 'Indica tu nombre, un correo válido y una contraseña de al menos 8 caracteres.'];
         }
 
         // Si hay base de datos conectada
@@ -52,25 +52,16 @@ class Usuario extends Model {
                     'phone'    => $phone,
                     'location' => $location
                 ];
+                session_regenerate_id(true);
                 $_SESSION['user'] = $user;
                 return ['success' => true, 'user' => $user];
             } catch (Exception $e) {
                 error_log("Error al registrar usuario: " . $e->getMessage());
+                return ['success' => false, 'message' => 'No fue posible registrar la cuenta.'];
             }
         }
 
-        // Guardado en sesión como fallback
-        $user = [
-            'id'       => 1,
-            'name'     => $name,
-            'last'     => $last,
-            'email'    => $email,
-            'phone'    => $phone,
-            'location' => $location
-        ];
-        $_SESSION['user'] = $user;
-
-        return ['success' => true, 'user' => $user];
+        return ['success' => false, 'message' => 'La base de datos no está disponible.'];
     }
 
     /**
@@ -93,26 +84,13 @@ class Usuario extends Model {
                         'phone' => $user['telefono'],
                         'location' => '',
                     ];
+                    session_regenerate_id(true);
                     $_SESSION['user'] = $sessionUser;
                     return ['success' => true, 'user' => $sessionUser];
                 }
             } catch (Exception $e) {
                 error_log("Error al iniciar sesión: " . $e->getMessage());
             }
-        }
-
-        // Fallback para pruebas rápidas: no sustituye autenticación real y sólo
-        // conserva la sesión mientras el navegador permanezca activo.
-        if (!empty($email) && !empty($password)) {
-            $user = [
-                'id'       => 1,
-                'name'     => explode('@', $email)[0],
-                'email'    => $email,
-                'phone'    => '',
-                'location' => ''
-            ];
-            $_SESSION['user'] = $user;
-            return ['success' => true, 'user' => $user];
         }
 
         return ['success' => false, 'message' => 'Credenciales inválidas.'];

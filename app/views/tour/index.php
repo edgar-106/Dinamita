@@ -535,6 +535,9 @@
         /* ==========================================================
            CONFIGURACIÓN DEL RECORRIDO 360° MULTI-SALA
            ========================================================== */
+        // Cada clave de scenes debe coincidir con el data-scene de su pestaña y
+        // con targetScene de sus hotspots. Un nombre distinto deja enlaces sin
+        // destino, por lo que switchScene ignora la solicitud de forma segura.
         const scenesConfig = {
             default: {
                 firstScene: "sala",
@@ -551,6 +554,8 @@
                 sala: {
                     title: "Sala Principal",
                     type: "equirectangular",
+                    // Usar BASE_URL evita rutas rotas al servir el tour dentro
+                    // de /infonatec/public/ o desde un dominio en producción.
                     panorama: "<?= BASE_URL ?>tour/panoramas/sala.jpg",
                     pitch: 2,
                     yaw: 10,
@@ -738,6 +743,8 @@
         /* ==========================================================
            INICIALIZAR PANNELLUM
            ========================================================== */
+        // Pannellum es una biblioteca externa. Si este elemento o el script de
+        // lib/pannellum.js falta, aquí fallará la carga de todo el recorrido.
         let viewer = pannellum.viewer('panorama', scenesConfig);
 
         /* ==========================================================
@@ -776,6 +783,7 @@
            CAMBIO DE SALA Y CONTROL DE HUD
            ========================================================== */
         function switchScene(sceneId) {
+            // Evita llamar a la biblioteca con destinos mal configurados.
             if (!scenesConfig.scenes[sceneId]) return;
             
             const fader = document.getElementById('sceneFader');
@@ -845,6 +853,8 @@
            PANTALLA COMPLETA
            ========================================================== */
         function toggleFullscreen() {
+            // Algunos navegadores o iframes pueden rechazar pantalla completa;
+            // se captura el error para que el visor continúe funcionando.
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(() => {});
             } else {

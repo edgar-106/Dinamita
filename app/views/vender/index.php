@@ -277,7 +277,7 @@
             <div class="progress-step" id="step-nav-4"><span>4</span>Publicar</div>
         </div>
 
-        <form id="publishForm" onsubmit="event.preventDefault(); publishProperty();">
+        <form id="publishForm" novalidate onsubmit="event.preventDefault(); publishProperty();">
 
             <!-- PASO 1: INFORMACIÓN -->
             <div class="form-step active" id="step-1">
@@ -300,23 +300,23 @@
                 <h2 class="step-title" style="margin-top: 40px;">Información Básica</h2>
                 <div class="form-grid">
                     <div class="form-group full">
-                        <label>Título de la publicación</label>
+                        <label for="pubTitle">Título de la publicación</label>
                         <input type="text" id="pubTitle" placeholder="Ej. Hermosa residencia contemporánea" required>
                     </div>
                     <div class="form-group">
-                        <label>Precio estimado (MXN)</label>
-                        <input type="number" id="pubPrice" placeholder="$0.00" required>
+                        <label for="pubPrice">Precio estimado (MXN)</label>
+                        <input type="number" id="pubPrice" min="0" step="0.01" placeholder="$0.00" required>
                     </div>
                     <div class="form-group">
-                        <label>Ubicación (Colonia o Zona)</label>
+                        <label for="pubLocation">Ubicación (Colonia o Zona)</label>
                         <input type="text" id="pubLocation" placeholder="Ej. Montebello" required>
                     </div>
                     <div class="form-group">
-                        <label>Ciudad</label>
+                        <label for="pubCity">Ciudad</label>
                         <input type="text" id="pubCity" placeholder="Ej. Mérida" required>
                     </div>
                     <div class="form-group">
-                        <label>Estado</label>
+                        <label for="pubState">Estado</label>
                         <input type="text" id="pubState" placeholder="Ej. Yucatán" required>
                     </div>
                     <div class="form-group full">
@@ -341,31 +341,31 @@
 
                 <div class="form-grid" id="fields-vivienda">
                     <div class="form-group">
-                        <label>Número de habitaciones</label>
-                        <input type="number" id="pubBedrooms" placeholder="Ej. 3">
+                        <label for="pubBedrooms">Número de habitaciones</label>
+                        <input type="number" id="pubBedrooms" min="0" placeholder="Ej. 3">
                     </div>
                     <div class="form-group">
-                        <label>Número de baños</label>
-                        <input type="number" id="pubBathrooms" placeholder="Ej. 2">
+                        <label for="pubBathrooms">Número de baños</label>
+                        <input type="number" id="pubBathrooms" min="0" placeholder="Ej. 2">
                     </div>
                     <div class="form-group">
-                        <label>Lugares de estacionamiento</label>
-                        <input type="number" placeholder="Ej. 2">
+                        <label for="pubParking">Lugares de estacionamiento</label>
+                        <input type="number" id="pubParking" placeholder="Ej. 2" min="0">
                     </div>
                     <div class="form-group">
-                        <label>Metros cuadrados (Construcción)</label>
-                        <input type="number" id="pubArea" placeholder="m²">
+                        <label for="pubArea">Metros cuadrados (Construcción)</label>
+                        <input type="number" id="pubArea" min="1" placeholder="m²">
                     </div>
                 </div>
 
                 <div class="form-grid" id="fields-terreno" style="display: none;">
                     <div class="form-group">
-                        <label>Metros cuadrados (Superficie total)</label>
-                        <input type="number" id="pubLandArea" placeholder="m²">
+                        <label for="pubLandArea">Metros cuadrados (Superficie total)</label>
+                        <input type="number" id="pubLandArea" min="1" placeholder="m²">
                     </div>
                     <div class="form-group">
-                        <label>Uso de suelo</label>
-                        <select>
+                        <label for="pubLandUse">Uso de suelo</label>
+                        <select id="pubLandUse">
                             <option>Residencial</option>
                             <option>Comercial</option>
                             <option>Industrial</option>
@@ -373,8 +373,8 @@
                         </select>
                     </div>
                     <div class="form-group full">
-                        <label>Servicios disponibles</label>
-                        <input type="text" placeholder="Agua, Luz, Drenaje, Pavimento, etc.">
+                        <label for="pubServices">Servicios disponibles</label>
+                        <input type="text" id="pubServices" placeholder="Agua, Luz, Drenaje, Pavimento, etc.">
                     </div>
                 </div>
 
@@ -387,12 +387,13 @@
             <!-- PASO 3: FOTOGRAFÍAS -->
             <div class="form-step" id="step-3">
                 <h2 class="step-title">Galería de Imágenes</h2>
-                <div class="drop-zone" onclick="document.getElementById('fileUpload').click()">
+                <div class="drop-zone" onclick="if(event.target.id !== 'fileUpload') document.getElementById('fileUpload').click()">
                     <div class="icon">📷</div>
                     <p style="font-weight:600; color:#172033; margin-bottom:5px;">Haz clic o arrastra tus fotografías aquí</p>
                     <small style="color:#64748b;">Formatos aceptados: JPG, PNG, WEBP (Hasta 10 fotografías)</small>
-                    <input type="file" id="fileUpload" accept="image/*" multiple style="display:none;">
+                    <input type="file" id="fileUpload" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
                 </div>
+                <p id="photoSelection" aria-live="polite"></p>
 
                 <div class="form-actions">
                     <button type="button" class="btn-prev" onclick="prevStep(2)">← Atrás</button>
@@ -405,15 +406,15 @@
                 <h2 class="step-title">Datos de Contacto del Propietario</h2>
                 <div class="form-grid">
                     <div class="form-group full">
-                        <label>Nombre completo</label>
-                        <input type="text" id="ownerName" placeholder="Tu nombre y apellidos" required>
+                        <label for="ownerName">Nombre completo</label>
+                        <input type="text" id="ownerName" readonly placeholder="Tu nombre y apellidos" required>
                     </div>
                     <div class="form-group">
-                        <label>Teléfono de contacto</label>
+                        <label for="ownerPhone">Teléfono de contacto</label>
                         <input type="tel" id="ownerPhone" placeholder="10 dígitos" required>
                     </div>
                     <div class="form-group">
-                        <label>Correo electrónico</label>
+                        <label for="ownerEmail">Correo electrónico</label>
                         <input type="email" id="ownerEmail" placeholder="correo@ejemplo.com" required>
                     </div>
                 </div>
@@ -429,7 +430,7 @@
                 <div class="success-state">
                     <div class="success-icon">✓</div>
                     <h2>¡Tu propiedad ha sido registrada con éxito!</h2>
-                    <p>Un asesor revisará los detalles para activar la publicación en el catálogo público.</p>
+                    <p>La propiedad ya está disponible en el catálogo público.</p>
                     <a href="<?= BASE_URL ?>" class="btn-huge" style="text-decoration:none; background:#172033; color:white;">Volver al Inicio</a>
                 </div>
             </div>
@@ -444,7 +445,16 @@ let currentStep = 1;
 let selectedType = 'casa';
 
 function startPublishing() {
+    if (!window.INFONATEC_USER) {
+        openModal('loginModal');
+        showToast('Inicia sesión para publicar tu propiedad.', 'info');
+        return;
+    }
     document.getElementById('venderHero').style.display = 'none';
+    document.getElementById('ownerName').value = [window.INFONATEC_USER.name, window.INFONATEC_USER.last].filter(Boolean).join(' ');
+    document.getElementById('ownerEmail').value = window.INFONATEC_USER.email;
+    document.getElementById('ownerEmail').readOnly = true;
+    document.getElementById('ownerPhone').value = window.INFONATEC_USER.phone || '';
     document.getElementById('formPanel').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -480,6 +490,10 @@ function updateProgress(step) {
 }
 
 function nextStep(step) {
+    const inputs = document.querySelectorAll('#step-' + currentStep + ' input, #step-' + currentStep + ' textarea, #step-' + currentStep + ' select');
+    for (const input of inputs) {
+        if (!input.reportValidity()) return;
+    }
     document.getElementById('step-' + currentStep).classList.remove('active');
     currentStep = step;
     document.getElementById('step-' + currentStep).classList.add('active');
@@ -496,12 +510,20 @@ function prevStep(step) {
 }
 
 async function publishProperty() {
+    for (const input of document.querySelectorAll('#publishForm [required]')) {
+        if (!input.checkValidity()) {
+            prevStep(Number(input.closest('.form-step').id.replace('step-', '')));
+            input.reportValidity();
+            return;
+        }
+    }
     const location = [
         document.getElementById('pubLocation').value.trim(),
         document.getElementById('pubCity').value.trim(),
         document.getElementById('pubState').value.trim()
     ].filter(Boolean).join(', ');
-    const payload = new URLSearchParams({
+    const payload = new FormData();
+    const values = {
         title: document.getElementById('pubTitle').value.trim(),
         type: selectedType,
         price: document.getElementById('pubPrice').value,
@@ -511,16 +533,22 @@ async function publishProperty() {
         bathrooms: document.getElementById('pubBathrooms').value,
         area: (selectedType === 'terreno' ? document.getElementById('pubLandArea') : document.getElementById('pubArea')).value,
         operation: 'VENTA',
+        parking: document.getElementById('pubParking').value,
+        land_use: selectedType === 'terreno' ? document.getElementById('pubLandUse').value : '',
+        services: selectedType === 'terreno' ? document.getElementById('pubServices').value.trim() : '',
         owner_name: document.getElementById('ownerName').value.trim(),
         owner_phone: document.getElementById('ownerPhone').value.trim(),
         owner_email: document.getElementById('ownerEmail').value.trim()
-    });
+    };
+    Object.entries(values).forEach(([key, value]) => payload.append(key, value));
+    Array.from(document.getElementById('fileUpload').files).forEach(file => payload.append('photos[]', file));
+    const submitButton = document.querySelector('.btn-publish');
+    submitButton.disabled = true;
 
     try {
         const response = await fetch('<?= BASE_URL ?>vender/publicar', {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
-            body: payload.toString()
+            body: payload
         });
         const result = await response.json();
         if (!response.ok || !result.success) {
@@ -529,6 +557,8 @@ async function publishProperty() {
     } catch (error) {
         alert(error.message || 'No fue posible publicar la propiedad.');
         return;
+    } finally {
+        submitButton.disabled = false;
     }
 
     const progressBar = document.querySelector('.progress-bar');
@@ -539,4 +569,20 @@ async function publishProperty() {
     if (successStep) successStep.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+const photoInput = document.getElementById('fileUpload');
+photoInput.addEventListener('change', () => {
+    if (photoInput.files.length > 10) {
+        photoInput.value = '';
+        showToast('Selecciona hasta diez fotografías.', 'error');
+    }
+    document.getElementById('photoSelection').textContent = Array.from(photoInput.files).map(file => file.name).join(', ');
+});
+const photoDropZone = document.querySelector('.drop-zone');
+photoDropZone.addEventListener('dragover', event => event.preventDefault());
+photoDropZone.addEventListener('drop', event => {
+    event.preventDefault();
+    photoInput.files = event.dataTransfer.files;
+    photoInput.dispatchEvent(new Event('change'));
+});
 </script>

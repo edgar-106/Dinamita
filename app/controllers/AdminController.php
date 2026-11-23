@@ -22,10 +22,13 @@ class AdminController extends Controller {
         }
 
         $db = Database::getConnection();
+        if ($db === null) {
+            $this->redirect('vender');
+        }
         if ($db !== null) {
             try {
                 $stmt = $db->prepare(
-                    "SELECT r.nombre AS rol FROM usuario_rol ur INNER JOIN rol r ON r.id_rol = ur.id_rol WHERE ur.id_usuario = ? AND r.nombre = 'ADMIN' LIMIT 1"
+                    "SELECT r.nombre AS rol FROM usuario_rol ur INNER JOIN rol r ON r.id_rol = ur.id_rol WHERE ur.id_usuario = ? AND r.nombre IN ('ADMIN', 'ADMINISTRADOR') LIMIT 1"
                 );
                 $stmt->execute([(int) $user['id']]);
                 if (!$stmt->fetch()) {
@@ -68,7 +71,7 @@ class AdminController extends Controller {
                 $kpis['reservas_confirmadas'] = (int) $db->query(
                     "SELECT COUNT(*) FROM cita c INNER JOIN estado_cita e ON e.id_estado_cita = c.id_estado_cita WHERE e.nombre = 'CONFIRMADA'"
                 )->fetchColumn();
-                $kpis['pagos_pendientes'] = (int) $db->query("SELECT COUNT(*) FROM transaccion WHERE estado = 'PENDIENTE'")->fetchColumn();
+                $kpis['pagos_pendientes'] = (int) $db->query("SELECT COUNT(*) FROM pago WHERE estado = 'PENDIENTE'")->fetchColumn();
                 $kpis['propiedades_disponibles'] = (int) $db->query(
                     "SELECT COUNT(*) FROM propiedad p INNER JOIN estado_propiedad e ON e.id_estado = p.id_estado WHERE e.nombre = 'DISPONIBLE'"
                 )->fetchColumn();
@@ -93,7 +96,7 @@ class AdminController extends Controller {
             'showSplash' => false,
             'adminUser' => $admin,
             'kpis' => $kpis,
-            'reservas_recientes' => $reservasRecientes,
+            'reservasRecientes' => $reservasRecientes,
             'estados_citas' => $this->getEstadosCitas(),
         ]);
     }
@@ -107,8 +110,10 @@ class AdminController extends Controller {
         $db = Database::getConnection();
 
         $reservas = [];
+        $solicitudes = [];
         if ($db !== null) {
             try {
+                $solicitudes = $db->query('SELECT s.*, p.titulo AS propiedad FROM solicitud_contacto s LEFT JOIN propiedad p ON p.id_propiedad = s.id_propiedad ORDER BY s.fecha_registro DESC, s.id_solicitud DESC LIMIT 100')->fetchAll(PDO::FETCH_ASSOC);
                 $reservas = $db->query(
                     "SELECT c.id_cita, c.fecha, c.hora, c.motivo, c.observaciones, p.titulo AS propiedad, p.operacion, p.ubicacion, p.precio, u.nombre AS cliente_nombre, u.apellido_paterno AS cliente_apellido, u.correo AS cliente_correo, u.telefono AS cliente_telefono, a.especialidad AS asesor, e.nombre AS estado
                      FROM cita c
@@ -129,6 +134,7 @@ class AdminController extends Controller {
             'showSplash' => false,
             'adminUser' => $admin,
             'reservas' => $reservas,
+            'solicitudes' => $solicitudes,
             'estados_citas' => $this->getEstadosCitas(),
         ]);
     }
@@ -161,7 +167,9 @@ class AdminController extends Controller {
         $update = $db->prepare("UPDATE cita SET id_estado_cita = ? WHERE id_cita = ?");
         $update->execute([$row['id_estado_cita'], $id]);
 
-        if ($update->rowCount() === 0) {
+        $exists = $db->prepare('SELECT id_cita FROM cita WHERE id_cita = ?');
+        $exists->execute([$id]);
+        if (!$exists->fetchColumn()) {
             $this->json(['success' => false, 'message' => 'Reserva no encontrada.'], 404);
         }
 
@@ -232,39 +240,34 @@ class AdminController extends Controller {
             $this->json(['success' => false, 'message' => 'Sin conexion con la base de datos.'], 500);
         }
 
-        $trans = $db->prepare("SELECT id_transaccion, id_propiedad, monto, tipo, estado FROM transaccion WHERE id_transaccion = ? LIMIT 1");
-        $trans->execute([$transId]);
-        $transaccion = $trans->fetch();
-
-        if (!$transaccion) {
-            $this->json(['success' => false, 'message' => 'Transaccion no encontrada.'], 404);
+        try {
+            $db->beginTransaction();
+            $trans = $db->prepare('SELECT * FROM transaccion WHERE id_transaccion = ? FOR UPDATE');
+            $trans->execute([$transId]);
+            $transaccion = $trans->fetch();
+            if (!$transaccion || $transaccion['estado'] === 'CANCELADA') {
+                $db->rollBack();
+                $this->json(['success' => false, 'message' => 'Transacción no disponible.'], 404);
+            }
+            $db->prepare("UPDATE pago SET estado = 'APROBADO' WHERE id_transaccion = ? AND estado = 'PENDIENTE'")->execute([$transId]);
+            $sum = $db->prepare("SELECT COALESCE(SUM(monto), 0) FROM pago WHERE id_transaccion = ? AND estado = 'APROBADO'");
+            $sum->execute([$transId]);
+            $paid = (float) $sum->fetchColumn();
+            if ($paid <= 0) {
+                $db->rollBack();
+                $this->json(['success' => false, 'message' => 'No hay pagos pendientes o aprobados.'], 400);
+            }
+            $complete = $paid >= (float) $transaccion['monto'];
+            $db->prepare('UPDATE transaccion SET estado = ? WHERE id_transaccion = ?')->execute([$complete ? 'COMPLETADA' : 'EN_PROCESO', $transId]);
+            $state = $complete ? ($transaccion['tipo'] === 'RENTA' ? 'RENTADA' : 'VENDIDA') : 'APARTADA';
+            $db->prepare('UPDATE propiedad SET id_estado = (SELECT id_estado FROM estado_propiedad WHERE nombre = ?) WHERE id_propiedad = ?')->execute([$state, $transaccion['id_propiedad']]);
+            $db->commit();
+            $this->json(['success' => true, 'id_transaccion' => $transId, 'pago_confirmado' => true, 'estado_propiedad' => $state]);
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            error_log('Error al validar pago: ' . $e->getMessage());
+            $this->json(['success' => false, 'message' => 'No fue posible validar el pago.'], 500);
         }
-
-        $updTrans = $db->prepare("UPDATE transaccion SET estado = 'CONFIRMADO' WHERE id_transaccion = ?");
-        $updTrans->execute([$transId]);
-
-        $updPago = $db->prepare("UPDATE pago SET estado = 'CONFIRMADO' WHERE id_transaccion = ?");
-        $updPago->execute([$transId]);
-
-        $prop = $db->prepare("SELECT id_propiedad, id_estado FROM propiedad WHERE id_propiedad = ? LIMIT 1");
-        $prop->execute([$transaccion['id_propiedad']]);
-        $propiedad = $prop->fetch();
-
-        $liberada = false;
-        if ($propiedad) {
-            $updEstado = $db->prepare("UPDATE estado_propiedad SET nombre = 'DISPONIBLE' WHERE id_estado = ?");
-            $updEstado->execute([$propiedad['id_estado']]);
-            $liberada = true;
-        }
-
-        $this->json([
-            'success' => true,
-            'id_transaccion' => $transId,
-            'monto' => $transaccion['monto'],
-            'tipo' => $transaccion['tipo'],
-            'pago_confirmado' => true,
-            'propiedad_liberada' => $liberada,
-        ]);
     }
 
     /**
@@ -276,7 +279,7 @@ class AdminController extends Controller {
             return 0;
         }
         try {
-            $st = $db->query("SELECT COUNT(*) FROM transaccion WHERE estado = 'PENDIENTE'");
+            $st = $db->query("SELECT COUNT(*) FROM pago WHERE estado = 'PENDIENTE'");
             return (int) $st->fetchColumn();
         } catch (Exception $e) {
             return 0;
@@ -343,6 +346,9 @@ class AdminController extends Controller {
         if ($idProp <= 0 || $url === '') {
             $this->json(['success' => false, 'message' => 'Datos inválidos: la propiedad y la URL del tour son requeridos.'], 400);
         }
+        if (!preg_match('#^(https?://|/?tour(?:/|$))#i', $url)) {
+            $this->json(['success' => false, 'message' => 'Utiliza una URL HTTP o la ruta de un recorrido local.'], 400);
+        }
 
         $db = Database::getConnection();
         if ($db === null) {
@@ -350,14 +356,8 @@ class AdminController extends Controller {
         }
 
         try {
-            $upd = $db->prepare("UPDATE paseo_virtual SET url_3d = ?, descripcion = ? WHERE id_propiedad = ?");
-            $upd->execute([$url, $desc, $idProp]);
-            $existed = $upd->rowCount() > 0;
-
-            if (!$existed) {
-                $ins = $db->prepare("INSERT INTO paseo_virtual (id_propiedad, url_3d, descripcion) VALUES (?, ?, ?)");
-                $ins->execute([$idProp, $url, $desc]);
-            }
+            $ins = $db->prepare('INSERT INTO paseo_virtual (id_propiedad, url_3d, descripcion) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE url_3d = VALUES(url_3d), descripcion = VALUES(descripcion)');
+            $ins->execute([$idProp, $url, $desc]);
 
             $this->json(['success' => true, 'id_propiedad' => $idProp, 'url_3d' => $url, 'tour_registrado' => true]);
         } catch (Exception $e) {
@@ -459,6 +459,9 @@ class AdminController extends Controller {
         if ($placa === '' || $tipo === '') {
             $this->json(['success' => false, 'message' => 'Datos inválidos: la placa y el tipo son requeridos.'], 400);
         }
+        if ($capacidad < 1) {
+            $this->json(['success' => false, 'message' => 'La capacidad debe ser mayor que cero.'], 400);
+        }
         if (!in_array($estado, ['DISPONIBLE', 'EN_USO', 'MANTENIMIENTO'], true)) {
             $estado = 'DISPONIBLE';
         }
@@ -500,7 +503,9 @@ class AdminController extends Controller {
             $upd = $db->prepare("UPDATE vehiculo SET estado = ? WHERE id_vehiculo = ?");
             $upd->execute([$estado, $vehId]);
 
-            if ($upd->rowCount() === 0) {
+            $exists = $db->prepare('SELECT id_vehiculo FROM vehiculo WHERE id_vehiculo = ?');
+            $exists->execute([$vehId]);
+            if (!$exists->fetchColumn()) {
                 $this->json(['success' => false, 'message' => 'Vehículo no encontrado.'], 404);
             }
 
@@ -527,6 +532,11 @@ class AdminController extends Controller {
         if ($idProp <= 0 || $idVeh <= 0 || $fechaSalida === '' || $fechaLlegada === '') {
             $this->json(['success' => false, 'message' => 'Datos inválidos: propiedad, vehiculo y fechas son requeridos.'], 400);
         }
+        $departure = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $fechaSalida);
+        $arrival = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $fechaLlegada);
+        if (!$departure || !$arrival || $departure->format('Y-m-d\TH:i') !== $fechaSalida || $arrival->format('Y-m-d\TH:i') !== $fechaLlegada || $arrival <= $departure || !in_array($estado, ['PROGRAMADA', 'EN_CAMINO', 'COMPLETADA', 'CANCELADA'], true)) {
+            $this->json(['success' => false, 'message' => 'Revisa las fechas y el estado del traslado.'], 400);
+        }
 
         $db = Database::getConnection();
         if ($db === null) {
@@ -534,11 +544,25 @@ class AdminController extends Controller {
         }
 
         try {
+            $db->beginTransaction();
+            $vehicle = $db->prepare('SELECT estado FROM vehiculo WHERE id_vehiculo = ? FOR UPDATE');
+            $vehicle->execute([$idVeh]);
+            $vehicleState = $vehicle->fetchColumn();
+            if (!$vehicleState || $vehicleState === 'MANTENIMIENTO') {
+                throw new RuntimeException('Vehículo no disponible.');
+            }
+            $overlap = $db->prepare("SELECT id_asignacion FROM asignacion_transporte WHERE id_vehiculo = ? AND estado IN ('PROGRAMADA', 'EN_CAMINO') AND fecha_salida < ? AND fecha_llegada > ? LIMIT 1");
+            $overlap->execute([$idVeh, $fechaLlegada, $fechaSalida]);
+            if (in_array($estado, ['PROGRAMADA', 'EN_CAMINO'], true) && $overlap->fetchColumn()) {
+                throw new RuntimeException('El vehículo ya está asignado en ese horario.');
+            }
             $ins = $db->prepare("INSERT INTO asignacion_transporte (id_propiedad, id_vehiculo, id_cita, fecha_salida, fecha_llegada, estado, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $ins->execute([$idProp, $idVeh, $idCita > 0 ? $idCita : null, $fechaSalida, $fechaLlegada, $estado, $obs]);
-
-            $this->json(['success' => true, 'id_asignacion' => (int) $db->lastInsertId(), 'estado' => $estado]);
+            $assignmentId = (int) $db->lastInsertId();
+            $db->commit();
+            $this->json(['success' => true, 'id_asignacion' => $assignmentId, 'estado' => $estado]);
         } catch (Exception $e) {
+            if ($db->inTransaction()) $db->rollBack();
             error_log("Error asignando transporte: " . $e->getMessage());
             $this->json(['success' => false, 'message' => 'Error al asignar transporte: ' . $e->getMessage()], 500);
         }

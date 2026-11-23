@@ -158,11 +158,12 @@
         <?php endforeach; ?>
 
     </div>
+    <p id="catalogEmptyResults" hidden>No hay propiedades disponibles para esta selección.</p>
 </section>
 
 <script>
-let currentCategory = "casa";
-let currentOperation = "comprar";
+let currentCategory = <?= json_encode($currentType) ?>;
+let currentOperation = <?= json_encode($currentOperation) ?>;
 
 const catInfo = {
     casa: {
@@ -211,9 +212,11 @@ function filterCatalog() {
             card.style.display = "none";
         }
     });
+    document.getElementById('catalogEmptyResults').hidden = Array.from(cards).some(card => card.style.display !== 'none');
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    filterCatalog();
+    switchCategory(currentCategory);
+    switchOperation(currentOperation);
 });
 </script>

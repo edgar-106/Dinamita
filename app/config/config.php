@@ -8,6 +8,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+date_default_timezone_set('America/Mexico_City');
 
 // Construimos la URL base desde la petición actual. Esto permite ejecutar el
 // proyecto tanto en XAMPP (/infonatec/public/) como en un dominio real.

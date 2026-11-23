@@ -1,6 +1,10 @@
 <!-- =========================================================
      FOOTER
 ========================================================= -->
+<?php
+// En Inicio se conserva el catálogo actual; fuera de Inicio se abre Legal.
+$footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal';
+?>
 
 <footer>
 
@@ -35,9 +39,9 @@
 
         <div>
             <h4 class="footer-title">LEGAL</h4>
-            <p><a href="<?= BASE_URL ?>#legal">Términos y condiciones</a></p>
-            <p><a href="<?= BASE_URL ?>#legal">Política de privacidad</a></p>
-            <p><a href="<?= BASE_URL ?>#legal">Aviso legal</a></p>
+            <p><a href="<?= $footerLegalLink ?>">Términos y condiciones</a></p>
+            <p><a href="<?= $footerLegalLink ?>">Política de privacidad</a></p>
+            <p><a href="<?= $footerLegalLink ?>">Aviso legal</a></p>
         </div>
 
     </div>
@@ -227,7 +231,7 @@
         <h2 id="interestTitle">Me interesa esta propiedad.</h2>
         <p class="modal-subtitle">Envía tu solicitud y un asesor se pondrá en contacto contigo.</p>
 
-        <form onsubmit="submitInterest(event)">
+        <form onsubmit="sendInterest(event)">
 
             <div class="form-grid">
 
@@ -457,6 +461,7 @@
 
 <!-- Catálogo único: las fichas, el chat y las tarjetas usan estos mismos datos. -->
 <script>
+    window.INFONATEC_USER = <?= json_encode(Usuario::current(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     window.INFONATEC_PROPERTIES = <?= json_encode(
         $properties ?? [],
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
@@ -464,7 +469,7 @@
 </script>
 
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=5.6"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=5.8"></script>
 
 </body>
 </html>

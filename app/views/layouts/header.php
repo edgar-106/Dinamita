@@ -25,7 +25,7 @@
     </script>
 
     <!-- CSS Principal -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=5.0">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=5.1">
 
     <style>
     /* =========================================================
@@ -209,6 +209,10 @@
         .nav-operation-tabs .filter-btn { padding: 8px 12px !important; font-size: 11px; }
     }
     @media (max-width: 650px) {
+        #navUserArea > span { display: none; }
+        .nav-actions { gap: 4px; }
+        .nav-actions .btn-outline, .nav-actions .btn-light { padding: 8px 7px; font-size: 10px; white-space: nowrap; }
+        .nav-hamburger { margin-left: 0; flex-shrink: 0; }
         .navbar .custom-dropdown { display: none; }
         .nav-operation-tabs .filter-btn { padding: 8px 9px !important; font-size: 10px; }
     }
@@ -371,12 +375,35 @@
 <!-- =========================================================
      MENÚ MÓVIL
 ========================================================= -->
+<?php
+$adminNavUser = null;
+if (!empty($_SESSION['user']['id'] ?? null)) {
+    $adminDbConn = Database::getConnection();
+    if ($adminDbConn !== null) {
+        try {
+            $adminStmt = $adminDbConn->prepare("SELECT r.nombre AS rol FROM usuario_rol ur INNER JOIN rol r ON r.id_rol = ur.id_rol WHERE ur.id_usuario = ? AND r.nombre IN ('ADMIN', 'ADMINISTRADOR') LIMIT 1");
+            $adminStmt->execute([$_SESSION['user']['id']]);
+            if ($adminStmt->fetch()) {
+                $adminNavUser = $_SESSION['user'];
+            }
+        } catch (Exception $e) {
+            // Sin acceso a base de datos: se mantiene la sesion actual.
+        }
+    }
+}
+?>
+<?php
+// En inicio usamos un ancla local para conservar el filtro Comprar/Rentar.
+// En las demás páginas se abre la vista Legal independiente.
+$legalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal';
+?>
 <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Menú de navegación">
     <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Cerrar menú">×</button>
     <a href="<?= BASE_URL ?>#adquirir">Explorar</a>
     <a href="<?= BASE_URL ?>vender">Vender</a>
     <a href="<?= BASE_URL ?>#asesor">Asesor</a>
-    <a href="<?= BASE_URL ?>#legal">Legal</a>
+    <a href="<?= $legalLink ?>">Legal</a>
+    <?php if ($adminNavUser): ?><a href="<?= BASE_URL ?>admin">Administración</a><?php endif; ?>
 </div>
 
 <!-- =========================================================
@@ -406,24 +433,7 @@
         <li><a href="<?= BASE_URL ?>#adquirir">Explorar</a></li>
         <li><a href="<?= BASE_URL ?>vender">Vender</a></li>
         <li><a href="<?= BASE_URL ?>#asesor">Asesor</a></li>
-        <li><a href="<?= BASE_URL ?>#legal">Legal</a></li>
-        <?php
-        $adminNavUser = null;
-        if (!empty($_SESSION['user']['id'] ?? null)) {
-            $adminDbConn = Database::getConnection();
-            if ($adminDbConn !== null) {
-                try {
-                    $adminStmt = $adminDbConn->prepare("SELECT r.nombre AS rol FROM usuario_rol ur INNER JOIN rol r ON r.id_rol = ur.id_rol WHERE ur.id_usuario = ? AND r.nombre = 'ADMIN' LIMIT 1");
-                    $adminStmt->execute([$_SESSION['user']['id']]);
-                    if ($adminStmt->fetch()) {
-                        $adminNavUser = $_SESSION['user'];
-                    }
-                } catch (Exception $e) {
-                    // Sin acceso a base de datos: se mantiene la sesion actual.
-                }
-            }
-        }
-        ?>
+        <li><a href="<?= $legalLink ?>">Legal</a></li>
         <?php if (!empty($adminNavUser) && !empty($adminNavUser['id'])): ?>
         <li><a href="<?= BASE_URL ?>admin">Administración</a></li>
         <?php endif; ?>

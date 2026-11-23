@@ -13,6 +13,26 @@
 </section>
 
 <section class="admin-panel">
+    <div class="admin-panel-header"><h2>Solicitudes de contacto y asesoría</h2></div>
+    <?php if (empty($solicitudes)): ?>
+        <p class="admin-empty">No hay solicitudes de contacto registradas.</p>
+    <?php else: ?>
+        <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Propiedad</th><th>Mensaje</th><th>Horario</th></tr></thead>
+            <tbody>
+            <?php foreach ($solicitudes as $solicitud): ?>
+                <tr>
+                    <?php foreach (['nombre', 'telefono', 'correo', 'propiedad', 'mensaje', 'horario'] as $campo): ?>
+                        <td><?= htmlspecialchars((string) ($solicitud[$campo] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                    <?php endforeach; ?>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    <?php endif; ?>
+</section>
+
+<section class="admin-panel">
     <div class="admin-panel-header">
         <h2>Reservas (<?= (int) count($reservas) ?>)</h2>
     </div>

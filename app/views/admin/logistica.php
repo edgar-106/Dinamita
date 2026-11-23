@@ -135,6 +135,20 @@
         <h2>Asignar transporte (<?= (int) count($asignaciones) ?>)</h2>
     </div>
 
+    <?php if (!empty($asignaciones)): ?>
+        <div class="admin-table-wrap"><table class="admin-table">
+            <thead><tr><th>Propiedad</th><th>Vehículo</th><th>Salida</th><th>Llegada</th><th>Estado</th></tr></thead>
+            <tbody>
+            <?php foreach ($asignaciones as $asignacion): ?>
+                <tr>
+                    <?php foreach (['propiedad', 'vehiculo_placa', 'fecha_salida', 'fecha_llegada', 'estado'] as $campo): ?>
+                        <td><?= htmlspecialchars((string) ($asignacion[$campo] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                    <?php endforeach; ?>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    <?php endif; ?>
     <form class="admin-form" onsubmit="adminAsignarTransporte(event)">
         <div class="admin-form-grid">
             <div class="form-group">

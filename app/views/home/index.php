@@ -74,6 +74,7 @@
             <?php endforeach; ?>
 
         </div>
+        <p id="homeEmptyResults" hidden>No hay propiedades disponibles para esta selección.</p>
     </div>
 </section>
 
@@ -98,12 +99,12 @@ function selectCategory(type) {
 }
 
 function openCatalogForOperation(operation) {
-    document.getElementById('categoryChooser').hidden = true;
-    document.getElementById('catalogView').hidden = false;
+    // Cambiar entre Comprar y Rentar siempre vuelve al selector de tipo. Así
+    // se puede elegir de nuevo Casas, Departamentos o Terrenos sin regresar
+    // al inicio ni conservar un tipo elegido por accidente.
     currentType = 'all';
-    const label = document.getElementById('categoryLabel');
-    if (label) label.firstChild.nodeValue = categoryNames.all + ' ';
     filterProps('op', operation);
+    openCategoryChooser();
 }
 
 function filterProps(filterType, value) {
@@ -120,6 +121,7 @@ function filterProps(filterType, value) {
         const matchType = currentType === "all" || card.dataset.type === currentType;
         card.style.display = (matchOp && matchType) ? "block" : "none";
     });
+    document.getElementById('homeEmptyResults').hidden = Array.from(document.querySelectorAll('.js-prop-card')).some(card => card.style.display !== 'none');
 }
 
 document.addEventListener("DOMContentLoaded", () => filterProps("op", "comprar"));

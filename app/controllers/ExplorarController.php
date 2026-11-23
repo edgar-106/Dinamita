@@ -13,14 +13,14 @@ class ExplorarController extends Controller {
 
         $propiedadModel = new Propiedad();
         // El filtrado se mantiene en el modelo para que la vista sólo renderice.
-        $properties = $propiedadModel->filter($type, $operation);
+        $properties = $propiedadModel->getAll();
 
         $this->renderView('explorar/index', [
             'pageTitle'        => 'Explorar Propiedades | INFONATEC',
             'properties'       => $properties,
             'activePage'       => 'explorar',
-            'currentType'      => $type ?? 'casa',
-            'currentOperation' => $operation ?? 'comprar',
+            'currentType'      => in_array($type, ['casa', 'departamento', 'terreno'], true) ? $type : 'casa',
+            'currentOperation' => in_array($operation, ['comprar', 'rentar'], true) ? $operation : 'comprar',
             'showSplash'       => false
         ]);
     }

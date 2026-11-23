@@ -1,0 +1,126 @@
+REPORTE DE PRUEBAS DE INFONATEC
+22 de noviembre de 2026
+
+Entorno local de XAMPP
+Aplicación http://localhost/infonatec/public/
+Base instalada sistema_inmobiliario
+
+Instalación
+Se importó el archivo SQL compartido. Contenía estructura y carecía de datos iniciales.
+Se añadieron catálogos de categorías, estados y roles.
+Se crearon las tablas vehiculo, asignacion_transporte y solicitud_contacto que requiere el código.
+Los complementos están en database/initialize.sql y su ejecución repetida se comprobó.
+Se creó admin@infonatec.local con contraseña cifrada mediante hash y rol ADMIN.
+Se cargaron los diez inmuebles de demostración del catálogo del proyecto para probar el sitio con MySQL.
+
+Resultados automáticos
+62 de 62 comprobaciones aprobadas.
+33 archivos PHP verificados sin errores de sintaxis.
+23 bloques JavaScript de las páginas compilados sin errores.
+28 recursos y enlaces locales respondieron correctamente.
+También se verificó que una publicación fallida dentro de una transacción existente revierte sus cambios y mantiene abierta la transacción del llamador.
+
+Revisión del navegador
+Acceso de administrador, aparición del menú y bloqueo del panel después de cerrar sesión.
+Selección de compra y renta, categorías, fichas, fotografía, video y apertura/cierre del recorrido.
+Navegación de salas del recorrido residencial, zonas industriales, giro automático, mapa y ficha técnica.
+Enlace de solicitud del recorrido industrial hacia el formulario de asesoría.
+Formulario de publicación por pasos, validación de campos, generación de descripción, selección de fotografía y publicación persistente.
+Solicitud de interés, asesoría y cita con verificación de registros en administración.
+Actualización del estado de una cita desde el botón del panel.
+Apartados legales y recomendaciones del chat con apertura de fichas.
+Menú móvil a 390 píxeles, enlace de administración y comprobación del ancho del documento.
+
+Correcciones principales
+El acceso rechaza contraseñas incorrectas y el registro guarda cuentas en MySQL.
+La interfaz usa la sesión PHP y deja de guardar contraseñas en el navegador.
+El cierre de sesión invalida el acceso al servidor.
+La publicación por pasos ya no queda sobrescrita por la función global de demostración.
+La publicación guarda las fotografías y revierte operaciones incompletas.
+Los datos adicionales de estacionamiento, uso de suelo y servicios se incluyen en la descripción.
+Las solicitudes de contacto y asesoría se muestran en Administración / Reservas.
+Las fichas usan el identificador real de cada propiedad y los filtros mantienen todo el catálogo.
+El listado vacío muestra un mensaje y el catálogo deja de mostrar datos de respaldo cuando MySQL está conectado y no hay inmuebles disponibles.
+Confirmar nuevamente un estado de cita o vehículo funciona sin producir un error de registro inexistente.
+Registrar nuevamente un recorrido actualiza el existente.
+La aprobación de pagos utiliza una transacción y actualiza únicamente la propiedad correspondiente.
+Un pago parcial deja la operación EN_PROCESO y la propiedad APARTADA.
+El pago total deja la operación COMPLETADA y la propiedad VENDIDA o RENTADA.
+Los pagos aprobados se reflejan en el saldo calculado por la vista de transacciones.
+El transporte rechaza fechas invertidas, vehículos en mantenimiento y horarios que se solapan.
+El chat conserva los espacios entre fragmentos y toma los nombres de los recorridos del catálogo.
+El panel y el menú móvil recibieron ajustes de separación y contraste.
+
+Alcance y comprobaciones pendientes
+El chat y la generación de descripciones se probaron con el motor local.
+Gemini requiere una clave API y su respuesta externa queda pendiente de verificación.
+Los pagos probados fueron registros sintéticos locales y operaciones internas del panel.
+Esta revisión corresponde al entorno local y a los flujos y controles enumerados.
+
+Estado al terminar
+Una cuenta administradora y diez propiedades de demostración.
+Las cuentas, citas, solicitudes, publicaciones, imágenes y registros de pagos/transporte temporales utilizados para las pruebas se retiraron.
+
+Detalle de las comprobaciones automáticas
+APROBADA - GET 
+APROBADA - GET home
+APROBADA - GET explorar
+APROBADA - GET explorar?tipo=terreno&operacion=comprar
+APROBADA - GET vender
+APROBADA - GET legal
+APROBADA - GET tour
+APROBADA - GET tour/industrial
+APROBADA - GET api/propiedades
+APROBADA - GET api/propiedades/2
+APROBADA - GET api/ai/status
+APROBADA - Inmueble inexistente
+APROBADA - Administrador protegido
+APROBADA - Acceso invitado admin/reservas/1/estado
+APROBADA - Acceso invitado admin/pagos/1/confirmar
+APROBADA - Acceso invitado admin/eventos/tour
+APROBADA - Acceso invitado admin/logistica/vehiculo
+APROBADA - Rechazo contraseña admin@infonatec.local
+APROBADA - Rechazo contraseña nadie@example.invalid
+APROBADA - Login administrador
+APROBADA - Registro persistente
+APROBADA - Rechazo registro duplicado
+APROBADA - Cliente sin permiso admin
+APROBADA - Panel admin
+APROBADA - Panel admin/reservas
+APROBADA - Panel admin/pagos
+APROBADA - Panel admin/eventos
+APROBADA - Panel admin/logistica
+APROBADA - Publicación sin sesión
+APROBADA - Publicación con fotografía
+APROBADA - Detalle publicado y ID correcto
+APROBADA - Imagen publicada disponible
+APROBADA - Archivo inválido rechazado
+APROBADA - Publicación fallida revierte datos
+APROBADA - Cita sin sesión rechazada
+APROBADA - Creación de cita
+APROBADA - Horario duplicado rechazado
+APROBADA - Confirmar cita repetición 0
+APROBADA - Confirmar cita repetición 1
+APROBADA - Cita visible en resumen
+APROBADA - Interés guardado
+APROBADA - Asesoría guardada
+APROBADA - Tour repetición 0
+APROBADA - Tour repetición 1
+APROBADA - Tour único
+APROBADA - Tour URL inválida
+APROBADA - Eliminar tour
+APROBADA - Alta vehículo
+APROBADA - Rechazo placa duplicada
+APROBADA - Estado vehículo repetición 0
+APROBADA - Estado vehículo repetición 1
+APROBADA - Asignar transporte
+APROBADA - Rechazar traslado solapado
+APROBADA - Rechazar fechas invertidas
+APROBADA - Pago parcial aprobado
+APROBADA - Pago total completa operación
+APROBADA - Catálogo de estados intacto
+APROBADA - Saldo de vista correcto
+APROBADA - Chat JSON
+APROBADA - Chat SSE y espacios
+APROBADA - Generación de descripción
+APROBADA - Salir invalida sesión

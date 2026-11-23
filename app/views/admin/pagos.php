@@ -7,7 +7,7 @@
     <div class="admin-hero-text">
         <p class="admin-kicker">Administración</p>
         <h1 class="admin-title">Validación de Pagos</h1>
-        <p class="admin-sub">Revisa los comprobantes de pago recibidos y confirma los pagos para liberar propiedades.</p>
+        <p class="admin-sub">Valida los pagos registrados y actualiza el estado de la operación y de su propiedad.</p>
     </div>
     <a class="admin-btn-primary" href="<?= BASE_URL ?>admin">← Volver al panel</a>
 </section>

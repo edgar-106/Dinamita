@@ -1,7 +1,7 @@
 /* =========================================================
    app.js — INFONATEC Inmobiliaria
    Coordinador del comportamiento del cliente: navegación, modales, catálogo,
-   tour, autenticación local y solicitudes a la API MVC.
+   tour, sesión del servidor y solicitudes a la API MVC.
 ========================================================= */
 
 /* =========================================================
@@ -282,7 +282,7 @@ window.addEventListener('keydown', function (e) {
 
 // En las vistas MVC se recibe el catálogo del servidor. El bloque siguiente
 // conserva datos de respaldo para las páginas HTML antiguas del proyecto.
-const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_PROPERTIES).length)
+const properties = window.INFONATEC_PROPERTIES
     ? window.INFONATEC_PROPERTIES
     : {
     1: {
@@ -514,6 +514,8 @@ const properties = (window.INFONATEC_PROPERTIES && Object.keys(window.INFONATEC_
 let currentPropertyId = null;
 
 function showProperty(id) {
+    // id puede llegar desde una tarjeta del HTML o una recomendación del chat.
+    // Validarlo antes de acceder evita fallos si catálogo y página se desincronizan.
     currentPropertyId = id;
     const property = properties[id];
 
@@ -522,6 +524,8 @@ function showProperty(id) {
         return;
     }
 
+    // Las vistas comparten este modal. Si se cambia un id del footer, mantener
+    // estos nodos o añadir comprobaciones como las usadas más abajo.
     document.getElementById('detailImage').src = property.image;
     document.getElementById('detailImage').alt = property.title;
     document.getElementById('detailTitle').innerText = property.title;
@@ -563,7 +567,8 @@ function showProperty(id) {
         btnInteractivo.style.opacity = hasTour ? '1' : '0.5';
         btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo no disponible';
     }
-    const logged = localStorage.getItem('br_usuario');
+    // La sesión del servidor determina qué acciones se muestran en la ficha.
+    const logged = window.INFONATEC_USER;
     document.getElementById('fullInformation').style.display  = logged ? 'block' : 'none';
     document.getElementById('loginRequired').style.display    = logged ? 'none'  : 'block';
 
@@ -582,6 +587,8 @@ function openMediaTour(type) {
         return;
     }
 
+    // El fallback a 3 protege aperturas directas desde controles antiguos; los
+    // flujos normales siempre fijan currentPropertyId con showProperty().
     const propertyId = currentPropertyId || 3;
     const property = properties[propertyId];
 
@@ -809,7 +816,7 @@ function resetCarouselPosition() {
    REGISTRO
 ========================================================= */
 
-function register(event) {
+async function register(event) {
     event.preventDefault();
 
     const form = event.target;
@@ -833,76 +840,43 @@ function register(event) {
         password: passEl ? passEl.value : ''
     };
 
-    localStorage.setItem('br_usuario', JSON.stringify(user));
-    closeModal('registerModal');
-    closeModal('propertyModal');
-    showToast('¡Registro exitoso! Ahora puedes consultar información completa.', 'success', 4000);
-
-    setTimeout(function () {
+    try {
+        const result = await postForm('auth/register', user);
+        window.INFONATEC_USER = result.user;
+        localStorage.removeItem('br_usuario');
         location.reload();
-    }, 1200);
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 /* =========================================================
    LOGIN
 ========================================================= */
 
+async function postForm(endpoint, data) {
+    const response = await fetch(getApiUrl(endpoint), {
+        method: 'POST',
+        body: new URLSearchParams(data)
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(result.message || 'No fue posible completar la solicitud.');
+    }
+    return result;
+}
+
 async function login(event) {
     event.preventDefault();
-
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const saved    = localStorage.getItem('br_usuario');
-
-    // 1. Intento de autenticación en el servidor (cuentas reales: admin y clientes).
     try {
-        const formData = new URLSearchParams();
-        formData.append('email', email);
-        formData.append('password', password);
-
-        const response = await fetch(getApiUrl('auth/login'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
+        await postForm('auth/login', {
+            email: document.getElementById('loginEmail').value.trim(),
+            password: document.getElementById('loginPassword').value
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const user = data.user || {};
-            localStorage.setItem('br_usuario', JSON.stringify({
-                name: user.name || email.split('@')[0],
-                email: user.email || email,
-                password: password
-            }));
-            closeModal('loginModal');
-            showToast('¡Bienvenido, ' + user.name + '!', 'success');
-            setTimeout(function () { location.reload(); }, 1500);
-            return;
-        }
-
-        if (data.message) {
-            showToast(data.message, 'error');
-            return;
-        }
+        localStorage.removeItem('br_usuario');
+        location.reload();
     } catch (error) {
-        // Si el backend no responde, se mantiene el flujo local.
-    }
-
-    // 2. Fallback local (registro previo guardado en el navegador).
-    if (!saved) {
-        showToast('No existe una cuenta local. Primero regístrate.', 'error');
-        return;
-    }
-
-    const user = JSON.parse(saved);
-
-    if (user.email === email && user.password === password) {
-        closeModal('loginModal');
-        showToast('¡Bienvenido, ' + user.name + '!', 'success');
-        setTimeout(function () { location.reload(); }, 1500);
-    } else {
-        showToast('Correo o contraseña incorrectos.', 'error');
+        showToast(error.message, 'error');
     }
 }
 
@@ -910,10 +884,22 @@ async function login(event) {
    INTERÉS EN PROPIEDAD
 ========================================================= */
 
-function sendInterest(event) {
+async function sendInterest(event) {
     event.preventDefault();
-    closeModal('interestModal');
-    showToast('Solicitud enviada. Un monitor podrá comunicarse contigo.', 'success');
+    try {
+        const result = await postForm('contacto', {
+            property_id: currentPropertyId || '',
+            name: document.getElementById('interestName').value.trim(),
+            phone: document.getElementById('interestPhone').value.trim(),
+            email: document.getElementById('interestEmail').value.trim(),
+            message: document.getElementById('interestMsg').value.trim()
+        });
+        closeModal('interestModal');
+        event.target.reset();
+        showToast(result.message, 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 /* =========================================================
@@ -921,19 +907,13 @@ function sendInterest(event) {
 ========================================================= */
 
 function openPublishModal() {
-    const logged = localStorage.getItem('br_usuario');
+    const logged = window.INFONATEC_USER;
     if (!logged) {
         showToast('Para publicar una propiedad primero debes crear una cuenta.', 'info');
         openModal('registerModal');
         return;
     }
-    openModal('publishModal');
-}
-
-function publishProperty(event) {
-    event.preventDefault();
-    closeModal('publishModal');
-    showToast('Propiedad registrada en modo demostración.', 'success');
+    window.location.href = getApiUrl('vender');
 }
 
 /* =========================================================
@@ -945,10 +925,21 @@ function openAppointment() {
     openModal('appointmentModal');
 }
 
-function scheduleAppointment(event) {
+async function scheduleAppointment(event) {
     event.preventDefault();
-    closeModal('appointmentModal');
-    showToast('Cita solicitada. Revisa tus medios de contacto para confirmar.', 'success');
+    try {
+        const result = await postForm('citas', {
+            property_id: currentPropertyId || '',
+            date: document.getElementById('apptDate').value,
+            time: document.getElementById('apptTime').value,
+            phone: document.getElementById('apptPhone').value.trim(),
+            contact: document.getElementById('apptContact').value
+        });
+        closeModal('appointmentModal');
+        showToast(result.message, 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 /* =========================================================
@@ -971,6 +962,8 @@ function toggleChat() {
 ========================================================= */
 
 function getApiUrl(endpoint) {
+    // APP_BASE_URL es emitida por PHP. El segundo bloque sólo sirve de respaldo
+    // para páginas estáticas o instalaciones locales que no la definan.
     if (typeof window.APP_BASE_URL !== 'undefined' && window.APP_BASE_URL) {
         return window.APP_BASE_URL.replace(/\/+$/, '') + '/' + endpoint.replace(/^\/+/, '');
     }
@@ -981,6 +974,8 @@ function getApiUrl(endpoint) {
 }
 
 function formatBotText(text) {
+    // Se escapa todo antes de transformar el Markdown mínimo; así la respuesta
+    // del proveedor de IA no puede inyectar etiquetas HTML arbitrarias.
     const div = document.createElement('div');
     div.textContent = text;
     let safe = div.innerHTML;
@@ -1032,6 +1027,7 @@ async function sendMessage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
         });
+        if (!response.ok) throw new Error('No fue posible consultar al asistente.');
 
         // Quitar indicador de escritura
         if (typingDiv.parentNode) {
@@ -1100,8 +1096,8 @@ async function sendMessage() {
                     card.className = 'chat-prop-card';
                     card.innerHTML = `
                         <div>
-                            <strong>${prop.title}</strong><br>
-                            <span style="color:#c9a86a;font-weight:700;">${prop.price}</span> · <span style="color:#64748b;">${prop.location}</span>
+                            <strong>${formatBotText(prop.title)}</strong><br>
+                            <span style="color:#c9a86a;font-weight:700;">${formatBotText(prop.price)}</span> · <span style="color:#64748b;">${formatBotText(prop.location)}</span>
                         </div>
                         <div class="chat-prop-actions">
                             <button class="chat-prop-btn" onclick="handleMoreInfo(${propId})">Ver Ficha</button>
@@ -1174,7 +1170,7 @@ async function adminConfirmarPago(transaccionId) {
         const data = await response.json();
         if (data.success) {
             if (typeof showToast === 'function') {
-                showToast('Pago confirmado correctamente. Propiedad liberada.', 'success');
+                showToast('Pago validado y estado de la propiedad actualizado.', 'success');
             }
             setTimeout(function () { window.location.reload(); }, 700);
         } else {
@@ -1368,6 +1364,8 @@ async function adminAsignarTransporte(event) {
  * Asistente de Redacción con IA para el formulario de publicación (Vender)
  */
 async function generateAIDescription(btnElement) {
+    // Se aceptan ambos esquemas de IDs porque las vistas histórica y MVC usan
+    // nombres distintos. Al rediseñar el formulario, actualizar este mapeo.
     const titleInput = document.getElementById('pubTitle') || document.getElementById('publishTitle');
     const typeSelect = document.getElementById('pubType') || document.getElementById('publishType');
     const priceInput = document.getElementById('pubPrice') || document.getElementById('publishPrice');
@@ -1376,8 +1374,8 @@ async function generateAIDescription(btnElement) {
     const stateInput = document.getElementById('pubState');
     const descArea   = document.getElementById('pubDesc') || document.getElementById('publishDesc');
     
-    const roomsInput = document.querySelector('input[placeholder*="habitaciones"]') || document.querySelector('input[placeholder*="Recámaras"]');
-    const bathsInput = document.querySelector('input[placeholder*="baños"]') || document.querySelector('input[placeholder*="Baños"]');
+    const roomsInput = document.getElementById('pubBedrooms');
+    const bathsInput = document.getElementById('pubBathrooms');
 
     if (!descArea) {
         showToast('No se encontró el campo de descripción.', 'error');
@@ -1392,7 +1390,7 @@ async function generateAIDescription(btnElement) {
 
     const payload = {
         title: titleInput ? titleInput.value.trim() : '',
-        type: typeSelect ? typeSelect.value : 'Casa',
+        type: typeSelect ? typeSelect.value : (typeof selectedType !== 'undefined' ? selectedType : 'casa'),
         price: priceInput ? priceInput.value.trim() : '',
         location: locInput ? locInput.value.trim() : '',
         city: cityInput ? cityInput.value.trim() : '',
@@ -1430,10 +1428,20 @@ async function generateAIDescription(btnElement) {
    ASESOR
 ========================================================= */
 
-function requestAdvisor(event) {
+async function requestAdvisor(event) {
     event.preventDefault();
-    showToast('Solicitud de asesoría enviada. Nos pondremos en contacto contigo.', 'success');
-    event.target.reset();
+    try {
+        const result = await postForm('contacto', {
+            name: document.getElementById('advisorName').value.trim(),
+            phone: document.getElementById('advisorPhone').value.trim(),
+            schedule: document.getElementById('advisorTime').value,
+            message: 'Solicitud de asesoría'
+        });
+        event.target.reset();
+        showToast(result.message, 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 /* =========================================================
@@ -1450,14 +1458,14 @@ function demoLegal(event, title) {
 ========================================================= */
 
 window.addEventListener('DOMContentLoaded', function () {
-    const stored = localStorage.getItem('br_usuario');
+    const stored = window.INFONATEC_USER;
 
     const navAuth     = document.getElementById('navAuthButtons');
     const navUserArea = document.getElementById('navUserArea');
 
     if (stored) {
         try {
-            const data = JSON.parse(stored);
+            const data = stored;
 
             // Ocultar botones de login/registro
             if (navAuth) navAuth.style.display = 'none';
@@ -1467,13 +1475,14 @@ window.addEventListener('DOMContentLoaded', function () {
                 navUserArea.style.display = 'flex';
                 navUserArea.innerHTML = `
                     <span style="font-size:12px;letter-spacing:1px;opacity:.85;">
-                        Hola, <strong>${data.name.split(' ')[0]}</strong>
+                        Hola, <strong id="navUserName"></strong>
                     </span>
                     <button class="btn-outline" id="logoutBtn">Cerrar sesión</button>
                 `;
+                document.getElementById('navUserName').textContent = data.name.split(' ')[0];
                 document.getElementById('logoutBtn').addEventListener('click', function () {
                     localStorage.removeItem('br_usuario');
-                    location.reload();
+                    location.href = getApiUrl('auth/logout');
                 });
             }
 
