@@ -1,10 +1,8 @@
+</main>
+
 <!-- =========================================================
      FOOTER
 ========================================================= -->
-<?php
-// En Inicio se conserva el catálogo actual; fuera de Inicio se abre Legal.
-$footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal';
-?>
 
 <footer>
 
@@ -32,16 +30,16 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
         <div>
             <h4 class="footer-title">AYUDA</h4>
-            <p>Preguntas frecuentes</p>
-            <p>Contacto</p>
-            <p>Soporte técnico</p>
+            <p><a href="<?= BASE_URL ?>#legal">Preguntas frecuentes</a></p>
+            <p><a href="<?= BASE_URL ?>#asesor">Contacto directo</a></p>
+            <p><button type="button" onclick="toggleChat()" style="background:none;border:none;padding:0;color:#657083;font:inherit;font-size:13px;line-height:2;cursor:pointer;text-align:left;">Soporte en chat</button></p>
         </div>
 
         <div>
             <h4 class="footer-title">LEGAL</h4>
-            <p><a href="<?= $footerLegalLink ?>">Términos y condiciones</a></p>
-            <p><a href="<?= $footerLegalLink ?>">Política de privacidad</a></p>
-            <p><a href="<?= $footerLegalLink ?>">Aviso legal</a></p>
+            <p><a href="<?= BASE_URL ?>#legal">Términos y condiciones</a></p>
+            <p><a href="<?= BASE_URL ?>#legal">Política de privacidad</a></p>
+            <p><a href="<?= BASE_URL ?>#legal">Aviso legal</a></p>
         </div>
 
     </div>
@@ -57,6 +55,7 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 ========================================================= -->
 
 <button
+    type="button"
     class="chat-button"
     onclick="toggleChat()"
     aria-label="Abrir chat de asistencia"
@@ -77,16 +76,15 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
     <div class="chat-messages" id="chatMessages" aria-live="polite">
         <div class="message">¡Hola! 👋 Soy tu asesor inteligente de INFONATEC. ¿En qué puedo ayudarte hoy?</div>
-        <div class="message">Pregúntame sobre casas, departamentos, terrenos, créditos o recorridos 3D.</div>
+        <div class="message">Pregúntame sobre casas, departamentos, terrenos, créditos o recorridos 360°.</div>
     </div>
 
-    <!-- Sugerencias Rápidas de un Clic -->
     <div class="chat-chips-container">
-        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué casas tienen en Monterrey?')">🏡 Casas Mty</button>
-        <button class="chat-chip" onclick="sendQuickQuestion('¿Tienen recorridos virtuales 3D?')">🕶️ Tour 3D</button>
-        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué terrenos tienen en Mérida?')">🌴 Mérida</button>
-        <button class="chat-chip" onclick="sendQuickQuestion('¿Qué opciones de crédito aceptan?')">💳 Créditos</button>
-        <button class="chat-chip" onclick="sendQuickQuestion('¿Cómo puedo vender mi propiedad?')">📝 Vender</button>
+        <button type="button" class="chat-chip" onclick="sendQuickQuestion('¿Qué casas tienen en Monterrey?')">🏡 Casas Mty</button>
+        <button type="button" class="chat-chip" onclick="sendQuickQuestion('¿Tienen recorridos virtuales 3D?')">🕶️ Tour 3D</button>
+        <button type="button" class="chat-chip" onclick="sendQuickQuestion('¿Qué terrenos tienen en Mérida?')">🌴 Mérida</button>
+        <button type="button" class="chat-chip" onclick="sendQuickQuestion('¿Qué opciones de crédito aceptan?')">💳 Créditos</button>
+        <button type="button" class="chat-chip" onclick="sendQuickQuestion('¿Cómo puedo vender mi propiedad?')">📝 Vender</button>
     </div>
 
     <div class="chat-input">
@@ -97,7 +95,7 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
             aria-label="Escribe un mensaje al asistente"
             onkeypress="if(event.key==='Enter') sendMessage()"
         >
-        <button onclick="sendMessage()" aria-label="Enviar mensaje">➤</button>
+        <button type="button" onclick="sendMessage()" aria-label="Enviar mensaje">➤</button>
     </div>
 
 </div>
@@ -116,10 +114,10 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
     <div class="modal-content">
 
-        <button class="modal-close" onclick="closeModal('loginModal')" aria-label="Cerrar modal de inicio de sesión">×</button>
+        <button type="button" class="modal-close" onclick="closeModal('loginModal')" aria-label="Cerrar modal de inicio de sesión">×</button>
 
         <h2 id="loginTitle">Bienvenido.</h2>
-        <p class="modal-subtitle">Ingresa para consultar información completa.</p>
+        <p class="modal-subtitle">Ingresa a tu cuenta para sincronizar favoritos y dar seguimiento a tus citas.</p>
 
         <form onsubmit="login(event)">
 
@@ -139,11 +137,12 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
         </form>
 
-        <p style="margin-top:20px;text-align:center;color:#777;font-size:13px;">
+        <p style="margin-top:20px;text-align:center;color:#555;font-size:13px;">
             ¿No tienes cuenta?
             <button
+                type="button"
                 onclick="closeModal('loginModal'); openModal('registerModal')"
-                style="border:none;background:none;text-decoration:underline;cursor:pointer;"
+                style="border:none;background:none;text-decoration:underline;cursor:pointer;font-weight:600;"
             >
                 Regístrate
             </button>
@@ -161,10 +160,10 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
     <div class="modal-content">
 
-        <button class="modal-close" onclick="closeModal('registerModal')" aria-label="Cerrar modal de registro">×</button>
+        <button type="button" class="modal-close" onclick="closeModal('registerModal')" aria-label="Cerrar modal de registro">×</button>
 
         <h2 id="registerTitle">Crear cuenta.</h2>
-        <p class="modal-subtitle">Regístrate para conocer información completa y contactar al propietario.</p>
+        <p class="modal-subtitle">Crea tu cuenta gratuita para guardar favoritos en la nube y gestionar tus propiedades.</p>
 
         <form onsubmit="register(event)">
 
@@ -195,16 +194,16 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
                     <input type="text" id="regLocation" required placeholder="Detectando ubicación…" autocomplete="address-level2">
                 </div>
 
-                <div class="form-group">
-                    <label for="regPassword">Contraseña</label>
-                    <input type="password" id="regPassword" required autocomplete="new-password">
+                <div class="form-group full">
+                    <label for="regPassword">Contraseña (mínimo 6 caracteres)</label>
+                    <input type="password" id="regPassword" minlength="6" required autocomplete="new-password">
                 </div>
 
                 <div class="form-group full">
                     <label>Aceptación y Privacidad</label>
                     <label style="display:flex;align-items:flex-start;gap:10px;text-transform:none;letter-spacing:0;font-size:12px;color:#555;">
                         <input type="checkbox" required style="width:auto;margin-top:2px;">
-                        Acepto los términos y condiciones. Consiento que INFONATEC Inmobiliaria utilice mis datos esenciales (correo, teléfono y ubicación) para contactarme y personalizar las recomendaciones de propiedades según mi interés.
+                        Acepto los términos y condiciones. Consiento que INFONATEC Inmobiliaria utilice mis datos esenciales (correo, teléfono y ubicación) para contactarme y personalizar las recomendaciones de propiedades.
                     </label>
                 </div>
 
@@ -226,33 +225,34 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
     <div class="modal-content">
 
-        <button class="modal-close" onclick="closeModal('interestModal')" aria-label="Cerrar modal">×</button>
+        <button type="button" class="modal-close" onclick="closeModal('interestModal')" aria-label="Cerrar modal de contacto">×</button>
 
         <h2 id="interestTitle">Me interesa esta propiedad.</h2>
-        <p class="modal-subtitle">Envía tu solicitud y un asesor se pondrá en contacto contigo.</p>
+        <p class="modal-subtitle">Solo solicitamos tus datos para contactarte y enviarte la ficha técnica o cotización.</p>
 
-        <form onsubmit="sendInterest(event)">
+        <form onsubmit="submitInterest(event)">
+            <input type="hidden" id="interestPropertyId" value="">
 
             <div class="form-grid">
 
                 <div class="form-group">
-                    <label for="interestName">Nombre</label>
-                    <input type="text" id="interestName" required>
+                    <label for="interestName">Nombre completo</label>
+                    <input type="text" id="interestName" required autocomplete="name">
                 </div>
 
                 <div class="form-group">
                     <label for="interestPhone">Teléfono</label>
-                    <input type="tel" id="interestPhone" required>
+                    <input type="tel" id="interestPhone" required autocomplete="tel">
                 </div>
 
                 <div class="form-group full">
                     <label for="interestEmail">Correo electrónico</label>
-                    <input type="email" id="interestEmail" required>
+                    <input type="email" id="interestEmail" required autocomplete="email">
                 </div>
 
                 <div class="form-group full">
                     <label for="interestMsg">Mensaje</label>
-                    <textarea id="interestMsg" placeholder="Tengo interés en esta propiedad..."></textarea>
+                    <textarea id="interestMsg" placeholder="Tengo interés en conocer más detalles de esta propiedad..."></textarea>
                 </div>
 
             </div>
@@ -273,14 +273,25 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
     <div class="modal-content">
 
-        <button class="modal-close" onclick="closeModal('appointmentModal')" aria-label="Cerrar modal de cita">×</button>
+        <button type="button" class="modal-close" onclick="closeModal('appointmentModal')" aria-label="Cerrar modal de cita">×</button>
 
         <h2 id="appointmentTitle">Agenda una cita.</h2>
-        <p class="modal-subtitle">Selecciona cuándo deseas conocer la propiedad.</p>
+        <p class="modal-subtitle">Selecciona cuándo deseas conocer la propiedad. Solo pedimos tus datos para confirmar la visita.</p>
 
         <form onsubmit="scheduleAppointment(event)">
+            <input type="hidden" id="apptPropertyId" value="">
 
             <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="apptName">Nombre completo</label>
+                    <input type="text" id="apptName" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="apptEmail">Correo electrónico</label>
+                    <input type="email" id="apptEmail" required autocomplete="email">
+                </div>
 
                 <div class="form-group">
                     <label for="apptDate">Fecha</label>
@@ -294,17 +305,22 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
                 <div class="form-group">
                     <label for="apptPhone">Teléfono</label>
-                    <input type="tel" id="apptPhone" required>
+                    <input type="tel" id="apptPhone" required autocomplete="tel">
                 </div>
 
                 <div class="form-group">
                     <label for="apptContact">Medio de contacto</label>
                     <select id="apptContact">
-                        <option>WhatsApp</option>
-                        <option>Llamada</option>
-                        <option>Correo</option>
-                        <option>Mensaje dentro del sistema</option>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="LLAMADA">Llamada</option>
+                        <option value="CORREO">Correo</option>
+                        <option value="SISTEMA">Mensaje dentro del sistema</option>
                     </select>
+                </div>
+
+                <div class="form-group full">
+                    <label for="apptNotes">Comentarios adicionales (opcional)</label>
+                    <input type="text" id="apptNotes" placeholder="Ej. Me gustaría revisar opciones de crédito o escrituración">
                 </div>
 
             </div>
@@ -318,36 +334,63 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 </div>
 
 <!-- =========================================================
-     MODAL DETALLE PROPIEDAD
+     MODAL DETALLE PROPIEDAD (FICHA COMPLETA + GALERÍA REAL)
 ========================================================= -->
 
 <div class="modal" id="propertyModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
 
     <div class="modal-content">
 
-        <button class="modal-close" onclick="closeModal('propertyModal')" aria-label="Cerrar detalle de propiedad">×</button>
+        <button type="button" class="modal-close" onclick="closeModal('propertyModal')" aria-label="Cerrar detalle de propiedad">×</button>
 
-        <img id="detailImage" class="detail-image" src="" alt="">
-        <div id="propertyPhotoControls" hidden>
-            <button type="button" class="btn-dark" onclick="changePropertyPhoto(-1)" aria-label="Fotografía anterior">← Anterior</button>
-            <span id="propertyPhotoCounter" aria-live="polite"></span>
-            <button type="button" class="btn-dark" onclick="changePropertyPhoto(1)" aria-label="Fotografía siguiente">Siguiente →</button>
+        <!-- Galería interactiva con navegación Anterior / Siguiente, miniaturas y teclado -->
+        <div class="property-gallery" id="propertyGallery" role="region" aria-label="Galería de fotografías del inmueble">
+            <div class="gallery-stage" id="galleryStage">
+                <div class="gallery-top-controls">
+                    <span class="gallery-counter" id="galleryCounter" aria-live="polite">1 / 1</span>
+                </div>
+                <img
+                    id="detailImage"
+                    class="detail-image"
+                    src=""
+                    alt=""
+                    onerror="this.onerror=null;this.src=(window.APP_BASE_URL || '/') + 'img/property-fallback.svg';"
+                >
+                <button type="button" class="gallery-nav-btn gallery-prev-btn" id="galleryPrevBtn" onclick="prevGallerySlide()" aria-label="Fotografía anterior">‹</button>
+                <button type="button" class="gallery-nav-btn gallery-next-btn" id="galleryNextBtn" onclick="nextGallerySlide()" aria-label="Fotografía siguiente">›</button>
+            </div>
+            <div class="gallery-caption-bar">
+                <span id="galleryCaption"></span>
+                <small style="color:#64748b;">Usa ← → en tu teclado o las miniaturas</small>
+            </div>
+            <div class="gallery-thumbs" id="galleryThumbnails" role="list" aria-label="Miniaturas de la propiedad"></div>
         </div>
 
         <!-- Selector de Media -->
-        <div id="mediaGallerySection" style="margin-top: 15px; margin-bottom: 25px; display:flex; gap: 10px; justify-content: center; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: var(--radius-md); border: 1px solid #e4e9f0;">
-            <button id="btnMediaFotos" class="btn-media-option" onclick="openMediaTour('fotos')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">📷 Fotos</button>
-            <button id="btnMediaVideo" class="btn-media-option" onclick="openMediaTour('video')" style="flex:1; min-width:100px; padding:10px; border:none; background:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🎥 Video</button>
-            <button id="btnMediaInteractivo" class="btn-media-option" onclick="openMediaTour('interactivo')" style="flex:1; min-width:160px; padding:10px; border:none; background:var(--ink); color:var(--white); border-radius:var(--radius-sm); font-weight:bold; cursor:pointer; box-shadow:var(--shadow-sm); transition:0.2s;">🕹️ Recorrido Interactivo</button>
+        <div id="mediaGallerySection" class="media-gallery-actions">
+            <button type="button" id="btnMediaFotos" class="btn-media-option" onclick="openMediaTour('fotos')">
+                📷 Fotos (<span id="btnMediaFotosCount">1</span>)
+            </button>
+            <button type="button" id="btnMediaVideo" class="btn-media-option" onclick="openMediaTour('video')">
+                🎥 Video recorrido
+            </button>
+            <button type="button" id="btnMediaInteractivo" class="btn-media-option btn-media-option-tour" onclick="openMediaTour('interactivo')">
+                🕹️ Tour 360°
+            </button>
+            <button type="button" id="btnMediaStatic360" class="btn-media-option" onclick="openMediaTour('static360')" hidden>
+                🖼️ Galería estática 360°
+            </button>
         </div>
 
-        <div class="section-label">Información de propiedad</div>
+        <div class="section-label">Ficha completa de propiedad</div>
 
         <h2 id="detailTitle">Propiedad</h2>
 
-        <p id="detailLocation" class="modal-subtitle"></p>
+        <p id="detailLocation" class="modal-subtitle property-location"></p>
 
         <p id="detailPrice" class="property-price"></p>
+
+        <p id="detailDescription" class="detail-description"></p>
 
         <div class="detail-grid">
 
@@ -363,50 +406,27 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 
         </div>
 
-        <div id="fullInformation" style="display:none;margin-top:30px;">
+        <!-- Información legal, opciones de pago y contacto abiertos sin registro previo -->
+        <div id="fullInformation" style="margin-top:24px;">
 
             <div class="detail-box">
-                <h3>Información legal</h3>
-                <ul class="detail-list">
-                    <li>Situación legal: Sin problemas reportados</li>
-                    <li>Escritura: Disponible para revisión</li>
-                    <li>Propietario: Verificado</li>
-                    <li>Adeudos: Sin adeudos reportados</li>
-                    <li>Uso de suelo: Verificado</li>
-                    <li>Colindancias: Registradas</li>
-                </ul>
+                <h3>Información legal y documentación</h3>
+                <ul class="detail-list" id="legalDetails"></ul>
             </div>
 
-            <div class="detail-box" style="margin-top:30px;">
-                <h3>Opciones de pago</h3>
-                <ul class="detail-list">
-                    <li>Pago en efectivo</li>
-                    <li>Crédito bancario</li>
-                    <li>Crédito INFONAVIT</li>
-                    <li>Crédito FOVISSSTE</li>
-                    <li>Financiamiento según condiciones</li>
-                    <li>Número de pagos sujeto al acuerdo</li>
-                </ul>
+            <div class="detail-box" style="margin-top:20px;">
+                <h3>Opciones de pago y financiamiento</h3>
+                <div class="payment-grid" id="paymentOptions"></div>
             </div>
 
-            <div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;">
-                <button class="btn-dark" onclick="openAppointment()">AGENDAR CITA</button>
-                <button class="btn-gold" onclick="closeModal('propertyModal'); openModal('interestModal')">ME INTERESA</button>
+            <div class="detail-actions-bar">
+                <button type="button" class="btn-dark" onclick="openAppointment()">AGENDAR CITA</button>
+                <button type="button" class="btn-gold" onclick="openInterestModal(currentPropertyId)">ME INTERESA</button>
+                <button type="button" class="detail-fav-btn" id="detailFavoriteBtn" aria-pressed="false" onclick="toggleFavorite(currentPropertyId, event)">
+                    ♡ Guardar en favoritos
+                </button>
             </div>
 
-        </div>
-
-        <!-- Formulario de registro para visitantes -->
-        <div id="loginRequired" style="display:none;margin-top:25px;padding:25px;background:#f4f2ec;border-radius:10px;text-align:center;">
-            <span style="font-size:24px;display:block;margin-bottom:10px;">🔒</span>
-            <h3>Regístrate para ver toda la información</h3>
-            <p style="color:#666;font-size:14px;margin-bottom:20px;">
-                Crea tu cuenta gratuita para desbloquear la información legal, de financiamiento y contacto.
-            </p>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button class="btn-dark" onclick="closeModal('propertyModal'); openModal('registerModal')">REGISTRARME</button>
-                <button class="btn-outline" onclick="closeModal('propertyModal'); openModal('loginModal')" style="background:transparent;color:var(--ink);border-color:var(--ink);">INICIAR SESIÓN</button>
-            </div>
         </div>
 
     </div>
@@ -414,20 +434,71 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
 </div>
 
 <!-- =========================================================
-     MODAL RECORRIDO VIRTUAL (VIDEO / 3D)
+     MODAL RECORRIDO VIRTUAL (AVISO DE DATOS + GALERÍA ESTÁTICA + 360°)
 ========================================================= -->
 
 <div class="modal" id="tourModal" role="dialog" aria-modal="true" aria-labelledby="tourModalTitle">
 
-    <div class="modal-content" style="max-width:900px;padding:25px;">
+    <div class="modal-content" style="max-width:920px;padding:25px;">
 
-        <button class="modal-close" onclick="closeTourModal()" aria-label="Cerrar recorrido virtual">×</button>
+        <button type="button" class="modal-close" onclick="closeTourModal()" aria-label="Cerrar recorrido virtual">×</button>
 
         <div class="section-label">Experiencia inmersiva</div>
         <h2 id="tourModalTitle">Recorrido Virtual</h2>
         <p id="tourModalSubtitle" class="modal-subtitle" style="margin-bottom:18px;">
             Explora las áreas y distribución de esta propiedad.
         </p>
+
+        <!-- Aviso previo de consumo de datos antes de cargar escenas 360° -->
+        <div id="tourDataGate" class="tour-data-gate" style="display:none;">
+            <span class="tour-data-badge" id="tourGateDataBadge">Consumo estimado: ~4.6 MB</span>
+            <h3>Aviso previo de consumo de datos</h3>
+            <p>
+                El recorrido interactivo 360° descarga panoramas en alta resolución. Puedes iniciarlo ahora o elegir la galería estática accesible de bajo consumo.
+            </p>
+            <div id="tourGateSlowWarning" class="tour-slow-warning" style="display:none;">
+                ⚠️ Detectamos una conexión lenta, modo ahorro de datos o estado sin conexión. Te recomendamos abrir primero la galería estática accesible.
+            </div>
+            <div>
+                <label class="tour-gate-remember">
+                    <input type="checkbox" id="tourGateRemember">
+                    Recordar mi preferencia durante esta sesión
+                </label>
+            </div>
+            <div class="tour-gate-actions">
+                <button type="button" class="btn-dark" onclick="confirmLoadInteractiveTour()">Cargar Tour 360° interactivo</button>
+                <button type="button" class="btn-gold" onclick="openStaticTourGallery()">Ver galería estática accesible</button>
+            </div>
+        </div>
+
+        <!-- Galería estática accesible alternativa al 360° -->
+        <div id="tourStaticGallery" class="tour-static-gallery" style="display:none;">
+            <div class="static-gallery-stage">
+                <img
+                    id="staticTourImage"
+                    src=""
+                    alt=""
+                    onerror="this.onerror=null;this.src=(window.APP_BASE_URL || '/') + 'img/property-fallback.svg';"
+                >
+                <button type="button" class="gallery-nav-btn gallery-prev-btn" onclick="prevStaticTourSlide()" aria-label="Escena estática anterior">‹</button>
+                <button type="button" class="gallery-nav-btn gallery-next-btn" onclick="nextStaticTourSlide()" aria-label="Escena estática siguiente">›</button>
+            </div>
+            <div class="static-gallery-info">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <h3 id="staticTourTitle">Vista del espacio</h3>
+                    <span class="gallery-counter" id="staticTourCounter">1 / 1</span>
+                </div>
+                <p id="staticTourDesc"></p>
+            </div>
+            <div class="gallery-thumbs" id="staticTourThumbs" role="list" aria-label="Escenas de la galería estática"></div>
+            <div class="static-gallery-controls">
+                <div style="display:flex;gap:8px;">
+                    <button type="button" class="btn-outline" onclick="prevStaticTourSlide()">← Anterior</button>
+                    <button type="button" class="btn-outline" onclick="nextStaticTourSlide()">Siguiente →</button>
+                </div>
+                <button type="button" class="btn-gold" onclick="switchStaticToInteractiveTour()">Cambiar a Tour 360° interactivo</button>
+            </div>
+        </div>
 
         <!-- Contenedor de Video -->
         <div id="tourVideoContainer" style="display:none;position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
@@ -447,26 +518,31 @@ $footerLegalLink = ($activePage ?? '') === 'home' ? '#legal' : BASE_URL . 'legal
             <iframe
                 id="tourIframePlayer"
                 src=""
+                title="Recorrido virtual 360° interactivo"
                 style="width:100%;height:100%;border:none;display:block;"
                 allow="fullscreen; accelerometer; gyroscope"
                 loading="lazy"
             ></iframe>
         </div>
 
-        <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <span id="tourHelpText" style="font-size:12px;color:#666;">
-                💡 Puedes pausar, adelantar o ver en pantalla completa el recorrido.
+        <div class="tour-footer-bar">
+            <span id="tourHelpText" style="font-size:12px;color:#475569;">
+                💡 Puedes alternar entre el visor 360° y la galería estática de bajo consumo en cualquier momento.
             </span>
-            <button class="btn-dark" onclick="closeTourModal()">Cerrar Recorrido</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="btn-catalog-back" id="btnSwitchToStaticInModal" onclick="openStaticTourGallery()" style="display:none;">
+                    🖼️ Galería estática accesible
+                </button>
+                <button type="button" class="btn-dark" onclick="closeTourModal()">Cerrar Recorrido</button>
+            </div>
         </div>
 
     </div>
 
 </div>
 
-<!-- Catálogo único: las fichas, el chat y las tarjetas usan estos mismos datos. -->
+<!-- Catálogo único: las fichas, filtros, favoritos y chat usan estos mismos datos -->
 <script>
-    window.INFONATEC_USER = <?= json_encode(Usuario::current(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     window.INFONATEC_PROPERTIES = <?= json_encode(
         $properties ?? [],
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT

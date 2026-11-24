@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Imagen ilustrativa INFONATEC">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141a26"/>
+      <stop offset="100%" stop-color="#223049"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c9a86a"/>
+      <stop offset="100%" stop-color="#e3c88e"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bgGrad)"/>
+  <circle cx="680" cy="110" r="140" fill="rgba(201,168,106,0.08)"/>
+  <circle cx="130" cy="410" r="160" fill="rgba(76,130,198,0.08)"/>
+  <g transform="translate(335, 160)" fill="none" stroke="url(#goldGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 62 L65 16 L120 62"/>
+    <rect x="26" y="60" width="78" height="52" rx="4"/>
+    <rect x="53" y="80" width="24" height="32" rx="2"/>
+  </g>
+  <text x="400" y="325" text-anchor="middle" fill="#f1ede6" font-family="Georgia, serif" font-size="28" letter-spacing="4">INFONATEC</text>
+  <text x="400" y="356" text-anchor="middle" fill="#94a3b8" font-family="Arial, sans-serif" font-size="14" letter-spacing="2">CATÁLOGO INMOBILIARIO · VISTA REFERENCIAL</text>
+</svg>

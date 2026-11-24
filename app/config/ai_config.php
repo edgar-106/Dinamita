@@ -6,17 +6,18 @@
 
 // Proveedor predeterminado: 'gemini', 'openai' o 'local'
 if (!defined('AI_PROVIDER')) {
-    define('AI_PROVIDER', 'gemini');
+    define('AI_PROVIDER', env('AI_PROVIDER', 'gemini'));
 }
 
-// Clave de API para Gemini o proveedor configurado (puede configurarse aquí o como variable de entorno)
+// Clave de API para Gemini o proveedor configurado (exclusivamente desde entorno/.env)
 if (!defined('AI_API_KEY')) {
-    define('AI_API_KEY', getenv('GEMINI_API_KEY') ?: (getenv('AI_API_KEY') ?: ''));
+    $apiKey = env('GEMINI_API_KEY') ?: env('AI_API_KEY') ?: '';
+    define('AI_API_KEY', $apiKey);
 }
 
 // Modelo a utilizar (Gemini 1.5 Flash es el más veloz y ligero)
 if (!defined('AI_MODEL')) {
-    define('AI_MODEL', 'gemini-1.5-flash');
+    define('AI_MODEL', env('AI_MODEL', 'gemini-1.5-flash'));
 }
 
 // Tiempo de espera máximo en segundos para evitar que la interfaz se quede esperando

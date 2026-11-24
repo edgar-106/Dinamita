@@ -1,12 +1,12 @@
 <!-- =========================================================
      PANEL DE ADMINISTRACIÓN - INICIO
-     KPIs generales y accesos rápidos al flujo de reservas.
      ========================================================= -->
+<div class="admin-shell">
 <section class="admin-hero">
     <div class="admin-hero-text">
         <p class="admin-kicker">Panel de control</p>
         <h1 class="admin-title">Panel de Administración</h1>
-        <p class="admin-sub">Bienvenido al área de gestión de INFONATEC. Controla reservas, pagos y operaciones inmobiliarias.</p>
+        <p class="admin-sub">Bienvenido al área de gestión de INFONATEC. Controla reservas, solicitudes de contacto, pagos y operaciones inmobiliarias.</p>
     </div>
     <a class="admin-btn-primary" href="<?= BASE_URL ?>admin/reservas">📋 Ver reservas</a>
 </section>
@@ -31,6 +31,10 @@
     <div class="admin-kpi-card">
         <span class="admin-kpi-value" id="kpi-propiedades-disponibles"><?= (int) ($kpis['propiedades_disponibles'] ?? 0) ?></span>
         <span class="admin-kpi-label">Propiedades disponibles</span>
+    </div>
+    <div class="admin-kpi-card">
+        <span class="admin-kpi-value" id="kpi-solicitudes-nuevas"><?= (int) ($kpis['solicitudes_nuevas'] ?? 0) ?></span>
+        <span class="admin-kpi-label">Solicitudes nuevas</span>
     </div>
 </section>
 
@@ -78,6 +82,54 @@
 
 <section class="admin-panel">
     <div class="admin-panel-header">
+        <h2>Solicitudes de contacto y asesoría</h2>
+    </div>
+    <?php if (empty($solicitudesRecientes)): ?>
+        <p class="admin-empty">No hay solicitudes de contacto registradas por el momento.</p>
+    <?php else: ?>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tipo</th>
+                        <th>Interesado</th>
+                        <th>Contacto</th>
+                        <th>Propiedad / Horario</th>
+                        <th>Mensaje</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($solicitudesRecientes as $sol): ?>
+                        <tr>
+                            <td><?= (int) ($sol['id_solicitud'] ?? 0) ?></td>
+                            <td><span class="admin-badge admin-badge-PENDIENTE"><?= htmlspecialchars((string) ($sol['tipo'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span></td>
+                            <td><?= htmlspecialchars((string) ($sol['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td>
+                                <?= htmlspecialchars((string) ($sol['telefono'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                <?php if (!empty($sol['correo'])): ?>
+                                <br><small><?= htmlspecialchars((string) $sol['correo'], ENT_QUOTES, 'UTF-8') ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars((string) ($sol['propiedad'] ?? 'Asesoría general'), ENT_QUOTES, 'UTF-8') ?>
+                                <?php if (!empty($sol['horario_preferido'])): ?>
+                                <br><small><?= htmlspecialchars((string) $sol['horario_preferido'], ENT_QUOTES, 'UTF-8') ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars((string) ($sol['mensaje'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><small><?= htmlspecialchars((string) ($sol['fecha_registro'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>
+
+<section class="admin-panel">
+    <div class="admin-panel-header">
         <h2>Acciones rápidas</h2>
     </div>
     <div class="admin-actions-grid">
@@ -85,8 +137,8 @@
         <a class="admin-action-card" href="<?= BASE_URL ?>admin/pagos">💳 Validación de pagos</a>
         <a class="admin-action-card" href="<?= BASE_URL ?>admin/eventos">🎯 Eventos y Recorridos</a>
         <a class="admin-action-card" href="<?= BASE_URL ?>admin/logistica">🚚 Logística de Transporte</a>
-        <a class="admin-action-card" href="<?= BASE_URL ?>admin">📊 Panel de indicadores</a>
-        <a class="admin-action-card" href="<?= BASE_URL ?>#asesor">🤝 Coordinación con asesores</a>
-        <a class="admin-action-card" href="<?= BASE_URL ?>#asesor">🕶️ Coordinación de paseos</a>
+        <a class="admin-action-card" href="<?= BASE_URL ?>explorar">🏠 Ver catálogo público</a>
+        <a class="admin-action-card" href="<?= BASE_URL ?>vender">📝 Publicar propiedad</a>
     </div>
 </section>
+</div>

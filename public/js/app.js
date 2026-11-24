@@ -1,137 +1,62 @@
 /* =========================================================
    app.js — INFONATEC Inmobiliaria
-   Coordinador del comportamiento del cliente: navegación, modales, catálogo,
-   tour, sesión del servidor y solicitudes a la API MVC.
+   Coordinador cliente: seguridad CSRF, red/offline, filtros y chips
+   removibles, favoritos persistentes, galería real, gate de datos 360°,
+   citas/contacto reales, chat IA SSE y panel administrativo.
 ========================================================= */
 
 /* =========================================================
-   INTRO SPLASH
-   - Acelera el video a 4× para que dure ~3 seg.
-   - Un timeout de seguridad cierra el splash a los 3 seg.
-     aunque el video no haya terminado o falle.
+   UTILIDADES GLOBALES Y SEGURIDAD
 ========================================================= */
 
-(function () {
-    // Bloquear scroll mientras el splash esté activo y configurar videos
-    document.addEventListener('DOMContentLoaded', function () {
-        const splash = document.getElementById('intro-splash');
-        if (splash) {
-            document.body.style.overflow = 'hidden';
-            
-            // Loop the intro video cleanly at 7.4s
-            const video = document.getElementById('intro-video');
-            if (video) {
-                video.playbackRate = 1.0;
-                video.addEventListener('timeupdate', function () {
-                    if (video.currentTime >= 7.4) {
-                        video.currentTime = 0;
-                        video.play();
-                    }
-                });
-            }
-        }
+function getApiUrl(endpoint) {
+    if (typeof window.APP_BASE_URL !== 'undefined' && window.APP_BASE_URL) {
+        return window.APP_BASE_URL.replace(/\/+$/, '') + '/' + String(endpoint).replace(/^\/+/, '');
+    }
+    const pathname = window.location.pathname;
+    const dir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+    return dir + String(endpoint).replace(/^\/+/, '');
+}
 
-        // Configurar los videos de las propiedades: solo reproducir en hover, loop a los 6 segundos
-        const propertyCards = document.querySelectorAll('.property-card');
-        propertyCards.forEach(function(card) {
-            const vid = card.querySelector('.property-video');
-            if (vid) {
-                // Pausar al cargar por si acaso
-                vid.pause();
-                
-                // Eventos de hover en la tarjeta
-                card.addEventListener('mouseenter', function() {
-                    vid.play().catch(function(e) { console.log('Autoplay impedido en hover', e); });
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    vid.pause();
-                    vid.currentTime = 0; // Regresar al inicio al quitar el cursor
-                });
+function getCsrfToken() {
+    if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') || '' : '';
+}
 
-                // Loop a los 6 segundos
-                vid.addEventListener('timeupdate', function () {
-                    if (vid.currentTime >= 6) {
-                        vid.currentTime = 0;
-                        vid.play();
-                    }
-                });
-            }
-        });
-    });
+function apiHeaders(extra) {
+    return Object.assign({
+        'X-CSRF-Token': getCsrfToken(),
+        'X-Requested-With': 'XMLHttpRequest'
+    }, extra || {});
+}
 
-    // Función global para cerrar el splash
-    window.closeSplash = function(operation) {
-        const splash = document.getElementById('intro-splash');
-        if (!splash) return;
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+}
 
-        document.body.style.overflow = '';
-        splash.classList.add('fade-out');
+function normalizeSearchText(text) {
+    return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
 
-        let fired = false;
-        function onFadeOut() {
-            if (fired) return;
-            fired = true;
-            splash.style.display = 'none';
-            splash.removeEventListener('transitionend', onFadeOut);
-        }
-        splash.addEventListener('transitionend', onFadeOut);
-        setTimeout(onFadeOut, 1400); // fallback
-
-        // Si se seleccionó una operación
-        if (operation === 'vender') {
-            // Esperar un poco a que el splash se desvanezca y redirigir
-            setTimeout(function() {
-                window.location.href = (window.APP_BASE_URL || '/') + 'vender';
-            }, 100);
-        } else if (operation === 'comprar') {
-            setTimeout(function() {
-                const categorias = document.getElementById('adquirir');
-                if (categorias) {
-                    categorias.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 100);
-        } else if (operation) {
-            // Filtrar propiedades
-            setTimeout(function() {
-                if (typeof filterOperation === 'function') {
-                    filterOperation(operation);
-                }
-            }, 100);
-        }
-    };
-
-    // Función global para abrir el splash de nuevo
-    window.openSplash = function(e) {
-        if(e) e.preventDefault();
-        const splash = document.getElementById('intro-splash');
-        if (!splash) return;
-
-        splash.style.display = 'flex';
-        // Forzar reflow para reiniciar la transición
-        void splash.offsetWidth;
-        splash.classList.remove('fade-out');
-        document.body.style.overflow = 'hidden';
-
-        const video = document.getElementById('intro-video');
-        if (video) {
-            video.currentTime = 0;
-            video.play();
-        }
-    };
-})();
-
+function isSlowConnection() {
+    if (!navigator.onLine) return true;
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return false;
+    if (conn.saveData) return true;
+    return conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || conn.effectiveType === '3g';
+}
 
 /* =========================================================
    TOAST NOTIFICATIONS
 ========================================================= */
 
-/**
- * Muestra una notificación tipo toast en pantalla.
- * @param {string} message - Texto del mensaje.
- * @param {'success'|'error'|'info'|''} type - Estilo del toast.
- * @param {number} duration - Duración en ms (default 3500).
- */
 function showToast(message, type = '', duration = 3500) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -150,11 +75,166 @@ function showToast(message, type = '', duration = 3500) {
 }
 
 /* =========================================================
-   NAVBAR — scroll effect
+   CATÁLOGO INDEXADO POR ID
+========================================================= */
+
+const propertiesById = {};
+(function indexCatalog() {
+    const raw = window.INFONATEC_PROPERTIES;
+    if (Array.isArray(raw)) {
+        raw.forEach(function (item) {
+            if (item && item.id != null) {
+                propertiesById[Number(item.id)] = item;
+            }
+        });
+    } else if (raw && typeof raw === 'object') {
+        Object.keys(raw).forEach(function (key) {
+            const item = raw[key];
+            if (item) {
+                const pid = Number(item.id != null ? item.id : key);
+                propertiesById[pid] = Object.assign({ id: pid }, item);
+            }
+        });
+    }
+})();
+
+function getPropertyById(id) {
+    return propertiesById[Number(id)] || null;
+}
+
+/* =========================================================
+   INTRO SPLASH Y MONITOR DE RED
+========================================================= */
+
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const splash = document.getElementById('intro-splash');
+        if (splash) {
+            document.body.style.overflow = 'hidden';
+            const video = document.getElementById('intro-video');
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (video) {
+                if (reduceMotion || isSlowConnection()) {
+                    video.pause();
+                    video.removeAttribute('autoplay');
+                } else {
+                    video.playbackRate = 1.0;
+                    video.addEventListener('timeupdate', function () {
+                        if (video.currentTime >= 7.4) {
+                            video.currentTime = 0;
+                            video.play().catch(function () {});
+                        }
+                    });
+                }
+            }
+        }
+    });
+
+    window.closeSplash = function (operation) {
+        const splash = document.getElementById('intro-splash');
+        if (!splash) return;
+
+        document.body.style.overflow = '';
+        splash.classList.add('fade-out');
+
+        let fired = false;
+        function onFadeOut() {
+            if (fired) return;
+            fired = true;
+            splash.style.display = 'none';
+            splash.removeEventListener('transitionend', onFadeOut);
+        }
+        splash.addEventListener('transitionend', onFadeOut);
+        setTimeout(onFadeOut, 1200);
+
+        if (operation === 'vender') {
+            setTimeout(function () {
+                window.location.href = getApiUrl('vender');
+            }, 100);
+        } else if (operation === 'comprar') {
+            setTimeout(function () {
+                const categorias = document.getElementById('adquirir');
+                if (categorias) {
+                    categorias.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+        }
+    };
+
+    window.openSplash = function (e) {
+        if (e) e.preventDefault();
+        const splash = document.getElementById('intro-splash');
+        if (!splash) return;
+
+        splash.style.display = 'flex';
+        void splash.offsetWidth;
+        splash.classList.remove('fade-out');
+        document.body.style.overflow = 'hidden';
+
+        const video = document.getElementById('intro-video');
+        if (video && !isSlowConnection()) {
+            video.currentTime = 0;
+            video.play().catch(function () {});
+        }
+    };
+})();
+
+function updateNetworkBanner() {
+    const banner = document.getElementById('networkStatusBanner');
+    const iconEl = document.getElementById('networkStatusIcon');
+    const textEl = document.getElementById('networkStatusText');
+    if (!banner || !textEl) return;
+
+    if (sessionStorage.getItem('infonatec_net_banner_dismissed') === '1' && navigator.onLine) {
+        banner.hidden = true;
+        return;
+    }
+
+    banner.classList.remove('is-offline', 'is-slow');
+
+    if (!navigator.onLine) {
+        banner.classList.add('is-offline');
+        if (iconEl) iconEl.textContent = '⚠️';
+        textEl.textContent = 'Sin conexión a internet. Estás en modo sin conexión: algunos recursos remotos o envíos no se guardarán hasta reconectar.';
+        banner.hidden = false;
+        return;
+    }
+
+    if (isSlowConnection()) {
+        banner.classList.add('is-slow');
+        if (iconEl) iconEl.textContent = '🐢';
+        textEl.textContent = 'Conexión lenta o modo ahorro de datos detectado. Usa las galerías estáticas accesibles para evitar alto consumo en los tours 360°.';
+        banner.hidden = false;
+        return;
+    }
+
+    banner.hidden = true;
+}
+
+function dismissNetworkBanner() {
+    sessionStorage.setItem('infonatec_net_banner_dismissed', '1');
+    const banner = document.getElementById('networkStatusBanner');
+    if (banner) banner.hidden = true;
+}
+
+window.addEventListener('online', function () {
+    sessionStorage.removeItem('infonatec_net_banner_dismissed');
+    updateNetworkBanner();
+    showToast('Conexión restablecida.', 'success', 2500);
+});
+
+window.addEventListener('offline', function () {
+    updateNetworkBanner();
+    showToast('Se perdió la conexión a internet.', 'error', 4000);
+});
+
+/* =========================================================
+   NAVBAR Y MENÚ MÓVIL
 ========================================================= */
 
 window.addEventListener('scroll', function () {
     const navbar = document.getElementById('navbar');
+    if (!navbar) return;
     if (window.scrollY > 50) {
         navbar.classList.add('scrolled');
     } else {
@@ -162,60 +242,63 @@ window.addEventListener('scroll', function () {
     }
 });
 
-/* =========================================================
-   MENÚ HAMBURGUESA Y ENLACES
-========================================================= */
+document.addEventListener('DOMContentLoaded', function () {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileClose = document.getElementById('mobileMenuClose');
 
-document.querySelectorAll('a[href="#propiedades"], a[href="#categorias"]').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-        const propSection = document.getElementById('propiedades');
-        if (propSection) {
-            propSection.style.display = 'block';
-        }
-    });
-});
+    if (hamburgerBtn && mobileMenu) {
+        hamburgerBtn.addEventListener('click', function () {
+            mobileMenu.classList.add('active');
+            hamburgerBtn.setAttribute('aria-expanded', 'true');
+        });
+    }
 
-const hamburgerBtn  = document.getElementById('hamburgerBtn');
-const mobileMenu    = document.getElementById('mobileMenu');
-const mobileClose   = document.getElementById('mobileMenuClose');
-
-if (hamburgerBtn) {
-    hamburgerBtn.addEventListener('click', function () {
-        mobileMenu.classList.add('active');
-        hamburgerBtn.setAttribute('aria-expanded', 'true');
-    });
-}
-
-if (mobileClose) {
-    mobileClose.addEventListener('click', function () {
-        mobileMenu.classList.remove('active');
-        if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
-    });
-}
-
-// Cerrar menú móvil al hacer clic en un enlace
-if (mobileMenu) {
-    mobileMenu.querySelectorAll('a').forEach(function (link) {
-        link.addEventListener('click', function () {
+    if (mobileClose && mobileMenu) {
+        mobileClose.addEventListener('click', function () {
             mobileMenu.classList.remove('active');
             if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
         });
-    });
-}
+    }
+
+    if (mobileMenu) {
+        mobileMenu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                mobileMenu.classList.remove('active');
+                if (hamburgerBtn) hamburgerBtn.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+});
 
 /* =========================================================
-   MODALES
+   MODALES Y TECLADO GLOBAL
 ========================================================= */
 
 function openModal(id) {
-    // Todos los modales bloquean el fondo; Registro añade la ubicación como
-    // ayuda opcional, únicamente si la persona autoriza el navegador.
-    document.getElementById(id).classList.add('active');
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('active');
     document.body.style.overflow = 'hidden';
-    if (id === 'registerModal') fillRegistrationLocation();
+
+    if (id === 'registerModal') {
+        fillRegistrationLocation();
+    } else if (id === 'interestModal') {
+        prefillContactModal('interest');
+    } else if (id === 'appointmentModal') {
+        prefillContactModal('appointment');
+    }
 }
 
-/* Completa ciudad y estado desde la ubicación autorizada por la persona usuaria. */
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('active');
+    if (!document.querySelector('.modal.active')) {
+        document.body.style.overflow = '';
+    }
+}
+
 function fillRegistrationLocation() {
     const locationEl = document.getElementById('regLocation');
     if (!locationEl || locationEl.value || !navigator.geolocation) return;
@@ -241,760 +324,1373 @@ function fillRegistrationLocation() {
     }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
 }
 
-function closeModal(id) {
-    // Cada cierre restituye el scroll para no dejar la página inmovilizada.
-    document.getElementById(id).classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-// Cerrar modal al hacer clic en el fondo oscuro
 window.addEventListener('click', function (e) {
     document.querySelectorAll('.modal').forEach(function (modal) {
         if (e.target === modal) {
             if (modal.id === 'tourModal') {
                 closeTourModal();
             } else {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
+                closeModal(modal.id);
             }
         }
     });
 });
 
-// Cerrar modal con tecla Escape
 window.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const activeTour = document.querySelector('#tourModal.active');
         if (activeTour) {
             closeTourModal();
-        } else {
-            document.querySelectorAll('.modal.active').forEach(function (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            });
+            return;
+        }
+        document.querySelectorAll('.modal.active').forEach(function (modal) {
+            closeModal(modal.id);
+        });
+        return;
+    }
+
+    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') {
+        return;
+    }
+
+    const propertyModalActive = document.querySelector('#propertyModal.active');
+    if (propertyModalActive) {
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextGallerySlide();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevGallerySlide();
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            goToGallerySlide(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            goToGallerySlide(currentGalleryItems.length - 1);
+        }
+        return;
+    }
+
+    const tourModalActive = document.querySelector('#tourModal.active');
+    const staticBox = document.getElementById('tourStaticGallery');
+    if (tourModalActive && staticBox && staticBox.style.display !== 'none') {
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextStaticTourSlide();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevStaticTourSlide();
         }
     }
 });
 
 /* =========================================================
-   PROPIEDADES — datos
+   FAVORITOS PERSISTENTES (BD + LOCALSTORAGE)
 ========================================================= */
 
-// En las vistas MVC se recibe el catálogo del servidor. El bloque siguiente
-// conserva datos de respaldo para las páginas HTML antiguas del proyecto.
-const properties = window.INFONATEC_PROPERTIES
-    ? window.INFONATEC_PROPERTIES
-    : {
-    1: {
-        title: 'Lote Residencial Montebello',
-        type: 'Terreno',
-        location: 'Mérida, Yucatán',
-        image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=90',
-        price: '$1,850,000',
-        details: [
-            '450 m² de superficie',
-            'Terreno regular',
-            'Servicios disponibles',
-            'Acceso vehicular',
-            'Zona residencial'
-        ],
-        operation: [
-            'Venta',
-            'Revisión de situación legal',
-            'Efectivo',
-            'Financiamiento sujeto a condiciones'
-        ]
-    },
-    2: {
-        title: 'Residencia Minimalista Las Cumbres',
-        type: 'Casa',
-        location: 'Monterrey, Nuevo León',
-        image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=90',
-        price: '$6,800,000',
-        details: [
-            '4 habitaciones',
-            '5 baños',
-            '340 m² de construcción',
-            'Alberca',
-            'Estacionamiento'
-        ],
-        operation: [
-            'Venta',
-            'Efectivo',
-            'Crédito bancario',
-            'Financiamiento sujeto a condiciones'
-        ],
-        virtualTour: {
-            type: 'iframe',
-            url: 'tour',
-            title: 'Recorrido Interactivo 360° — Residencia Minimalista Las Cumbres',
-            subtitle: 'Explora los espacios en 360°, interactúa con los puntos de navegación y conoce los acabados.',
-            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
-            helpText: '💡 Arrastra para mirar alrededor. Haz clic en las flechas para caminar de una sala a otra o en [i] para ver detalles.'
+const FAVORITES_STORAGE_KEY = 'infonatec_favorites';
+let favoriteIds = new Set();
+
+function loadInitialFavorites() {
+    const set = new Set();
+    if (window.INFONATEC_USER && Array.isArray(window.INFONATEC_FAVORITES)) {
+        window.INFONATEC_FAVORITES.forEach(function (id) {
+            if (Number(id) > 0) set.add(Number(id));
+        });
+    } else {
+        try {
+            const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(function (id) {
+                        if (Number(id) > 0) set.add(Number(id));
+                    });
+                }
+            }
+        } catch (e) {
+            localStorage.removeItem(FAVORITES_STORAGE_KEY);
         }
-    },
-    3: {
-        title: 'Penthouse Polanco Sky View',
-        type: 'Departamento',
-        location: 'Ciudad de México',
-        image: 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1400&q=90',
-        price: '$38,000 / mes',
-        details: [
-            '160 m²',
-            '3 habitaciones',
-            '2.5 baños',
-            'Estacionamiento',
-            'Seguridad'
-        ],
-        operation: [
-            'Renta',
-            'Primer mes',
-            'Depósito requerido',
-            'Póliza jurídica'
-        ],
-        virtualTour: {
-            video: 'casa 1.mp4',
-            title: 'Recorrido Virtual — Penthouse Polanco Sky View',
-            subtitle: 'Conoce los espacios interiores, acabados y vista panorámica de este exclusivo penthouse.'
+    }
+    favoriteIds = set;
+    syncFavoriteUI();
+}
+
+function saveGuestFavorites() {
+    try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(favoriteIds)));
+    } catch (e) {
+        // Almacenamiento lleno o bloqueado
+    }
+}
+
+function syncFavoriteUI() {
+    document.querySelectorAll('.favorite-btn[data-prop-id]').forEach(function (btn) {
+        const pid = Number(btn.getAttribute('data-prop-id'));
+        const active = favoriteIds.has(pid);
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const prop = getPropertyById(pid);
+        const title = prop ? prop.title : 'propiedad';
+        btn.setAttribute('aria-label', (active ? 'Quitar ' : 'Guardar ') + title + (active ? ' de favoritos' : ' en favoritos'));
+    });
+
+    document.querySelectorAll('.js-fav-count').forEach(function (el) {
+        el.textContent = String(favoriteIds.size);
+    });
+
+    const detailFavBtn = document.getElementById('detailFavoriteBtn');
+    if (detailFavBtn && currentPropertyId) {
+        const isFav = favoriteIds.has(Number(currentPropertyId));
+        detailFavBtn.classList.toggle('active', isFav);
+        detailFavBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+        detailFavBtn.textContent = isFav ? '♥ En favoritos' : '♡ Guardar en favoritos';
+    }
+}
+
+async function toggleFavorite(propertyId, event) {
+    if (event) event.stopPropagation();
+    const pid = Number(propertyId);
+    if (!pid) return;
+
+    const wasFav = favoriteIds.has(pid);
+    if (wasFav) {
+        favoriteIds.delete(pid);
+    } else {
+        favoriteIds.add(pid);
+    }
+    syncFavoriteUI();
+
+    if (typeof applyCatalogFilters === 'function' && catalogState.onlyFavorites) {
+        applyCatalogFilters();
+    }
+
+    if (window.INFONATEC_USER && window.INFONATEC_USER.id) {
+        try {
+            const response = await fetch(getApiUrl('api/favoritos/toggle'), {
+                method: 'POST',
+                headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ id_propiedad: pid })
+            });
+            const data = await response.json();
+            if (response.ok && data.success && Array.isArray(data.favorites)) {
+                favoriteIds = new Set(data.favorites.map(Number));
+                syncFavoriteUI();
+                showToast(data.is_favorite ? 'Guardada en tus favoritos.' : 'Eliminada de favoritos.', 'info', 2200);
+                return;
+            }
+        } catch (err) {
+            console.warn('No se pudo sincronizar favorito con el servidor:', err);
         }
+    }
+
+    saveGuestFavorites();
+    showToast(!wasFav ? 'Guardada en tus favoritos.' : 'Eliminada de favoritos.', 'info', 2200);
+}
+
+async function syncGuestFavoritesToServer() {
+    try {
+        const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (!raw) return;
+        const ids = JSON.parse(raw);
+        if (!Array.isArray(ids) || ids.length === 0) return;
+
+        await fetch(getApiUrl('api/favoritos/sync'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ favorites: ids })
+        });
+        localStorage.removeItem(FAVORITES_STORAGE_KEY);
+    } catch (e) {
+        // Ignorar fallo silencioso de sincronización
+    }
+}
+
+/* =========================================================
+   MOTOR DE FILTROS Y ETIQUETAS ACTIVAS REMOVIBLES
+========================================================= */
+
+const catalogState = {
+    operation: 'all',
+    type: 'all',
+    location: '',
+    minPrice: '',
+    maxPrice: '',
+    sort: 'default',
+    onlyFavorites: false
+};
+
+const TYPE_LABELS = {
+    all: 'Todas',
+    casa: 'Casas',
+    departamento: 'Departamentos',
+    terreno: 'Terrenos'
+};
+
+const OP_LABELS = {
+    all: 'Todas',
+    comprar: 'Comprar',
+    rentar: 'Rentar'
+};
+
+const EXPLORAR_HERO_TEXTS = {
+    all: {
+        title: 'Explorar Catálogo',
+        desc: 'Encuentra casas, departamentos y terrenos verificados con galería completa y contacto directo.'
     },
-    4: {
-        title: 'Departamento Urbano Providencia',
-        type: 'Departamento',
-        location: 'Guadalajara, Jalisco',
-        image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=90',
-        price: '$14,500 / mes',
-        details: [
-            '78 m²',
-            '2 recámaras',
-            '1 baño',
-            '1 cajón',
-            'Zona urbana'
-        ],
-        operation: [
-            'Renta',
-            'Primer mes',
-            'Depósito',
-            'Requisitos de arrendamiento'
-        ]
+    casa: {
+        title: 'Casas',
+        desc: 'Encuentra la casa de tus sueños, ideal para ti y tu familia.'
     },
-    5: {
-        title: 'Lote Campestre Valle de Bravo',
-        type: 'Terreno',
-        location: 'Valle de Bravo, Estado de México',
-        image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1400&q=90',
-        price: '$950,000',
-        details: [
-            '1,200 m²',
-            'Terreno campestre',
-            'Servicios a pie de lote',
-            'Acceso',
-            'Zona natural'
-        ],
-        operation: [
-            'Venta',
-            'Revisión legal',
-            'Efectivo',
-            'Financiamiento sujeto a condiciones'
-        ]
+    departamento: {
+        title: 'Departamentos',
+        desc: 'Espacios modernos y céntricos, adaptados a tu estilo de vida.'
     },
-    6: {
-        title: 'Terreno Industrial Querétaro',
-        type: 'Terreno',
-        location: 'Querétaro, QRO',
-        image: 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1400&q=90',
-        price: '$4,100,000',
-        details: [
-            '1,200 m² de superficie regular',
-            'Uso de suelo industrial y logístico I-3',
-            'Plataforma nivelada con mecánica de suelos',
-            'Factibilidad eléctrica en media tensión',
-            'Acceso a vialidades para tractocamiones'
-        ],
-        operation: [
-            'Venta directa',
-            'Escritura inmediata',
-            'Facilidades de pago y esquemas de crédito'
-        ],
-        virtualTour: {
-            type: 'iframe',
-            url: 'tour/industrial',
-            title: 'Recorrido Interactivo 360° — Terreno Industrial',
-            subtitle: 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y acceso para transporte pesado.',
-            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
-            helpText: '💡 Arrastra para mirar en 360°. Usa las flechas de navegación o la barra inferior para moverte entre zonas.'
-        }
-    },
-    7: {
-        title: 'Loft Centro Histórico',
-        type: 'Departamento',
-        location: 'Centro Histórico, CDMX',
-        image: 'https://images.unsplash.com/photo-1502672260266-1c1f5523a5b1?auto=format&fit=crop&w=1400&q=90',
-        price: '$22,000 / mes',
-        details: [
-            '95 m²',
-            '1 recámara',
-            'Doble altura',
-            'Terraza compartida',
-            'Vigilancia 24/7'
-        ],
-        operation: [
-            'Renta',
-            'Póliza jurídica',
-            'Mantenimiento incluido'
-        ]
-    },
-    8: {
-        title: 'Villa Toscana',
-        type: 'Casa',
-        location: 'Querétaro, Qro',
-        image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=90',
-        price: '$4,500,000',
-        details: [
-            '210 m² de construcción',
-            '3 recámaras',
-            'Estudio',
-            'Jardín amplio',
-            'Privada con amenidades'
-        ],
-        operation: [
-            'Venta',
-            'Crédito bancario',
-            'Infonavit / Fovissste'
-        ]
-    },
-    9: {
-        title: 'Departamento Ejecutivo',
-        type: 'Departamento',
-        location: 'San Pedro, N.L.',
-        image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=90',
-        price: '$30,000 / mes',
-        details: [
-            '110 m²',
-            '2 habitaciones',
-            'Amueblado',
-            'Gimnasio en torre',
-            '2 cajones de estacionamiento'
-        ],
-        operation: [
-            'Renta',
-            'Aval requerido',
-            'Contrato a 1 año mínimo'
-        ]
-    },
-    10: {
-        title: 'Macrolote Industrial Apodaca',
-        type: 'Terreno',
-        location: 'Apodaca, N.L.',
-        image: 'https://images.unsplash.com/photo-1531971589569-0d9370cbe1e5?auto=format&fit=crop&w=1400&q=90',
-        price: '$12,500,000',
-        details: [
-            '5,000 m² a 12,500 m²',
-            'Uso de suelo industrial pesado I-3',
-            'Acceso directo a autopista y libramiento',
-            'Subestación eléctrica (115 kV) y gas natural',
-            'Caseta blindada 24/7 y báscula de 80 ton'
-        ],
-        operation: [
-            'Venta',
-            'Esquemas de financiamiento industrial',
-            'Escrituración inmediata'
-        ],
-        virtualTour: {
-            type: 'iframe',
-            url: 'tour/industrial',
-            title: 'Recorrido Interactivo 360° — Terreno & Parque Industrial',
-            subtitle: 'Explora la plataforma nivelada, subestación eléctrica, patio de maniobras y acceso para transporte pesado.',
-            buttonText: 'VER RECORRIDO INTERACTIVO 360° ▶',
-            helpText: '💡 Arrastra para mirar en 360°. Usa las flechas de navegación o la barra inferior para moverte entre zonas.'
-        }
+    terreno: {
+        title: 'Terrenos',
+        desc: 'Lotes residenciales, comerciales e industriales para construir tus proyectos.'
     }
 };
 
-let currentPropertyId = null;
-let currentPhotoIndex = 0;
+let originalCardOrder = [];
 
-function changePropertyPhoto(direction) {
-    const property = properties[currentPropertyId];
-    const photos = property.images?.length ? property.images : [property.image];
-    currentPhotoIndex = (currentPhotoIndex + direction + photos.length) % photos.length;
-    document.getElementById('detailImage').src = photos[currentPhotoIndex];
-    document.getElementById('propertyPhotoCounter').textContent = `${currentPhotoIndex + 1} / ${photos.length}`;
-    document.getElementById('propertyPhotoControls').hidden = photos.length < 2;
+function getCatalogContainer() {
+    return document.getElementById('explorarCatalogView') || document.getElementById('catalogView');
+}
+
+function getCardsGrid() {
+    return document.getElementById('propertyGrid') || document.getElementById('mainPropGrid');
+}
+
+function initCatalogFilters() {
+    const scopeEl = getCatalogContainer();
+    const grid = getCardsGrid();
+    if (!scopeEl || !grid) return;
+
+    originalCardOrder = Array.from(grid.querySelectorAll('.js-prop-card'));
+
+    // Leer estado inicial desde atributos de Explorar (si vienen por query params)
+    if (scopeEl.dataset.initOp) catalogState.operation = scopeEl.dataset.initOp;
+    if (scopeEl.dataset.initType) catalogState.type = scopeEl.dataset.initType;
+    if (scopeEl.dataset.initFav === '1') catalogState.onlyFavorites = true;
+
+    const locInput = scopeEl.querySelector('.js-filter-location');
+    const minInput = scopeEl.querySelector('.js-filter-min-price');
+    const maxInput = scopeEl.querySelector('.js-filter-max-price');
+    const sortSelect = scopeEl.querySelector('.js-filter-sort');
+    const favToggle = scopeEl.querySelector('.js-filter-fav');
+
+    if (locInput) {
+        catalogState.location = locInput.value.trim();
+        locInput.addEventListener('input', function () {
+            catalogState.location = locInput.value.trim();
+            applyCatalogFilters();
+        });
+    }
+    if (minInput) {
+        catalogState.minPrice = minInput.value.trim();
+        minInput.addEventListener('input', function () {
+            catalogState.minPrice = minInput.value.trim();
+            applyCatalogFilters();
+        });
+    }
+    if (maxInput) {
+        catalogState.maxPrice = maxInput.value.trim();
+        maxInput.addEventListener('input', function () {
+            catalogState.maxPrice = maxInput.value.trim();
+            applyCatalogFilters();
+        });
+    }
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function () {
+            catalogState.sort = sortSelect.value;
+            applyCatalogFilters();
+        });
+    }
+    if (favToggle) {
+        favToggle.addEventListener('click', function () {
+            catalogState.onlyFavorites = !catalogState.onlyFavorites;
+            applyCatalogFilters();
+        });
+    }
+
+    document.querySelectorAll('.js-filter-op').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            catalogState.operation = btn.getAttribute('data-op') || 'all';
+            applyCatalogFilters();
+        });
+    });
+
+    document.querySelectorAll('.js-filter-type').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            catalogState.type = btn.getAttribute('data-type') || 'all';
+            applyCatalogFilters();
+        });
+    });
+
+    applyCatalogFilters();
+}
+
+function syncCatalogControlsUI() {
+    document.querySelectorAll('.js-filter-op').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-op') === catalogState.operation);
+    });
+    document.querySelectorAll('.js-filter-type').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-type') === catalogState.type);
+    });
+
+    // Sincronizar pestañas de operación en el navbar de Inicio
+    const navOpComprar = document.getElementById('op-comprar');
+    const navOpRentar = document.getElementById('op-rentar');
+    if (navOpComprar) navOpComprar.classList.toggle('active', catalogState.operation === 'comprar');
+    if (navOpRentar) navOpRentar.classList.toggle('active', catalogState.operation === 'rentar');
+
+    const scopeEl = getCatalogContainer();
+    if (scopeEl) {
+        const locInput = scopeEl.querySelector('.js-filter-location');
+        const minInput = scopeEl.querySelector('.js-filter-min-price');
+        const maxInput = scopeEl.querySelector('.js-filter-max-price');
+        const sortSelect = scopeEl.querySelector('.js-filter-sort');
+        const favToggle = scopeEl.querySelector('.js-filter-fav');
+
+        if (locInput && locInput.value !== catalogState.location) locInput.value = catalogState.location;
+        if (minInput && minInput.value !== catalogState.minPrice) minInput.value = catalogState.minPrice;
+        if (maxInput && maxInput.value !== catalogState.maxPrice) maxInput.value = catalogState.maxPrice;
+        if (sortSelect && sortSelect.value !== catalogState.sort) sortSelect.value = catalogState.sort;
+        if (favToggle) {
+            favToggle.classList.toggle('active', catalogState.onlyFavorites);
+            favToggle.setAttribute('aria-pressed', catalogState.onlyFavorites ? 'true' : 'false');
+        }
+    }
+
+    // Actualizar título dinámico en /explorar
+    const catTitle = document.getElementById('catTitle');
+    const catDesc = document.getElementById('catDesc');
+    if (catTitle && catDesc) {
+        const meta = EXPLORAR_HERO_TEXTS[catalogState.type] || EXPLORAR_HERO_TEXTS.all;
+        catTitle.textContent = meta.title;
+        catDesc.textContent = meta.desc;
+    }
+}
+
+function renderActiveFilterChips() {
+    const scopeEl = getCatalogContainer();
+    if (!scopeEl) return;
+    const container = scopeEl.querySelector('.js-active-chips');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const chips = [];
+
+    if (catalogState.operation !== 'all') {
+        chips.push({
+            key: 'operation',
+            label: 'Operación: ' + (OP_LABELS[catalogState.operation] || catalogState.operation)
+        });
+    }
+    if (catalogState.type !== 'all') {
+        chips.push({
+            key: 'type',
+            label: 'Categoría: ' + (TYPE_LABELS[catalogState.type] || catalogState.type)
+        });
+    }
+    if (catalogState.location !== '') {
+        chips.push({
+            key: 'location',
+            label: 'Ubicación: "' + catalogState.location + '"'
+        });
+    }
+    if (catalogState.minPrice !== '') {
+        chips.push({
+            key: 'minPrice',
+            label: 'Desde $' + Number(catalogState.minPrice).toLocaleString('es-MX')
+        });
+    }
+    if (catalogState.maxPrice !== '') {
+        chips.push({
+            key: 'maxPrice',
+            label: 'Hasta $' + Number(catalogState.maxPrice).toLocaleString('es-MX')
+        });
+    }
+    if (catalogState.onlyFavorites) {
+        chips.push({
+            key: 'onlyFavorites',
+            label: 'Solo favoritos'
+        });
+    }
+    if (catalogState.sort !== 'default') {
+        chips.push({
+            key: 'sort',
+            label: catalogState.sort === 'price-asc' ? 'Orden: Menor precio' : 'Orden: Mayor precio'
+        });
+    }
+
+    chips.forEach(function (chip) {
+        const tag = document.createElement('span');
+        tag.className = 'filter-chip';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = chip.label;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'filter-chip-remove';
+        btn.setAttribute('aria-label', 'Quitar filtro ' + chip.label);
+        btn.textContent = '×';
+        btn.addEventListener('click', function () {
+            removeFilterByKey(chip.key);
+        });
+
+        tag.appendChild(textSpan);
+        tag.appendChild(btn);
+        container.appendChild(tag);
+    });
+
+    if (chips.length > 0) {
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'filter-clear-all';
+        clearBtn.textContent = 'Limpiar todo';
+        clearBtn.addEventListener('click', resetCatalogFilters);
+        container.appendChild(clearBtn);
+    }
+}
+
+function removeFilterByKey(key) {
+    if (key === 'operation') catalogState.operation = 'all';
+    else if (key === 'type') catalogState.type = 'all';
+    else if (key === 'location') catalogState.location = '';
+    else if (key === 'minPrice') catalogState.minPrice = '';
+    else if (key === 'maxPrice') catalogState.maxPrice = '';
+    else if (key === 'onlyFavorites') catalogState.onlyFavorites = false;
+    else if (key === 'sort') catalogState.sort = 'default';
+
+    applyCatalogFilters();
+}
+
+function resetCatalogFilters() {
+    catalogState.operation = 'all';
+    catalogState.type = 'all';
+    catalogState.location = '';
+    catalogState.minPrice = '';
+    catalogState.maxPrice = '';
+    catalogState.sort = 'default';
+    catalogState.onlyFavorites = false;
+    applyCatalogFilters();
+}
+
+function applyCatalogFilters() {
+    const scopeEl = getCatalogContainer();
+    const grid = getCardsGrid();
+    if (!scopeEl || !grid) return;
+
+    syncCatalogControlsUI();
+
+    let cards = originalCardOrder.slice();
+    if (catalogState.sort === 'price-asc') {
+        cards.sort(function (a, b) {
+            return Number(a.dataset.price || 0) - Number(b.dataset.price || 0);
+        });
+    } else if (catalogState.sort === 'price-desc') {
+        cards.sort(function (a, b) {
+            return Number(b.dataset.price || 0) - Number(a.dataset.price || 0);
+        });
+    }
+
+    cards.forEach(function (card) {
+        grid.appendChild(card);
+    });
+
+    const minVal = catalogState.minPrice !== '' ? Number(catalogState.minPrice) : null;
+    const maxVal = catalogState.maxPrice !== '' ? Number(catalogState.maxPrice) : null;
+    const locQuery = normalizeSearchText(catalogState.location);
+
+    let visibleCount = 0;
+    cards.forEach(function (card) {
+        const pid = Number(card.dataset.id || 0);
+        const price = Number(card.dataset.price || 0);
+        const matchOp = catalogState.operation === 'all' || card.dataset.operation === catalogState.operation;
+        const matchType = catalogState.type === 'all' || card.dataset.type === catalogState.type;
+        const matchMin = minVal === null || isNaN(minVal) || price >= minVal;
+        const matchMax = maxVal === null || isNaN(maxVal) || price <= maxVal;
+        const matchFav = !catalogState.onlyFavorites || favoriteIds.has(pid);
+
+        let matchLoc = true;
+        if (locQuery !== '') {
+            const haystack = normalizeSearchText((card.dataset.location || '') + ' ' + (card.dataset.title || ''));
+            matchLoc = haystack.includes(locQuery);
+        }
+
+        const visible = matchOp && matchType && matchMin && matchMax && matchFav && matchLoc;
+        card.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+    });
+
+    const countEl = scopeEl.querySelector('.js-result-count');
+    if (countEl) {
+        countEl.textContent = 'Mostrando ' + visibleCount + ' de ' + cards.length + ' propiedades';
+    }
+
+    const emptyEl = scopeEl.querySelector('.js-empty-state');
+    if (emptyEl) {
+        emptyEl.hidden = visibleCount > 0;
+    }
+
+    renderActiveFilterChips();
+
+    // Actualizar URL limpia sin recargar en /explorar
+    if (scopeEl.id === 'explorarCatalogView' && window.history && window.history.replaceState) {
+        const params = new URLSearchParams();
+        if (catalogState.operation !== 'all') params.set('operacion', catalogState.operation);
+        if (catalogState.type !== 'all') params.set('tipo', catalogState.type);
+        if (catalogState.location !== '') params.set('ubicacion', catalogState.location);
+        if (catalogState.minPrice !== '') params.set('min_precio', catalogState.minPrice);
+        if (catalogState.maxPrice !== '') params.set('max_precio', catalogState.maxPrice);
+        if (catalogState.onlyFavorites) params.set('favoritos', '1');
+
+        const queryStr = params.toString();
+        const nextUrl = window.location.pathname + (queryStr ? '?' + queryStr : '');
+        window.history.replaceState(null, '', nextUrl);
+    }
+}
+
+// Funciones públicas del flujo Home (#categoryChooser <-> #catalogView)
+function openCategoryChooser() {
+    const chooser = document.getElementById('categoryChooser');
+    const catalog = document.getElementById('catalogView');
+    if (chooser) chooser.hidden = false;
+    if (catalog) catalog.hidden = true;
+    const section = document.getElementById('adquirir');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function selectCategory(type) {
+    const chooser = document.getElementById('categoryChooser');
+    const catalog = document.getElementById('catalogView');
+    if (chooser) chooser.hidden = true;
+    if (catalog) catalog.hidden = false;
+
+    catalogState.type = type || 'all';
+    catalogState.operation = 'all';
+    applyCatalogFilters();
+}
+
+function openCatalogForOperation(operation) {
+    const chooser = document.getElementById('categoryChooser');
+    const catalog = document.getElementById('catalogView');
+    if (chooser) chooser.hidden = true;
+    if (catalog) catalog.hidden = false;
+
+    catalogState.operation = operation || 'all';
+    catalogState.type = 'all';
+    applyCatalogFilters();
+
+    const section = document.getElementById('adquirir');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* =========================================================
+   FICHA COMPLETA + GALERÍA REAL DE IMÁGENES
+========================================================= */
+
+let currentPropertyId = null;
+let currentGalleryItems = [];
+let currentGalleryIndex = 0;
+
+function handleMoreInfo(propertyId) {
+    showProperty(propertyId);
+}
+
+function handleChatTour(propertyId) {
+    showProperty(propertyId);
+    openMediaTour('interactivo');
+}
+
+function renderPropertyGallery(property) {
+    const fallbackUrl = getApiUrl('img/property-fallback.svg');
+    const gallery = Array.isArray(property.gallery) && property.gallery.length > 0
+        ? property.gallery
+        : [{ url: property.image || fallbackUrl, alt: property.title, caption: property.title }];
+
+    currentGalleryItems = gallery;
+    currentGalleryIndex = 0;
+
+    const prevBtn = document.getElementById('galleryPrevBtn');
+    const nextBtn = document.getElementById('galleryNextBtn');
+    const hasMultiple = gallery.length > 1;
+    if (prevBtn) prevBtn.hidden = !hasMultiple;
+    if (nextBtn) nextBtn.hidden = !hasMultiple;
+
+    const fotosCount = document.getElementById('btnMediaFotosCount');
+    if (fotosCount) fotosCount.textContent = String(gallery.length);
+
+    const thumbsContainer = document.getElementById('galleryThumbnails');
+    if (thumbsContainer) {
+        thumbsContainer.innerHTML = '';
+        thumbsContainer.hidden = !hasMultiple;
+
+        gallery.forEach(function (item, idx) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'gallery-thumb' + (idx === 0 ? ' active' : '');
+            btn.setAttribute('aria-label', 'Ver fotografía ' + (idx + 1) + ' de ' + gallery.length + ': ' + (item.alt || property.title));
+
+            const img = document.createElement('img');
+            img.src = item.url || fallbackUrl;
+            img.alt = item.alt || property.title;
+            img.loading = 'lazy';
+            img.onerror = function () {
+                img.onerror = null;
+                img.src = fallbackUrl;
+            };
+
+            btn.appendChild(img);
+            btn.addEventListener('click', function () {
+                goToGallerySlide(idx);
+            });
+            thumbsContainer.appendChild(btn);
+        });
+    }
+
+    goToGallerySlide(0);
+}
+
+function goToGallerySlide(index) {
+    if (!currentGalleryItems.length) return;
+    const total = currentGalleryItems.length;
+    currentGalleryIndex = ((index % total) + total) % total;
+
+    const slide = currentGalleryItems[currentGalleryIndex];
+    const mainImg = document.getElementById('detailImage');
+    const counter = document.getElementById('galleryCounter');
+    const caption = document.getElementById('galleryCaption');
+
+    if (mainImg) {
+        mainImg.src = slide.url;
+        mainImg.alt = slide.alt || slide.caption || 'Fotografía del inmueble';
+    }
+    if (counter) {
+        counter.textContent = (currentGalleryIndex + 1) + ' / ' + total;
+    }
+    if (caption) {
+        caption.textContent = slide.caption || slide.alt || '';
+    }
+
+    document.querySelectorAll('#galleryThumbnails .gallery-thumb').forEach(function (thumb, idx) {
+        thumb.classList.toggle('active', idx === currentGalleryIndex);
+    });
+}
+
+function nextGallerySlide() {
+    goToGallerySlide(currentGalleryIndex + 1);
+}
+
+function prevGallerySlide() {
+    goToGallerySlide(currentGalleryIndex - 1);
+}
+
+// Swipe táctil para galería de ficha
+document.addEventListener('DOMContentLoaded', function () {
+    const stage = document.getElementById('galleryStage');
+    if (!stage) return;
+    let startX = 0;
+    stage.addEventListener('touchstart', function (e) {
+        if (e.changedTouches && e.changedTouches[0]) {
+            startX = e.changedTouches[0].clientX;
+        }
+    }, { passive: true });
+    stage.addEventListener('touchend', function (e) {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        const diff = e.changedTouches[0].clientX - startX;
+        if (Math.abs(diff) > 40) {
+            if (diff < 0) nextGallerySlide();
+            else prevGallerySlide();
+        }
+    }, { passive: true });
+});
+
+function renderPaymentGrid(property) {
+    const container = document.getElementById('paymentOptions');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const options = Array.isArray(property.payment_options) && property.payment_options.length > 0
+        ? property.payment_options
+        : [{ code: 'CONTADO', label: 'Contado / SPEI', style: 'cash' }];
+
+    options.forEach(function (opt) {
+        const div = document.createElement('div');
+        div.className = 'payment-option payment-' + (opt.style || 'cash');
+
+        if (opt.style === 'mastercard') {
+            div.innerHTML = '<span class="mastercard-symbol" aria-hidden="true"><i></i><i></i></span><span>' + escapeHtml(opt.label) + '</span>';
+        } else {
+            const symbol = opt.style === 'spei' ? '⇄' : (opt.style === 'visa' ? '🏦' : (opt.style === 'infonavit' || opt.style === 'fovissste' ? '🏛' : '$'));
+            div.innerHTML = '<span class="payment-symbol" aria-hidden="true">' + symbol + '</span><span>' + escapeHtml(opt.label) + '</span>';
+        }
+        container.appendChild(div);
+    });
 }
 
 function showProperty(id) {
-    // id puede llegar desde una tarjeta del HTML o una recomendación del chat.
-    // Validarlo antes de acceder evita fallos si catálogo y página se desincronizan.
-    currentPropertyId = id;
-    const property = properties[id];
+    const pid = Number(id);
+    currentPropertyId = pid;
+    const property = getPropertyById(pid);
 
     if (!property) {
         showToast('No fue posible encontrar la información de esta propiedad.', 'error');
         return;
     }
 
-    // Las vistas comparten este modal. Si se cambia un id del footer, mantener
-    // estos nodos o añadir comprobaciones como las usadas más abajo.
-    currentPhotoIndex = 0;
-    changePropertyPhoto(0);
-    document.getElementById('detailImage').alt = property.title;
-    document.getElementById('detailTitle').innerText = property.title;
-    document.getElementById('detailLocation').innerText = property.location;
-    document.getElementById('detailPrice').innerText = property.price;
+    renderPropertyGallery(property);
 
-    // Detalles básicos
+    document.getElementById('detailTitle').textContent = property.title || 'Propiedad';
+    document.getElementById('detailLocation').textContent = property.full_location || property.location || '';
+    document.getElementById('detailPrice').textContent = property.price || '';
+
+    const descEl = document.getElementById('detailDescription');
+    if (descEl) {
+        descEl.textContent = property.description || '';
+        descEl.hidden = !property.description;
+    }
+
     const basic = document.getElementById('basicDetails');
     basic.innerHTML = '';
-    property.details.forEach(function (item) {
+    (property.details || []).forEach(function (item) {
         const li = document.createElement('li');
         li.textContent = item;
         basic.appendChild(li);
     });
 
-    // Detalles de operación
     const operation = document.getElementById('operationDetails');
     operation.innerHTML = '';
-    const operationDetails = property.operation_details || property.operation || [];
-    (Array.isArray(operationDetails) ? operationDetails : [operationDetails]).forEach(function (item) {
+    const opDetails = property.operation_details || [];
+    (Array.isArray(opDetails) ? opDetails : [opDetails]).forEach(function (item) {
         const li = document.createElement('li');
         li.textContent = item;
         operation.appendChild(li);
     });
-    // Personalizar sección de recorrido virtual
-    const mediaSection = document.getElementById('mediaGallerySection');
-    const btnVideo = document.getElementById('btnMediaVideo');
-    if (mediaSection) {
-        mediaSection.hidden = false; // Todas las propiedades tienen al menos fotografías.
-    }
-    
-    // Si es terreno, ocultar el botón de video a menos que tenga video
-    if (btnVideo) {
-        btnVideo.hidden = property.type.toLowerCase() === 'terreno' && (!property.virtualTour || !property.virtualTour.video);
-    }
-    const btnInteractivo = document.getElementById('btnMediaInteractivo');
-    if (btnInteractivo) {
-        const hasTour = !!(property.virtualTour && property.virtualTour.url);
-        btnInteractivo.style.opacity = hasTour ? '1' : '0.5';
-        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo no disponible';
-    }
-    // La sesión del servidor determina qué acciones se muestran en la ficha.
-    const logged = window.INFONATEC_USER;
-    document.getElementById('fullInformation').style.display  = logged ? 'block' : 'none';
-    document.getElementById('loginRequired').style.display    = logged ? 'none'  : 'block';
 
+    const legalList = document.getElementById('legalDetails');
+    if (legalList) {
+        legalList.innerHTML = '';
+        const legalItems = property.legal_details || ['Documentación en revisión por asesoría INFONATEC'];
+        legalItems.forEach(function (item) {
+            const li = document.createElement('li');
+            li.textContent = item;
+            legalList.appendChild(li);
+        });
+    }
+
+    renderPaymentGrid(property);
+
+    // Botones multimedia
+    const btnVideo = document.getElementById('btnMediaVideo');
+    const videoSrc = property.video || (property.virtualTour && property.virtualTour.video) || null;
+    if (btnVideo) {
+        btnVideo.hidden = !videoSrc;
+    }
+
+    const btnInteractivo = document.getElementById('btnMediaInteractivo');
+    const hasTour = !!(property.virtualTour && property.virtualTour.url);
+    if (btnInteractivo) {
+        btnInteractivo.style.opacity = hasTour ? '1' : '0.55';
+        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo 360° no disponible para esta propiedad';
+    }
+
+    const btnStatic360 = document.getElementById('btnMediaStatic360');
+    if (btnStatic360) {
+        btnStatic360.hidden = !(hasTour && Array.isArray(property.virtualTour.staticViews) && property.virtualTour.staticViews.length > 0);
+    }
+
+    syncFavoriteUI();
     openModal('propertyModal');
 }
 
 /* =========================================================
-   RECORRIDO VIRTUAL (Video o Interactivo)
+   RECORRIDO VIRTUAL 360° + GATE DE CONSUMO DE DATOS + GALERÍA ESTÁTICA
 ========================================================= */
 
+let pendingTourProperty = null;
+let staticTourSlides = [];
+let staticTourIndex = 0;
+
+function hideAllTourContainers() {
+    const gate = document.getElementById('tourDataGate');
+    const staticBox = document.getElementById('tourStaticGallery');
+    const videoBox = document.getElementById('tourVideoContainer');
+    const videoPlayer = document.getElementById('tourVideoPlayer');
+    const iframeBox = document.getElementById('tourIframeContainer');
+    const iframePlayer = document.getElementById('tourIframePlayer');
+    const switchBtn = document.getElementById('btnSwitchToStaticInModal');
+
+    if (gate) gate.style.display = 'none';
+    if (staticBox) staticBox.style.display = 'none';
+    if (videoBox) videoBox.style.display = 'none';
+    if (iframeBox) iframeBox.style.display = 'none';
+    if (switchBtn) switchBtn.style.display = 'none';
+
+    if (videoPlayer) {
+        videoPlayer.pause();
+        videoPlayer.removeAttribute('src');
+        videoPlayer.innerHTML = '';
+    }
+    if (iframePlayer) {
+        iframePlayer.src = '';
+    }
+}
+
+function buildStaticTourSlides(property) {
+    if (property && property.virtualTour && Array.isArray(property.virtualTour.staticViews) && property.virtualTour.staticViews.length > 0) {
+        return property.virtualTour.staticViews;
+    }
+    if (property && Array.isArray(property.gallery) && property.gallery.length > 0) {
+        return property.gallery.map(function (g, i) {
+            return {
+                title: g.caption || (property.title + ' — Vista ' + (i + 1)),
+                image: g.url,
+                alt: g.alt || property.title,
+                description: g.caption || property.description || ''
+            };
+        });
+    }
+    return [];
+}
+
 function openMediaTour(type) {
+    const property = getPropertyById(currentPropertyId);
+
     if (type === 'fotos') {
-        // La galería conserva todas las fotografías de la propiedad.
-        document.querySelector('#propertyModal .modal-content').scrollTo({top: 0, behavior: 'smooth'});
-        showToast('Explora las fotografías en la parte superior.', 'info');
+        const galleryEl = document.getElementById('propertyGallery');
+        const modalContent = document.querySelector('#propertyModal .modal-content');
+        if (modalContent) modalContent.scrollTo({ top: 0, behavior: 'smooth' });
+        if (galleryEl && currentGalleryItems.length > 1) {
+            nextGallerySlide();
+        }
+        const nextBtn = document.getElementById('galleryNextBtn');
+        if (nextBtn && !nextBtn.hidden) nextBtn.focus();
         return;
     }
 
-    // El fallback a 3 protege aperturas directas desde controles antiguos; los
-    // flujos normales siempre fijan currentPropertyId con showProperty().
-    const propertyId = currentPropertyId || 3;
-    const property = properties[propertyId];
-
-    // El botón se conserva para informar al visitante, pero nunca se muestra
-    // un recorrido ajeno a la propiedad seleccionada.
-    if (type === 'interactivo' && !(property && property.virtualTour && property.virtualTour.url)) {
-        showToast('En este momento no contamos con el recorrido virtual de esta propiedad.', 'info', 4200);
+    if (!property) {
+        showToast('Selecciona una propiedad para ver sus medios.', 'info');
         return;
     }
-    
-    let tourUrl = '';
-    let videoUrl = 'casa 1.mp4'; // Default video
 
-    if (property && property.virtualTour) {
-        if (property.virtualTour.url) tourUrl = property.virtualTour.url;
-        if (property.virtualTour.video) videoUrl = property.virtualTour.video;
+    if ((type === 'interactivo' || type === 'static360') && !(property.virtualTour && property.virtualTour.url)) {
+        showToast('Esta propiedad aún no cuenta con recorrido 360°.', 'info', 3800);
+        return;
     }
+
+    pendingTourProperty = property;
 
     const modalTitle = document.getElementById('tourModalTitle');
     const modalSubtitle = document.getElementById('tourModalSubtitle');
     const tourHelpText = document.getElementById('tourHelpText');
-    const videoContainer = document.getElementById('tourVideoContainer');
-    const videoPlayer = document.getElementById('tourVideoPlayer');
-    const iframeContainer = document.getElementById('tourIframeContainer');
-    const iframePlayer = document.getElementById('tourIframePlayer');
 
     if (modalTitle) {
-        modalTitle.innerText = property && property.virtualTour && property.virtualTour.title
+        modalTitle.textContent = (property.virtualTour && property.virtualTour.title)
             ? property.virtualTour.title
-            : (type === 'interactivo' ? 'Recorrido Interactivo' : 'Recorrido en Video');
+            : (type === 'interactivo' ? 'Recorrido Interactivo 360°' : 'Recorrido de Propiedad');
     }
     if (modalSubtitle) {
-        modalSubtitle.innerText = property && property.virtualTour && property.virtualTour.subtitle
+        modalSubtitle.textContent = (property.virtualTour && property.virtualTour.subtitle)
             ? property.virtualTour.subtitle
-            : (property ? property.title : 'Explorando propiedad');
-    }
-    if (tourHelpText) {
-        tourHelpText.innerText = type === 'interactivo' 
-            ? (property && property.virtualTour && property.virtualTour.helpText ? property.virtualTour.helpText : '💡 Arrastra para mirar en 360°. Usa las flechas para moverte de sala.') 
-            : '💡 Disfruta de la vista guiada en video.';
+            : property.title;
     }
 
-    if (type === 'interactivo') {
-        if (videoContainer) videoContainer.style.display = 'none';
+    hideAllTourContainers();
+
+    if (type === 'static360') {
+        closeModal('propertyModal');
+        openModal('tourModal');
+        openStaticTourGallery();
+        return;
+    }
+
+    if (type === 'video') {
+        const videoRel = property.video || (property.virtualTour && property.virtualTour.video) || 'media/tour-propiedad.mp4';
+        const videoFullUrl = /^(https?:)?\//i.test(videoRel) ? videoRel : getApiUrl(videoRel);
+        const videoBox = document.getElementById('tourVideoContainer');
+        const videoPlayer = document.getElementById('tourVideoPlayer');
+        if (tourHelpText) tourHelpText.textContent = '💡 Disfruta del recorrido en video. Usa los controles para pausar o ver en pantalla completa.';
+        if (videoBox) videoBox.style.display = 'block';
         if (videoPlayer) {
-            videoPlayer.pause();
-            videoPlayer.removeAttribute('src');
-            videoPlayer.innerHTML = '';
-        }
-        if (iframeContainer) iframeContainer.style.display = 'block';
-        if (iframePlayer) {
-            let finalUrl = tourUrl;
-            if (tourUrl && !tourUrl.startsWith('http') && !tourUrl.startsWith('/')) {
-                const base = window.APP_BASE_URL || '';
-                finalUrl = base + tourUrl;
-            }
-            iframePlayer.src = finalUrl;
-        }
-    } else if (type === 'video') {
-        if (iframeContainer) iframeContainer.style.display = 'none';
-        if (iframePlayer) iframePlayer.src = '';
-        if (videoContainer) videoContainer.style.display = 'block';
-        if (videoPlayer) {
-            videoPlayer.innerHTML = `<source src="${videoUrl}" type="video/mp4">Tu navegador no soporta video.`;
+            videoPlayer.innerHTML = '<source src="' + escapeHtml(videoFullUrl) + '" type="video/mp4">Tu navegador no soporta video HTML5.';
             videoPlayer.load();
-            const playPromise = videoPlayer.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(function (e) { console.log('Autoplay prevent or error:', e); });
-            }
+            videoPlayer.play().catch(function () {});
         }
+        closeModal('propertyModal');
+        openModal('tourModal');
+        return;
     }
 
-    // Ocultar modal de detalle temporalmente y abrir modal de tour
+    // type === 'interactivo': verificar gate de consumo de datos antes de cargar iframe
+    const preApproved = sessionStorage.getItem('infonatec_360_approved') === '1' && !isSlowConnection();
     closeModal('propertyModal');
     openModal('tourModal');
+
+    if (preApproved) {
+        loadInteractiveTourIframe(property);
+    } else {
+        showTourDataGate(property);
+    }
+}
+
+function showTourDataGate(property) {
+    hideAllTourContainers();
+    const gate = document.getElementById('tourDataGate');
+    const badge = document.getElementById('tourGateDataBadge');
+    const slowWarn = document.getElementById('tourGateSlowWarning');
+    const help = document.getElementById('tourHelpText');
+
+    const estMb = (property && property.virtualTour && property.virtualTour.estimatedDataMb) || 4.8;
+    if (badge) badge.textContent = 'Consumo estimado: ~' + estMb + ' MB';
+    if (slowWarn) slowWarn.style.display = isSlowConnection() ? 'block' : 'none';
+    if (help) help.textContent = '💡 Confirma si deseas descargar el recorrido 360° o utiliza la galería estática accesible.';
+    if (gate) gate.style.display = 'block';
+}
+
+function confirmLoadInteractiveTour() {
+    const remember = document.getElementById('tourGateRemember');
+    if (remember && remember.checked) {
+        sessionStorage.setItem('infonatec_360_approved', '1');
+    }
+    if (pendingTourProperty) {
+        loadInteractiveTourIframe(pendingTourProperty);
+    }
+}
+
+function loadInteractiveTourIframe(property) {
+    hideAllTourContainers();
+
+    const iframeBox = document.getElementById('tourIframeContainer');
+    const iframePlayer = document.getElementById('tourIframePlayer');
+    const switchBtn = document.getElementById('btnSwitchToStaticInModal');
+    const help = document.getElementById('tourHelpText');
+
+    let tourUrl = property.virtualTour && property.virtualTour.url ? property.virtualTour.url : 'tour';
+    if (!/^https?:\/\//i.test(tourUrl) && !tourUrl.startsWith('/')) {
+        tourUrl = getApiUrl(tourUrl);
+    }
+    const sep = tourUrl.includes('?') ? '&' : '?';
+    const finalUrl = tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
+
+    if (iframeBox) iframeBox.style.display = 'block';
+    if (iframePlayer) iframePlayer.src = finalUrl;
+    if (switchBtn) switchBtn.style.display = 'inline-block';
+    if (help) {
+        help.textContent = (property.virtualTour && property.virtualTour.helpText)
+            ? property.virtualTour.helpText
+            : '💡 Arrastra o usa las flechas y botones de zoom (+) / (−) dentro del recorrido.';
+    }
+}
+
+function openStaticTourGallery() {
+    const property = pendingTourProperty || getPropertyById(currentPropertyId);
+    staticTourSlides = buildStaticTourSlides(property);
+    staticTourIndex = 0;
+
+    if (!staticTourSlides.length) {
+        showToast('No hay vistas estáticas disponibles para este inmueble.', 'info');
+        return;
+    }
+
+    hideAllTourContainers();
+    const staticBox = document.getElementById('tourStaticGallery');
+    const help = document.getElementById('tourHelpText');
+    const thumbs = document.getElementById('staticTourThumbs');
+
+    if (staticBox) staticBox.style.display = 'block';
+    if (help) help.textContent = '💡 Modo accesible de bajo consumo: usa los botones o las flechas ← → para cambiar de vista.';
+
+    if (thumbs) {
+        thumbs.innerHTML = '';
+        staticTourSlides.forEach(function (slide, idx) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'gallery-thumb' + (idx === 0 ? ' active' : '');
+            btn.setAttribute('aria-label', 'Ver escena ' + (idx + 1) + ': ' + slide.title);
+
+            const img = document.createElement('img');
+            img.src = slide.image;
+            img.alt = slide.alt || slide.title;
+            img.loading = 'lazy';
+            btn.appendChild(img);
+            btn.addEventListener('click', function () {
+                goToStaticTourSlide(idx);
+            });
+            thumbs.appendChild(btn);
+        });
+    }
+
+    goToStaticTourSlide(0);
+}
+
+function goToStaticTourSlide(index) {
+    if (!staticTourSlides.length) return;
+    const total = staticTourSlides.length;
+    staticTourIndex = ((index % total) + total) % total;
+
+    const slide = staticTourSlides[staticTourIndex];
+    const img = document.getElementById('staticTourImage');
+    const title = document.getElementById('staticTourTitle');
+    const desc = document.getElementById('staticTourDesc');
+    const counter = document.getElementById('staticTourCounter');
+
+    if (img) {
+        img.src = slide.image;
+        img.alt = slide.alt || slide.title;
+    }
+    if (title) title.textContent = slide.title || 'Vista del recorrido';
+    if (desc) desc.textContent = slide.description || '';
+    if (counter) counter.textContent = (staticTourIndex + 1) + ' / ' + total;
+
+    document.querySelectorAll('#staticTourThumbs .gallery-thumb').forEach(function (t, idx) {
+        t.classList.toggle('active', idx === staticTourIndex);
+    });
+}
+
+function prevStaticTourSlide() {
+    goToStaticTourSlide(staticTourIndex - 1);
+}
+
+function nextStaticTourSlide() {
+    goToStaticTourSlide(staticTourIndex + 1);
+}
+
+function switchStaticToInteractiveTour() {
+    if (!pendingTourProperty) return;
+    loadInteractiveTourIframe(pendingTourProperty);
 }
 
 function closeTourModal() {
-    const videoPlayer = document.getElementById('tourVideoPlayer');
-    if (videoPlayer) {
-        videoPlayer.pause();
-        videoPlayer.currentTime = 0;
-    }
-    const iframePlayer = document.getElementById('tourIframePlayer');
-    if (iframePlayer) {
-        iframePlayer.src = ''; // Detener canvas/scripts del iframe
-    }
-
+    hideAllTourContainers();
     closeModal('tourModal');
-    // Volver a abrir la ficha de la propiedad si venía de ahí
     if (currentPropertyId) {
         openModal('propertyModal');
     }
 }
 
-/* =========================================================
-   FILTRO DE PROPIEDADES
-========================================================= */
-
-window.currentSearchFilters = {
-    type: 'todos',
-    operation: 'todos',
-    price: 'todos',
-    location: ''
-};
-
-function searchProperties() {
-    const typeEl      = document.getElementById('searchType');
-    const operationEl = document.getElementById('searchOperation');
-    const priceEl     = document.getElementById('searchPrice');
-    const locationEl  = document.getElementById('searchLocation');
-
-    const type      = typeEl ? typeEl.value : window.currentSearchFilters.type;
-    const operation = operationEl ? operationEl.value : window.currentSearchFilters.operation;
-    const price     = priceEl ? priceEl.value : window.currentSearchFilters.price;
-    const location  = locationEl ? locationEl.value.toLowerCase() : window.currentSearchFilters.location;
-
-    const cards = document.querySelectorAll('.property-card');
-    let found = 0;
-
-    cards.forEach(function (card) {
-        const typeOK      = type === 'todos'      || card.dataset.type === type;
-        const operationOK = operation === 'todos'  || card.dataset.operation === operation;
-        const priceOK     = price === 'todos'      || card.dataset.price === price;
-        const locationOK  = location === ''        || card.dataset.location.toLowerCase().includes(location);
-
-        const visible = typeOK && operationOK && priceOK && locationOK;
-        card.style.display = visible ? '' : 'none';
-        if (visible) found++;
-    });
-
-    document.getElementById('propiedades').scrollIntoView({ behavior: 'smooth' });
-
-    if (typeof resetCarouselPosition === 'function') {
-        resetCarouselPosition();
+// Comunicación segura desde iframe de tour hacia el modal padre
+window.addEventListener('message', function (event) {
+    if (event.origin !== window.location.origin) return;
+    if (event.data && event.data.type === 'infonatec-open-interest') {
+        const propId = Number(event.data.propertyId || currentPropertyId || 6);
+        hideAllTourContainers();
+        closeModal('tourModal');
+        openInterestModal(propId);
     }
-
-    if (found === 0) {
-        setTimeout(function () {
-            showToast('No encontramos propiedades con esos filtros.', 'info');
-        }, 400);
-    }
-}
-
-function filterCategory(type) {
-    const searchType = document.getElementById('searchType');
-    if (searchType) {
-        searchType.value = type;
-    } else {
-        window.currentSearchFilters.type = type;
-    }
-
-    // Update active pill styling
-    const pills = document.querySelectorAll('.property-filters .pill-btn');
-    pills.forEach(pill => pill.classList.remove('active'));
-    
-    // Find the pill that matches
-    pills.forEach(pill => {
-        if (type === 'terreno' && pill.textContent.trim() === 'Terrenos') pill.classList.add('active');
-        if (type === 'casa' && pill.textContent.trim() === 'Casas') pill.classList.add('active');
-        if (type === 'departamento' && pill.textContent.trim() === 'Departamentos') pill.classList.add('active');
-    });
-
-    searchProperties();
-}
-
-function filterOperation(op) {
-    const searchOp = document.getElementById('searchOperation');
-    if (searchOp) {
-        searchOp.value = op;
-    } else {
-        window.currentSearchFilters.operation = op;
-    }
-    
-    // Mostrar y scrollear al buscador inline
-    const searchSection = document.getElementById('propiedades');
-    if (searchSection) {
-        searchSection.style.display = 'block';
-        searchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    searchProperties();
-}
+});
 
 /* =========================================================
-   MOSTRAR TODAS LAS PROPIEDADES & GESTIÓN DE INFORMACIÓN
-========================================================= */
-
-function showAllProperties() {
-    document.querySelectorAll('.property-card').forEach(function (card) {
-        card.style.display = '';
-    });
-    if (typeof resetCarouselPosition === 'function') {
-        resetCarouselPosition();
-    }
-}
-
-/**
- * Al hacer clic en "Ver más información":
- * Abre la ficha de la propiedad donde el usuario puede ver la foto, datos,
- * el recorrido virtual (video o 3D) y el formulario para registrarse.
- */
-function handleMoreInfo(propertyId) {
-    showProperty(propertyId);
-}
-
-/**
- * Desde el chat: abre la ficha de la propiedad y lanza directamente el
- * recorrido virtual interactivo correspondiente.
- */
-function handleChatTour(propertyId) {
-    showProperty(propertyId);
-    openMediaTour('interactivo');
-}
-
-/* =========================================================
-   CARRUSEL DE PROPIEDADES (REMOVIDO PARA USAR GRID)
-========================================================= */
-
-function resetCarouselPosition() {
-    // Ya no hay carrusel, pero si alguien llama a esta función que no haga nada.
-}
-
-/* =========================================================
-   REGISTRO
+   AUTENTICACIÓN (SESIÓN SEGURA + CSRF)
 ========================================================= */
 
 async function register(event) {
     event.preventDefault();
-
     const form = event.target;
-    const isEmbedded = form.querySelector('#regNameModal') !== null;
-
-    const nameEl     = isEmbedded ? form.querySelector('#regNameModal')     : document.getElementById('regName');
-    const lastEl     = isEmbedded ? form.querySelector('#regLastModal')     : document.getElementById('regLast');
-    const emailEl    = isEmbedded ? form.querySelector('#regEmailModal')    : document.getElementById('regEmail');
-    const phoneEl    = isEmbedded ? form.querySelector('#regPhoneModal')    : document.getElementById('regPhone');
-    const locationEl = isEmbedded ? form.querySelector('#regLocationModal') : document.getElementById('regLocation');
-    const interestEl = isEmbedded ? form.querySelector('#regInterestModal') : document.getElementById('regInterest');
-    const passEl     = isEmbedded ? form.querySelector('#regPasswordModal') : document.getElementById('regPassword');
+    const btn = form.querySelector('button[type="submit"]');
 
     const user = {
-        name:     nameEl ? nameEl.value.trim() : '',
-        last:     lastEl ? lastEl.value.trim() : '',
-        email:    emailEl ? emailEl.value.trim() : '',
-        phone:    phoneEl ? phoneEl.value.trim() : '',
-        location: locationEl ? locationEl.value.trim() : '',
-        interest: interestEl ? interestEl.value : 'comprar',
-        password: passEl ? passEl.value : ''
+        name: (document.getElementById('regName') ? document.getElementById('regName').value : '').trim(),
+        last: (document.getElementById('regLast') ? document.getElementById('regLast').value : '').trim(),
+        email: (document.getElementById('regEmail') ? document.getElementById('regEmail').value : '').trim(),
+        phone: (document.getElementById('regPhone') ? document.getElementById('regPhone').value : '').trim(),
+        location: (document.getElementById('regLocation') ? document.getElementById('regLocation').value : '').trim(),
+        password: document.getElementById('regPassword') ? document.getElementById('regPassword').value : ''
     };
 
+    if (btn) btn.disabled = true;
+
     try {
-        const result = await postForm('auth/register', user);
-        window.INFONATEC_USER = result.user;
-        localStorage.removeItem('br_usuario');
-        location.reload();
+        const formData = new URLSearchParams();
+        Object.keys(user).forEach(function (k) {
+            formData.append(k, user[k]);
+        });
+
+        const response = await fetch(getApiUrl('auth/register'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: formData.toString()
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            showToast(data.message || 'No fue posible completar el registro.', 'error');
+            return;
+        }
+
+        if (data.csrf_token) window.CSRF_TOKEN = data.csrf_token;
+        window.INFONATEC_USER = data.user || null;
+        await syncGuestFavoritesToServer();
+
+        closeModal('registerModal');
+        showToast('¡Cuenta creada con éxito! Tus favoritos se sincronizaron.', 'success', 3000);
+
+        setTimeout(function () {
+            location.reload();
+        }, 900);
     } catch (error) {
-        showToast(error.message, 'error');
+        showToast('Error de conexión al registrar la cuenta.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
-}
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-async function postForm(endpoint, data) {
-    const response = await fetch(getApiUrl(endpoint), {
-        method: 'POST',
-        body: new URLSearchParams(data)
-    });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-        throw new Error(result.message || 'No fue posible completar la solicitud.');
-    }
-    return result;
 }
 
 async function login(event) {
     event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (btn) btn.disabled = true;
+
     try {
-        await postForm('auth/login', {
-            email: document.getElementById('loginEmail').value.trim(),
-            password: document.getElementById('loginPassword').value
+        const formData = new URLSearchParams();
+        formData.append('email', email);
+        formData.append('password', password);
+
+        const response = await fetch(getApiUrl('auth/login'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: formData.toString()
         });
-        localStorage.removeItem('br_usuario');
-        location.reload();
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            const user = data.user || {};
+            if (data.csrf_token) window.CSRF_TOKEN = data.csrf_token;
+            window.INFONATEC_USER = user;
+            await syncGuestFavoritesToServer();
+
+            closeModal('loginModal');
+            showToast('¡Bienvenido, ' + (user.name || email.split('@')[0]) + '!', 'success');
+            setTimeout(function () {
+                if (user.is_admin) {
+                    window.location.href = getApiUrl('admin');
+                } else {
+                    location.reload();
+                }
+            }, 800);
+            return;
+        }
+
+        showToast(data.message || 'Correo o contraseña incorrectos.', 'error');
     } catch (error) {
-        showToast(error.message, 'error');
+        showToast('Error de conexión con el servidor.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 
-/* =========================================================
-   INTERÉS EN PROPIEDAD
-========================================================= */
-
-async function sendInterest(event) {
-    event.preventDefault();
+async function logoutUser() {
     try {
-        const result = await postForm('contacto', {
-            property_id: currentPropertyId || '',
-            name: document.getElementById('interestName').value.trim(),
-            phone: document.getElementById('interestPhone').value.trim(),
-            email: document.getElementById('interestEmail').value.trim(),
-            message: document.getElementById('interestMsg').value.trim()
+        await fetch(getApiUrl('auth/logout'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Accept': 'application/json' })
         });
-        closeModal('interestModal');
-        event.target.reset();
-        showToast(result.message, 'success');
-    } catch (error) {
-        showToast(error.message, 'error');
+    } catch (e) {
+        // Redirigir de cualquier forma
     }
+    window.INFONATEC_USER = null;
+    window.location.href = getApiUrl('');
 }
 
 /* =========================================================
-   PUBLICAR PROPIEDAD
+   CONTACTO, INTERÉS Y CITAS REALES EN BD
 ========================================================= */
 
-function openPublishModal() {
-    const logged = window.INFONATEC_USER;
-    if (!logged) {
-        showToast('Para publicar una propiedad primero debes crear una cuenta.', 'info');
-        openModal('registerModal');
-        return;
+function prefillContactModal(kind) {
+    const user = window.INFONATEC_USER;
+    if (kind === 'interest') {
+        const propInput = document.getElementById('interestPropertyId');
+        const nameEl = document.getElementById('interestName');
+        const phoneEl = document.getElementById('interestPhone');
+        const emailEl = document.getElementById('interestEmail');
+        const msgEl = document.getElementById('interestMsg');
+
+        if (propInput) propInput.value = currentPropertyId ? String(currentPropertyId) : '';
+        if (user) {
+            if (nameEl && !nameEl.value) nameEl.value = user.name || '';
+            if (phoneEl && !phoneEl.value) phoneEl.value = user.phone || '';
+            if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+        }
+        const prop = currentPropertyId ? getPropertyById(currentPropertyId) : null;
+        if (msgEl && prop && !msgEl.value) {
+            msgEl.value = 'Hola, me interesa recibir más información sobre "' + prop.title + '" (' + prop.location + ').';
+        }
+    } else if (kind === 'appointment') {
+        const propInput = document.getElementById('apptPropertyId');
+        const nameEl = document.getElementById('apptName');
+        const emailEl = document.getElementById('apptEmail');
+        const phoneEl = document.getElementById('apptPhone');
+        const dateEl = document.getElementById('apptDate');
+
+        if (propInput) propInput.value = currentPropertyId ? String(currentPropertyId) : '';
+        if (dateEl) {
+            const today = new Date().toISOString().split('T')[0];
+            dateEl.min = today;
+            if (!dateEl.value) dateEl.value = today;
+        }
+        if (user) {
+            if (nameEl && !nameEl.value) nameEl.value = user.name || '';
+            if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+            if (phoneEl && !phoneEl.value) phoneEl.value = user.phone || '';
+        }
     }
-    window.location.href = getApiUrl('vender');
 }
 
-/* =========================================================
-   CITAS
-========================================================= */
+function openInterestModal(propertyId) {
+    if (propertyId) {
+        currentPropertyId = Number(propertyId);
+    }
+    closeModal('propertyModal');
+    openModal('interestModal');
+}
 
 function openAppointment() {
     closeModal('propertyModal');
     openModal('appointmentModal');
 }
 
+async function submitInterest(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    const payload = {
+        tipo: 'INTERES',
+        id_propiedad: document.getElementById('interestPropertyId')?.value || currentPropertyId || null,
+        nombre: document.getElementById('interestName').value.trim(),
+        telefono: document.getElementById('interestPhone').value.trim(),
+        correo: document.getElementById('interestEmail').value.trim(),
+        mensaje: document.getElementById('interestMsg').value.trim()
+    };
+
+    try {
+        const response = await fetch(getApiUrl('api/contacto'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            showToast(data.message || 'No se pudo enviar la solicitud.', 'error');
+            return;
+        }
+        closeModal('interestModal');
+        form.reset();
+        showToast(data.message || 'Solicitud enviada correctamente.', 'success', 4000);
+    } catch (error) {
+        showToast('Error de conexión al enviar tu solicitud.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function sendInterest(event) {
+    return submitInterest(event);
+}
+
 async function scheduleAppointment(event) {
     event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    const propId = Number(document.getElementById('apptPropertyId')?.value || currentPropertyId || 0);
+    const payload = {
+        id_propiedad: propId,
+        nombre: document.getElementById('apptName').value.trim(),
+        correo: document.getElementById('apptEmail').value.trim(),
+        fecha: document.getElementById('apptDate').value,
+        hora: document.getElementById('apptTime').value,
+        telefono: document.getElementById('apptPhone').value.trim(),
+        medio_contacto: document.getElementById('apptContact').value,
+        observaciones: (document.getElementById('apptNotes')?.value || '').trim()
+    };
+
     try {
-        const result = await postForm('citas', {
-            property_id: currentPropertyId || '',
-            date: document.getElementById('apptDate').value,
-            time: document.getElementById('apptTime').value,
-            phone: document.getElementById('apptPhone').value.trim(),
-            contact: document.getElementById('apptContact').value
+        const response = await fetch(getApiUrl('api/citas'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(payload)
         });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            showToast(data.message || 'No fue posible agendar la cita.', 'error', 4200);
+            return;
+        }
         closeModal('appointmentModal');
-        showToast(result.message, 'success');
+        form.reset();
+        showToast(data.message || 'Cita registrada correctamente.', 'success', 4500);
     } catch (error) {
-        showToast(error.message, 'error');
+        showToast('Error de conexión al agendar la cita.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function requestAdvisor(event) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    const payload = {
+        tipo: 'ASESORIA',
+        nombre: document.getElementById('advisorName').value.trim(),
+        telefono: document.getElementById('advisorPhone').value.trim(),
+        horario_preferido: document.getElementById('advisorTime').value,
+        mensaje: 'Solicitud de asesoría personalizada desde página principal.'
+    };
+
+    try {
+        const response = await fetch(getApiUrl('api/contacto'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            showToast(data.message || 'No se pudo enviar la solicitud.', 'error');
+            return;
+        }
+        form.reset();
+        showToast(data.message || 'Solicitud de asesoría enviada.', 'success', 4000);
+    } catch (error) {
+        showToast('Error de conexión al enviar la solicitud.', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 
 /* =========================================================
-   CHAT
+   CHAT Y ASISTENTE VIRTUAL CON IA (SSE + CSRF)
 ========================================================= */
 
 function toggleChat() {
     const chatBox = document.getElementById('chatBox');
+    if (!chatBox) return;
     chatBox.classList.toggle('active');
 
-    // Scroll al último mensaje al abrir
     if (chatBox.classList.contains('active')) {
         const messages = document.getElementById('chatMessages');
-        messages.scrollTop = messages.scrollHeight;
+        if (messages) messages.scrollTop = messages.scrollHeight;
+        const input = document.getElementById('chatInput');
+        if (input) input.focus();
     }
-}
-
-/* =========================================================
-   INTELIGENCIA ARTIFICIAL & ASISTENTE VIRTUAL
-========================================================= */
-
-function getApiUrl(endpoint) {
-    // APP_BASE_URL es emitida por PHP. El segundo bloque sólo sirve de respaldo
-    // para páginas estáticas o instalaciones locales que no la definan.
-    if (typeof window.APP_BASE_URL !== 'undefined' && window.APP_BASE_URL) {
-        return window.APP_BASE_URL.replace(/\/+$/, '') + '/' + endpoint.replace(/^\/+/, '');
-    }
-    // Detección automática en entornos locales XAMPP
-    const pathname = window.location.pathname;
-    const dir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
-    return dir + endpoint;
 }
 
 function formatBotText(text) {
-    // Se escapa todo antes de transformar el Markdown mínimo; así la respuesta
-    // del proveedor de IA no puede inyectar etiquetas HTML arbitrarias.
-    const div = document.createElement('div');
-    div.textContent = text;
-    let safe = div.innerHTML;
-    // Negritas Markdown
-    safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Saltos de línea
-    safe = safe.replace(/\n/g, '<br>');
-    return safe;
+    const safe = escapeHtml(text);
+    return safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
 }
 
 function sendQuickQuestion(questionText) {
@@ -1014,7 +1710,6 @@ async function sendMessage() {
     const messages = document.getElementById('chatMessages');
     if (!messages) return;
 
-    // 1. Mostrar mensaje del usuario
     const userDiv = document.createElement('div');
     userDiv.className = 'message user';
     userDiv.textContent = text;
@@ -1023,7 +1718,6 @@ async function sendMessage() {
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
 
-    // 2. Mostrar indicador de escritura
     const typingDiv = document.createElement('div');
     typingDiv.className = 'typing-indicator';
     typingDiv.id = 'chatTypingIndicator';
@@ -1031,23 +1725,21 @@ async function sendMessage() {
     messages.appendChild(typingDiv);
     messages.scrollTop = messages.scrollHeight;
 
-    // 3. Enviar a la API de forma asíncrona con streaming (SSE)
     try {
         const response = await fetch(getApiUrl('api/ai/chat/stream'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ message: text })
         });
-        if (!response.ok) throw new Error('No fue posible consultar al asistente.');
 
-        // Quitar indicador de escritura
-        if (typingDiv.parentNode) {
-            typingDiv.remove();
+        if (typingDiv.parentNode) typingDiv.remove();
+
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
         }
 
         const botDiv = document.createElement('div');
         botDiv.className = 'message';
-        botDiv.innerHTML = '';
         messages.appendChild(botDiv);
 
         const reader = response.body.getReader();
@@ -1056,7 +1748,7 @@ async function sendMessage() {
         let fullText = '';
         let meta = { engine: 'local_expert', related: [] };
 
-        const processEventBlock = (block) => {
+        const processEventBlock = function (block) {
             const lines = block.split('\n');
             let eventName = '';
             let dataStr = '';
@@ -1067,9 +1759,7 @@ async function sendMessage() {
                     dataStr = line.slice(5).trim();
                 }
             }
-            if (!dataStr) {
-                return;
-            }
+            if (!dataStr) return;
             const data = JSON.parse(dataStr);
             if (eventName === 'meta') {
                 meta = data;
@@ -1081,312 +1771,69 @@ async function sendMessage() {
 
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
+            if (done) break;
             buffer += decoder.decode(value, { stream: true });
             const blocks = buffer.split('\n\n');
             buffer = blocks.pop() || '';
-            blocks.forEach((block) => {
+            blocks.forEach(function (block) {
                 const cleanBlock = block.trim();
-                if (cleanBlock) {
-                    processEventBlock(cleanBlock);
-                }
+                if (cleanBlock) processEventBlock(cleanBlock);
             });
         }
-        if (buffer.trim()) {
-            processEventBlock(buffer.trim());
-        }
+        if (buffer.trim()) processEventBlock(buffer.trim());
 
         const related = meta.related;
-        if (related && Array.isArray(related) && related.length > 0) {
-            related.forEach(function(propId) {
-                const prop = typeof properties !== 'undefined' ? properties[propId] : null;
-                if (prop) {
-                    const card = document.createElement('div');
-                    card.className = 'chat-prop-card';
-                    card.innerHTML = `
-                        <div>
-                            <strong>${formatBotText(prop.title)}</strong><br>
-                            <span style="color:#c9a86a;font-weight:700;">${formatBotText(prop.price)}</span> · <span style="color:#64748b;">${formatBotText(prop.location)}</span>
-                        </div>
-                        <div class="chat-prop-actions">
-                            <button class="chat-prop-btn" onclick="handleMoreInfo(${propId})">Ver Ficha</button>
-                            <button class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(${propId})">🕶️ Recorrido 3D</button>
-                        </div>
-                    `;
-                    messages.appendChild(card);
-                }
+        if (Array.isArray(related) && related.length > 0) {
+            related.forEach(function (propId) {
+                const prop = getPropertyById(propId);
+                if (!prop) return;
+
+                const card = document.createElement('div');
+                card.className = 'chat-prop-card';
+                const tourBtnHtml = (prop.virtualTour && prop.virtualTour.url)
+                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido 360°</button>'
+                    : '';
+
+                card.innerHTML =
+                    '<div><strong>' + escapeHtml(prop.title) + '</strong><br>' +
+                    '<span style="color:#9e7a37;font-weight:700;">' + escapeHtml(prop.price) + '</span> · ' +
+                    '<span style="color:#475569;">' + escapeHtml(prop.location) + '</span></div>' +
+                    '<div class="chat-prop-actions">' +
+                    '<button type="button" class="chat-prop-btn" onclick="handleMoreInfo(' + Number(prop.id) + ')">Ver Ficha</button>' +
+                    tourBtnHtml +
+                    '</div>';
+                messages.appendChild(card);
             });
         }
 
         messages.scrollTop = messages.scrollHeight;
-
     } catch (error) {
-        console.warn('Fallo al conectar con endpoint IA, usando respuesta de respaldo:', error);
-        if (typingDiv.parentNode) {
-            typingDiv.remove();
-        }
-
+        if (typingDiv.parentNode) typingDiv.remove();
         const botDiv = document.createElement('div');
         botDiv.className = 'message';
-        botDiv.textContent = '¡Hola! Estoy listo para ayudarte con información sobre casas, departamentos, terrenos y recorridos 3D en INFONATEC. ¿Qué estás buscando?';
+        botDiv.textContent = 'No pude conectar con el asistente en este momento. Puedes revisar las fichas del catálogo o escribirnos desde la sección Asesor.';
         messages.appendChild(botDiv);
         messages.scrollTop = messages.scrollHeight;
     }
 }
 
 /* =========================================================
-   ADMINISTRACIÓN - GESTIÓN DE RESERVAS
+   REDACCIÓN CON IA EN VENDER
 ========================================================= */
 
-async function adminCambiarEstado(citaId, estado) {
-    try {
-        const response = await fetch(getApiUrl('admin/reservas/' + citaId + '/estado'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'estado=' + encodeURIComponent(estado)
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Reserva #' + citaId + ' actualizada a: ' + estado, 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo actualizar la reserva.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al actualizar el estado de la reserva:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al actualizar la reserva.', 'error');
-        }
-    }
-}
-
-/* =========================================================
-   ADMINISTRACIÓN - VALIDACIÓN DE PAGOS
-========================================================= */
-
-async function adminConfirmarPago(transaccionId) {
-    try {
-        const response = await fetch(getApiUrl('admin/pagos/' + transaccionId + '/confirmar'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Pago validado y estado de la propiedad actualizado.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo confirmar el pago.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al confirmar el pago:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al confirmar el pago.', 'error');
-        }
-    }
-}
-
-/* =========================================================
-   ADMINISTRACIÓN - EVENTOS / TOURS
-========================================================= */
-
-async function adminRegistrarTour(event) {
-    event.preventDefault();
-    const form = event.target;
-
-    try {
-        const formData = new URLSearchParams();
-        formData.append('id_propiedad', form.id_propiedad.value);
-        formData.append('url_3d', form.url_3d.value);
-        formData.append('descripcion', form.descripcion.value);
-
-        const response = await fetch(getApiUrl('admin/eventos/tour'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Tour registrado exitosamente.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo registrar el tour.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al registrar el tour:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al registrar el tour.', 'error');
-        }
-    }
-}
-
-async function adminEliminarTour(paseoId) {
-    try {
-        const response = await fetch(getApiUrl('admin/eventos/tour/' + paseoId + '/eliminar'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Tour eliminado correctamente.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo eliminar el tour.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al eliminar el tour:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al eliminar el tour.', 'error');
-        }
-    }
-}
-
-/* =========================================================
-   ADMINISTRACIÓN - LOGÍSTICA / TRANSPORTE
-========================================================= */
-
-async function adminCrearVehiculo(event) {
-    event.preventDefault();
-    const form = event.target;
-
-    try {
-        const formData = new URLSearchParams();
-        formData.append('placa', form.placa.value);
-        formData.append('tipo', form.tipo.value);
-        formData.append('marca', form.marca.value);
-        formData.append('modelo', form.modelo.value);
-        formData.append('capacidad', form.capacidad.value);
-        formData.append('estado', form.estado.value);
-        formData.append('observaciones', form.observaciones.value);
-
-        const response = await fetch(getApiUrl('admin/logistica/vehiculo'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Vehículo registrado exitosamente.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo registrar el vehículo.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al registrar el vehículo:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al registrar el vehículo.', 'error');
-        }
-    }
-}
-
-async function adminCambiarEstadoVehiculo(vehiculoId, estado) {
-    try {
-        const response = await fetch(getApiUrl('admin/logistica/vehiculo/' + vehiculoId + '/estado'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'estado=' + encodeURIComponent(estado)
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Vehículo actualizado correctamente.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo actualizar el vehículo.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al actualizar el estado del vehículo:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al actualizar el vehículo.', 'error');
-        }
-    }
-}
-
-async function adminAsignarTransporte(event) {
-    event.preventDefault();
-    const form = event.target;
-
-    try {
-        const formData = new URLSearchParams();
-        formData.append('id_propiedad', form.id_propiedad.value);
-        formData.append('id_vehiculo', form.id_vehiculo.value);
-        formData.append('id_cita', form.id_cita ? form.id_cita.value : '');
-        formData.append('fecha_salida', form.fecha_salida ? form.fecha_salida.value : '');
-        formData.append('fecha_llegada', form.fecha_llegada ? form.fecha_llegada.value : '');
-        formData.append('estado', form.estado.value);
-        formData.append('observaciones', form.observaciones.value);
-
-        const response = await fetch(getApiUrl('admin/logistica/asignar'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            if (typeof showToast === 'function') {
-                showToast('Transporte asignado exitosamente.', 'success');
-            }
-            setTimeout(function () { window.location.reload(); }, 700);
-        } else {
-            if (typeof showToast === 'function') {
-                showToast(data.message || 'No se pudo asignar el transporte.', 'error');
-            }
-        }
-    } catch (error) {
-        console.warn('Error al asignar transporte:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error de conexión al asignar transporte.', 'error');
-        }
-    }
-}
-
-/**
- * Asistente de Redacción con IA para el formulario de publicación (Vender)
- */
 async function generateAIDescription(btnElement) {
-    // Se aceptan ambos esquemas de IDs porque las vistas histórica y MVC usan
-    // nombres distintos. Al rediseñar el formulario, actualizar este mapeo.
-    const titleInput = document.getElementById('pubTitle') || document.getElementById('publishTitle');
-    const typeSelect = document.getElementById('pubType') || document.getElementById('publishType');
-    const priceInput = document.getElementById('pubPrice') || document.getElementById('publishPrice');
-    const locInput   = document.getElementById('pubLocation') || document.getElementById('publishLocation');
-    const cityInput  = document.getElementById('pubCity');
+    const titleInput = document.getElementById('pubTitle');
+    const opInput = document.getElementById('pubOperation');
+    const priceInput = document.getElementById('pubPrice');
+    const locInput = document.getElementById('pubLocation');
+    const cityInput = document.getElementById('pubCity');
     const stateInput = document.getElementById('pubState');
-    const descArea   = document.getElementById('pubDesc') || document.getElementById('publishDesc');
-    
+    const descArea = document.getElementById('pubDesc');
     const roomsInput = document.getElementById('pubBedrooms');
     const bathsInput = document.getElementById('pubBathrooms');
+    const areaInput = (typeof window.selectedType !== 'undefined' && window.selectedType === 'terreno')
+        ? document.getElementById('pubLandArea')
+        : document.getElementById('pubArea');
 
     if (!descArea) {
         showToast('No se encontró el campo de descripción.', 'error');
@@ -1399,33 +1846,41 @@ async function generateAIDescription(btnElement) {
         btnElement.innerHTML = '✨ Redactando con IA...';
     }
 
+    const activeType = (typeof window.selectedType !== 'undefined' && window.selectedType)
+        ? window.selectedType
+        : 'casa';
+
     const payload = {
         title: titleInput ? titleInput.value.trim() : '',
-        type: typeSelect ? typeSelect.value : (typeof selectedType !== 'undefined' ? selectedType : 'casa'),
+        type: activeType,
+        operation: opInput ? opInput.value : 'VENTA',
         price: priceInput ? priceInput.value.trim() : '',
         location: locInput ? locInput.value.trim() : '',
         city: cityInput ? cityInput.value.trim() : '',
         state: stateInput ? stateInput.value.trim() : '',
         bedrooms: roomsInput ? roomsInput.value.trim() : '',
         bathrooms: bathsInput ? bathsInput.value.trim() : '',
+        area: areaInput ? areaInput.value.trim() : '',
         details: descArea.value.trim()
     };
 
     try {
         const res = await fetch(getApiUrl('api/ai/generate-description'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: apiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (data && data.description) {
+        if (res.ok && data && data.description) {
             descArea.value = data.description;
-            showToast('¡Ficha descriptiva redactada con éxito con IA!', 'success');
+            if (typeof window.onAIDescriptionGenerated === 'function') {
+                window.onAIDescriptionGenerated(data.description, data.engine || 'local_template');
+            }
+            showToast('Borrador generado con IA. Revísalo y apruébalo antes de publicar.', 'info', 4000);
         } else {
-            showToast('No fue posible generar la descripción automática.', 'error');
+            showToast(data.message || 'No fue posible generar la descripción automática.', 'error');
         }
     } catch (e) {
-        console.error('Error generando descripción:', e);
         showToast('Error de conexión con el asistente de redacción.', 'error');
     } finally {
         if (btnElement) {
@@ -1436,96 +1891,197 @@ async function generateAIDescription(btnElement) {
 }
 
 /* =========================================================
-   ASESOR
+   ADMINISTRACIÓN (CSRF EN TODAS LAS ACCIONES POST)
 ========================================================= */
 
-async function requestAdvisor(event) {
-    event.preventDefault();
+async function adminCambiarEstado(citaId, estado) {
     try {
-        const result = await postForm('contacto', {
-            name: document.getElementById('advisorName').value.trim(),
-            phone: document.getElementById('advisorPhone').value.trim(),
-            schedule: document.getElementById('advisorTime').value,
-            message: 'Solicitud de asesoría'
+        const response = await fetch(getApiUrl('admin/reservas/' + citaId + '/estado'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: 'estado=' + encodeURIComponent(estado)
         });
-        event.target.reset();
-        showToast(result.message, 'success');
-    } catch (error) {
-        showToast(error.message, 'error');
-    }
-}
-
-/* =========================================================
-   LEGAL — DEMO
-========================================================= */
-
-function demoLegal(event, title) {
-    event.preventDefault();
-    showToast(title + ' — sección informativa. Consulta los requisitos antes de formalizar.', 'info', 4500);
-}
-
-/* =========================================================
-   USUARIO ACTIVO — al cargar página
-========================================================= */
-
-window.addEventListener('DOMContentLoaded', function () {
-    const stored = window.INFONATEC_USER;
-
-    const navAuth     = document.getElementById('navAuthButtons');
-    const navUserArea = document.getElementById('navUserArea');
-
-    if (stored) {
-        try {
-            const data = stored;
-
-            // Ocultar botones de login/registro
-            if (navAuth) navAuth.style.display = 'none';
-
-            // Mostrar saludo + botón de cerrar sesión
-            if (navUserArea && data.name) {
-                navUserArea.style.display = 'flex';
-                navUserArea.innerHTML = `
-                    <span style="font-size:12px;letter-spacing:1px;opacity:.85;">
-                        Hola, <strong id="navUserName"></strong>
-                    </span>
-                    <button class="btn-outline" id="logoutBtn">Cerrar sesión</button>
-                `;
-                document.getElementById('navUserName').textContent = data.name.split(' ')[0];
-                document.getElementById('logoutBtn').addEventListener('click', function () {
-                    localStorage.removeItem('br_usuario');
-                    location.href = getApiUrl('auth/logout');
-                });
-            }
-
-        } catch (e) {
-            // Dato corrupto — limpiar y mostrar estado normal
-            localStorage.removeItem('br_usuario');
-            if (navAuth) navAuth.style.display = 'flex';
-            if (navUserArea) navUserArea.style.display = 'none';
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Reserva #' + citaId + ' actualizada a: ' + estado, 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo actualizar la reserva.', 'error');
         }
-
-    } else {
-        // Sin sesión: mostrar botones de auth normalmente
-        if (navAuth) navAuth.style.display = 'flex';
-        if (navUserArea) navUserArea.style.display = 'none';
+    } catch (error) {
+        showToast('Error de conexión al actualizar la reserva.', 'error');
     }
-});
+}
 
+async function adminConfirmarPago(transaccionId) {
+    try {
+        const response = await fetch(getApiUrl('admin/pagos/' + transaccionId + '/confirmar'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Pago confirmado correctamente. Propiedad liberada.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo confirmar el pago.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al confirmar el pago.', 'error');
+    }
+}
 
-// Check URL parameters to filter category automatically on load
-document.addEventListener('DOMContentLoaded', () => {
+async function adminRegistrarTour(event) {
+    event.preventDefault();
+    const form = event.target;
+    try {
+        const formData = new URLSearchParams();
+        formData.append('id_propiedad', form.id_propiedad.value);
+        formData.append('url_3d', form.url_3d.value);
+        formData.append('descripcion', form.descripcion.value);
+
+        const response = await fetch(getApiUrl('admin/eventos/tour'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: formData.toString()
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Tour registrado exitosamente.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo registrar el tour.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al registrar el tour.', 'error');
+    }
+}
+
+async function adminEliminarTour(paseoId) {
+    try {
+        const response = await fetch(getApiUrl('admin/eventos/tour/' + paseoId + '/eliminar'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Tour eliminado correctamente.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo eliminar el tour.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al eliminar el tour.', 'error');
+    }
+}
+
+async function adminCrearVehiculo(event) {
+    event.preventDefault();
+    const form = event.target;
+    try {
+        const formData = new URLSearchParams();
+        formData.append('placa', form.placa.value);
+        formData.append('tipo', form.tipo.value);
+        formData.append('marca', form.marca.value);
+        formData.append('modelo', form.modelo.value);
+        formData.append('capacidad', form.capacidad.value);
+        formData.append('estado', form.estado.value);
+        formData.append('observaciones', form.observaciones.value);
+
+        const response = await fetch(getApiUrl('admin/logistica/vehiculo'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: formData.toString()
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Vehículo registrado exitosamente.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo registrar el vehículo.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al registrar el vehículo.', 'error');
+    }
+}
+
+async function adminCambiarEstadoVehiculo(vehiculoId, estado) {
+    try {
+        const response = await fetch(getApiUrl('admin/logistica/vehiculo/' + vehiculoId + '/estado'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: 'estado=' + encodeURIComponent(estado)
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Vehículo actualizado correctamente.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo actualizar el vehículo.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al actualizar el vehículo.', 'error');
+    }
+}
+
+async function adminAsignarTransporte(event) {
+    event.preventDefault();
+    const form = event.target;
+    try {
+        const formData = new URLSearchParams();
+        formData.append('id_propiedad', form.id_propiedad.value);
+        formData.append('id_vehiculo', form.id_vehiculo.value);
+        formData.append('id_cita', form.id_cita ? form.id_cita.value : '');
+        formData.append('fecha_salida', form.fecha_salida ? form.fecha_salida.value.replace('T', ' ') : '');
+        formData.append('fecha_llegada', form.fecha_llegada ? form.fecha_llegada.value.replace('T', ' ') : '');
+        formData.append('estado', form.estado.value);
+        formData.append('observaciones', form.observaciones.value);
+
+        const response = await fetch(getApiUrl('admin/logistica/asignar'), {
+            method: 'POST',
+            headers: apiHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+            body: formData.toString()
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('Transporte asignado exitosamente.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+        } else {
+            showToast(data.message || 'No se pudo asignar el transporte.', 'error');
+        }
+    } catch (error) {
+        showToast('Error de conexión al asignar transporte.', 'error');
+    }
+}
+
+/* =========================================================
+   INICIALIZACIÓN PRINCIPAL AL CARGAR DOM
+========================================================= */
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Eliminar cualquier rastro heredado de localStorage de autenticación
+    localStorage.removeItem('br_usuario');
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
+    }
+
+    updateNetworkBanner();
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn && typeof conn.addEventListener === 'function') {
+        conn.addEventListener('change', updateNetworkBanner);
+    }
+
+    loadInitialFavorites();
+    initCatalogFilters();
+
+    // Si la URL incluye ?categoria= en Home, abrir catálogo filtrado
     const urlParams = new URLSearchParams(window.location.search);
-    const category = urlParams.get('categoria');
-    if (category) {
-        setTimeout(() => {
-            if (typeof filterCategory === 'function') {
-                filterCategory(category);
-            }
-            const propsSection = document.getElementById('propiedades');
-            if(propsSection) {
-                propsSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 600);
+    const categoryParam = urlParams.get('categoria');
+    if (categoryParam && document.getElementById('catalogView')) {
+        selectCategory(categoryParam);
+        const section = document.getElementById('adquirir');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
     }
 });
-

@@ -1,8 +1,7 @@
 <!-- =========================================================
      PANEL DE ADMINISTRACIÓN - GESTIÓN DE RESERVAS
-     Listado de todas las reservas (citas) con posibilidad
-     de cambiar el estado desde el panel.
      ========================================================= -->
+<div class="admin-shell">
 <section class="admin-hero">
     <div class="admin-hero-text">
         <p class="admin-kicker">Administración</p>
@@ -73,13 +72,13 @@
                                 <br>
                                 <small><?= htmlspecialchars((string) ($reserva['cliente_correo'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
                             </td>
-                            <td><?= htmlspecialchars((string) ($reserva['asesor'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) ($reserva['asesor'] ?? 'Por asignar'), ENT_QUOTES, 'UTF-8') ?></td>
                             <td>
                                 <span class="admin-badge admin-badge-<?= rawurlencode((string) ($reserva['estado'] ?? '')) ?>"><?= htmlspecialchars((string) ($reserva['estado'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
                             </td>
                             <td>
                                 <form class="admin-estado-form" data-cita-id="<?= (int) ($reserva['id_cita'] ?? 0) ?>">
-                                    <select class="admin-estado-select" name="estado" data-cita-id="<?= (int) ($reserva['id_cita'] ?? 0) ?>">
+                                    <select class="admin-estado-select" name="estado" aria-label="Estado de reserva #<?= (int) ($reserva['id_cita'] ?? 0) ?>" data-cita-id="<?= (int) ($reserva['id_cita'] ?? 0) ?>">
                                         <?php foreach (($estados_citas ?? []) as $estado): ?>
                                             <option value="<?= htmlspecialchars((string) ($estado['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" <?= ((string) ($reserva['estado'] ?? '')) === ((string) ($estado['nombre'] ?? '')) ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars((string) ($estado['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
@@ -96,3 +95,4 @@
         </div>
     <?php endif; ?>
 </section>
+</div>

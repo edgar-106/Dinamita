@@ -8,68 +8,60 @@ require_once __DIR__ . '/../config/ai_config.php';
 
 class AIController extends Controller {
 
+    private const CHAT_HISTORY_LIMIT = 12;
+
     /**
      * Endpoint para procesar mensajes del chat
      */
     public function chat(): void {
-        // Acepta JSON del cliente moderno y POST clásico para compatibilidad.
         $raw = file_get_contents('php://input');
-        $input = json_decode($raw, true);
+        $input = json_decode((string) $raw, true);
         if (!is_array($input)) {
             $input = !empty($_POST) ? $_POST : [];
         }
-        $userMessage = trim($input['message'] ?? '');
 
-        if (empty($userMessage)) {
+        Security::requireCsrf($input);
+
+        $userMessage = trim((string) ($input['message'] ?? ''));
+        if ($userMessage === '') {
             $this->json(['error' => 'Mensaje vacío'], 400);
-            return;
         }
 
-        // Obtener catálogo actual de propiedades
         $propiedadModel = new Propiedad();
         $properties = $propiedadModel->getAll();
 
-        // Memoria conversacional: se toma el historial reciente de la sesión,
-        // se agrega el mensaje actual y se consulta al motor de IA.
         $history = $this->getChatHistory();
         $history[] = ['role' => 'user', 'content' => $userMessage];
         $this->saveChatHistory($history);
 
-        // Primero usa Gemini si hay una clave disponible. Si la llamada falla,
-        // continúa con el motor local para no dejar el chat sin respuesta.
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
-        if (!empty($apiKey) && AI_PROVIDER !== 'local') {
+        if ($apiKey !== '' && AI_PROVIDER !== 'local') {
             $llmResponse = $this->callGeminiApi($userMessage, $properties, $apiKey, $history);
             if ($llmResponse !== null) {
-                // Se guardan ambos turnos (usuario + asistente) para el siguiente mensaje.
                 $this->saveChatHistory(array_merge($history, [
-                    ['role' => 'model', 'content' => $llmResponse]
+                    ['role' => 'model', 'content' => $llmResponse],
                 ]));
 
                 $this->json([
                     'status' => 'success',
                     'reply'  => $llmResponse,
-                    'engine' => 'gemini'
+                    'engine' => 'gemini',
                 ]);
-                return;
             }
         }
 
-        // El motor local responde con reglas basadas en el catálogo real y no
-        // requiere conexión externa ni consume cuotas de IA.
         $localResponse = $this->localExpertEngine($userMessage, $properties);
         $replyText = $localResponse['reply'];
 
-        // Se conserva el intercambio completo (usuario + asistente) en la sesión.
         $this->saveChatHistory(array_merge($history, [
-            ['role' => 'model', 'content' => $replyText]
+            ['role' => 'model', 'content' => $replyText],
         ]));
 
         $this->json([
-            'status' => 'success',
-            'reply'  => $replyText,
-            'engine' => 'local_expert',
-            'related' => $localResponse['related'] ?? []
+            'status'  => 'success',
+            'reply'   => $replyText,
+            'engine'  => 'local_expert',
+            'related' => $localResponse['related'] ?? [],
         ]);
     }
 
@@ -78,15 +70,16 @@ class AIController extends Controller {
      */
     public function streamChat(): void {
         $raw = file_get_contents('php://input');
-        $input = json_decode($raw, true);
+        $input = json_decode((string) $raw, true);
         if (!is_array($input)) {
             $input = !empty($_POST) ? $_POST : [];
         }
-        $userMessage = trim($input['message'] ?? '');
 
-        if (empty($userMessage)) {
+        Security::requireCsrf($input);
+
+        $userMessage = trim((string) ($input['message'] ?? ''));
+        if ($userMessage === '') {
             $this->json(['error' => 'Mensaje vacío'], 400);
-            return;
         }
 
         $propiedadModel = new Propiedad();
@@ -94,14 +87,13 @@ class AIController extends Controller {
 
         $history = $this->getChatHistory();
         $history[] = ['role' => 'user', 'content' => $userMessage];
-        $this->saveChatHistory($history);
 
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
         $reply = null;
         $engine = 'local_expert';
         $related = [];
 
-        if (!empty($apiKey) && AI_PROVIDER !== 'local') {
+        if ($apiKey !== '' && AI_PROVIDER !== 'local') {
             $reply = $this->callGeminiApi($userMessage, $properties, $apiKey, $history);
             if ($reply !== null) {
                 $engine = 'gemini';
@@ -114,48 +106,34 @@ class AIController extends Controller {
             $related = $localResponse['related'] ?? [];
         }
 
-        $this->saveChatHistory(array_merge($history, [
-            ['role' => 'model', 'content' => $reply],
-        ]));
+        $history[] = ['role' => 'model', 'content' => $reply];
+        $this->saveChatHistory($history);
 
-        // Emitir la respuesta completa en formato Server-Sent Events (SSE).
         header('Content-Type: text/event-stream');
         header('Cache-Control: no-cache');
         header('Connection: keep-alive');
-        while (ob_get_level() > 0) { ob_end_flush(); }
+        while (ob_get_level() > 0) {
+            ob_end_flush();
+        }
 
         echo "retry: 3000\n\n";
         echo "event: meta\n";
-        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related]) . "\n\n";
+        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related], JSON_UNESCAPED_UNICODE) . "\n\n";
         flush();
-        if (ob_get_level() > 0) { ob_flush(); }
 
-        $chunks = [];
-        $buffer = '';
-        $words = preg_split('/\s+/', trim($reply), -1, PREG_SPLIT_NO_EMPTY);
-        foreach ($words as $word) {
-            $buffer .= ($buffer === '' ? '' : ' ') . $word;
-            if (strlen($buffer) >= 3) {
-                $chunks[] = $buffer;
-                $buffer = '';
-            }
-        }
-        if ($buffer !== '') {
-            $chunks[] = $buffer;
-        }
+        // Dividir preservando espacios, saltos de línea y caracteres UTF-8.
+        $chunks = mb_str_split($reply, 8, 'UTF-8');
 
-        foreach ($chunks as $index => $chunk) {
+        foreach ($chunks as $chunk) {
             echo "event: token\n";
-            echo 'data: ' . json_encode(['token' => ($index > 0 ? ' ' : '') . $chunk]) . "\n\n";
+            echo 'data: ' . json_encode(['token' => $chunk], JSON_UNESCAPED_UNICODE) . "\n\n";
             flush();
-            if (ob_get_level() > 0) { ob_flush(); }
             usleep(12000);
         }
 
         echo "event: done\n";
-        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related]) . "\n\n";
+        echo 'data: ' . json_encode(['engine' => $engine, 'related' => $related], JSON_UNESCAPED_UNICODE) . "\n\n";
         flush();
-        if (ob_get_level() > 0) { ob_flush(); }
         exit;
     }
 
@@ -163,69 +141,76 @@ class AIController extends Controller {
      * Endpoint para redactar descripciones de inmuebles en Vender
      */
     public function generateDescription(): void {
-        // La estructura es intencionalmente tolerante: los campos faltantes no
-        // rompen la respuesta, pero una descripción será menos específica.
         $raw = file_get_contents('php://input');
-        $input = json_decode($raw, true);
+        $input = json_decode((string) $raw, true);
         if (!is_array($input)) {
             $input = !empty($_POST) ? $_POST : [];
         }
-        
-        $type      = trim($input['type'] ?? 'Propiedad');
-        $operation = trim($input['operation'] ?? 'Venta');
-        $title     = trim($input['title'] ?? '');
-        $price     = trim($input['price'] ?? '');
-        $location  = trim($input['location'] ?? '');
-        $city      = trim($input['city'] ?? '');
-        $state     = trim($input['state'] ?? '');
-        $rooms     = trim($input['bedrooms'] ?? '');
-        $baths     = trim($input['bathrooms'] ?? '');
-        $details   = trim($input['details'] ?? '');
 
-        // Se concentra la información proporcionada por el formulario antes de
-        // usarla tanto en Gemini como en la plantilla local.
-        $promptContext = "Tipo: {$type}, Operación: {$operation}, Título base: {$title}, Precio: {$price}, Ubicación: {$location}, {$city}, {$state}. Recámaras: {$rooms}, Baños: {$baths}. Amenidades extra: {$details}.";
+        Security::requireCsrf($input);
+
+        $type      = trim((string) ($input['type'] ?? 'Propiedad'));
+        $operation = trim((string) ($input['operation'] ?? 'Venta'));
+        $title     = trim((string) ($input['title'] ?? ''));
+        $price     = trim((string) ($input['price'] ?? ''));
+        $location  = trim((string) ($input['location'] ?? ''));
+        $city      = trim((string) ($input['city'] ?? ''));
+        $state     = trim((string) ($input['state'] ?? ''));
+        $rooms     = trim((string) ($input['bedrooms'] ?? ''));
+        $baths     = trim((string) ($input['bathrooms'] ?? ''));
+        $area      = trim((string) ($input['area'] ?? ''));
+        $details   = trim((string) ($input['details'] ?? ''));
+
+        $promptContext = "Tipo: {$type}, Operación: {$operation}, Título base: {$title}, Precio: {$price}, Ubicación: {$location}, {$city}, {$state}, Superficie: {$area} m², Recámaras: {$rooms}, Baños: {$baths}. Notas adicionales: {$details}.";
 
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
-        if (!empty($apiKey) && AI_PROVIDER !== 'local') {
-            $prompt = "Actúa como un experto copywriter inmobiliario mexicano. Redacta una descripción comercial muy atractiva, persuasiva y profesional para anunciar el siguiente inmueble en venta/renta:\n"
+        if ($apiKey !== '' && AI_PROVIDER !== 'local') {
+            $prompt = "Actúa como un experto copywriter inmobiliario mexicano. Redacta una descripción comercial atractiva, clara y veraz para anunciar el siguiente inmueble en {$operation}:\n"
                     . $promptContext . "\n"
-                    . "La descripción debe incluir:\n"
-                    . "1. Un título de impacto en una línea.\n"
-                    . "2. Un párrafo introductorio cautivador destacando la ubicación y estilo de vida.\n"
-                    . "3. Lista de amenidades y características clave con viñetas elegantes (•).\n"
-                    . "4. Un llamado a la acción invitando a agendar visita.\n"
-                    . "Sé directo y no añadas introducciones como 'aquí tienes tu descripción'.";
+                    . "Incluye:\n"
+                    . "1. Un título o frase de apertura de alto impacto.\n"
+                    . "2. Un párrafo descriptivo destacando la ubicación, distribución y estilo de vida.\n"
+                    . "3. Lista de características clave con viñetas (•).\n"
+                    . "4. Invitación breve a agendar visita.\n"
+                    . "Sé directo y no agregues preámbulos.";
 
             $llmResult = $this->callGeminiTextOnly($prompt, $apiKey);
             if (!empty($llmResult)) {
                 $this->json([
-                    'status' => 'success',
+                    'status'      => 'success',
                     'description' => $llmResult,
-                    'engine' => 'gemini'
+                    'engine'      => 'gemini',
                 ]);
-                return;
             }
         }
 
-        // Fallback local para redacción
-        $locStr = !empty($location) ? $location : 'zona privilegiada';
-        if (!empty($city)) $locStr .= ", {$city}";
-        
-        $desc = "¡Extraordinaria oportunidad de {$operation}! Presentamos esta magnífica propiedad ({$type}) ubicada en {$locStr}, diseñada para ofrecer máxima comodidad, plusvalía y estilo de vida.\n\n";
-        $desc .= "Cuenta con excelente iluminación natural, espacios optimizados y acabados de primera calidad pensados para tu bienestar y el de tu familia.\n\n";
+        $locParts = array_values(array_filter([$location, $city, $state], fn($v) => $v !== ''));
+        $locStr = !empty($locParts) ? implode(', ', $locParts) : 'zona privilegiada';
+        $typeLabel = ucfirst(strtolower($type !== '' ? $type : 'propiedad'));
+        $opLabel = strtolower($operation) === 'renta' ? 'renta' : 'venta';
+
+        $desc = ($title !== '' ? "{$title} — " : '') . "Excelente oportunidad en {$opLabel}. Presentamos este inmueble tipo {$typeLabel} ubicado en {$locStr}, diseñado para brindar confort, funcionalidad y alta plusvalía.\n\n";
+        $desc .= "Sus espacios ofrecen iluminación natural, distribución práctica y entorno seguro cercano a vialidades principales, comercios y servicios.\n\n";
         $desc .= "Características destacadas:\n";
-        if (!empty($rooms)) $desc .= "• {$rooms} amplias recámaras con excelente ventilación\n";
-        if (!empty($baths)) $desc .= "• {$baths} baños completos con diseño moderno\n";
-        if (!empty($details)) $desc .= "• " . str_replace("\n", "\n• ", $details) . "\n";
-        $desc .= "• Ubicación estratégica cerca de vías principales, centros de servicios y comercio\n";
-        $desc .= "• Seguridad y alta rentabilidad garantizada\n\n";
-        $desc .= "¡No dejes pasar esta oportunidad! Agenda una cita hoy mismo con uno de nuestros asesores certificados INFONATEC.";
+        if ($area !== '') {
+            $desc .= "• {$area} m² de superficie\n";
+        }
+        if ($rooms !== '' && strtolower($type) !== 'terreno') {
+            $desc .= "• {$rooms} habitaciones amplias y bien ventiladas\n";
+        }
+        if ($baths !== '' && strtolower($type) !== 'terreno') {
+            $desc .= "• {$baths} baños completos\n";
+        }
+        if ($details !== '') {
+            $desc .= "• " . str_replace("\n", "\n• ", $details) . "\n";
+        }
+        $desc .= "• Documentación verificable y acompañamiento asesor INFONATEC\n\n";
+        $desc .= "Agenda una visita o solicita más información directamente desde la ficha.";
 
         $this->json([
-            'status' => 'success',
+            'status'      => 'success',
             'description' => $desc,
-            'engine' => 'local_template'
+            'engine'      => 'local_template',
         ]);
     }
 
@@ -234,32 +219,17 @@ class AIController extends Controller {
      */
     public function status(): void {
         $apiKey = defined('AI_API_KEY') ? trim(AI_API_KEY) : '';
-        // "ready" significa que existe una respuesta posible; provider aclara
-        // si esa respuesta vendrá del proveedor externo o del motor local.
-        $hasApiKey = !empty($apiKey);
+        $hasApiKey = $apiKey !== '';
         $this->json([
-            'ready'    => true,
-            'provider' => $hasApiKey && AI_PROVIDER !== 'local' ? AI_PROVIDER : 'local_expert',
+            'ready'               => true,
+            'provider'            => $hasApiKey && AI_PROVIDER !== 'local' ? AI_PROVIDER : 'local_expert',
             'configured_provider' => AI_PROVIDER,
-            'model'    => AI_MODEL,
-            'has_key'  => $hasApiKey
+            'model'               => AI_MODEL,
+            'has_key'             => $hasApiKey,
         ]);
     }
 
-    /**
-     * Historial máximo de mensajes guardados por sesión (máx. 6 turnos).
-     */
-    private const CHAT_HISTORY_LIMIT = 12;
-
-    /**
-     * Obtiene el historial de conversación de la sesión actual.
-     * @return array Lista de ['role' => 'user'|'model', 'content' => string]
-     */
     private function getChatHistory(): array {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         $history = $_SESSION['ai_chat_history'] ?? [];
         if (!is_array($history)) {
             return [];
@@ -270,53 +240,38 @@ class AIController extends Controller {
             if (!is_array($message)) {
                 continue;
             }
-            $role = (isset($message['role']) && $message['role'] === 'assistant') ? 'model' : 'user';
-            $content = trim((string)($message['content'] ?? ''));
+            $role = in_array($message['role'] ?? '', ['assistant', 'model'], true) ? 'model' : 'user';
+            $content = trim((string) ($message['content'] ?? ''));
             if ($content === '') {
                 continue;
             }
             $clean[] = ['role' => $role, 'content' => $content];
         }
 
-        // Se conservan los últimos mensajes para no crecer ilimitadamente.
         return array_slice($clean, -self::CHAT_HISTORY_LIMIT);
     }
 
-    /**
-     * Persiste el historial de la conversación actual.
-     */
     private function saveChatHistory(array $history): void {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
         $_SESSION['ai_chat_history'] = array_slice($history, -self::CHAT_HISTORY_LIMIT);
     }
 
-    /**
-     * Llamada a Google Gemini API
-     */
     private function callGeminiApi(string $userMsg, array $properties, string $apiKey, array $history = []): ?string {
         $catalogSummary = "CATÁLOGO DE PROPIEDADES EN INFONATEC:\n";
         foreach ($properties as $p) {
-            $tour = !empty($p['virtualTour']) ? ' (Cuenta con Recorrido Virtual 3D)' : '';
+            $tour = !empty($p['virtualTour']['url']) ? ' (Cuenta con Recorrido Virtual 360°)' : '';
             $catalogSummary .= "- ID {$p['id']}: '{$p['title']}' ({$p['type_label']} en {$p['full_location']}) - {$p['operation_label']} - Precio: {$p['price']}{$tour}. Detalles: " . implode(', ', $p['details'] ?? []) . ".\n";
         }
 
         $systemInstruction = AI_SYSTEM_PROMPT . "\n\n" . $catalogSummary;
 
-        // Historial reciente convertido al formato de contenidos de Gemini.
         $contents = [];
         foreach ($history as $message) {
             $contents[] = [
                 'role'  => $message['role'],
-                'parts' => [
-                    ['text' => $message['content']]
-                ]
+                'parts' => [['text' => $message['content']]],
             ];
         }
 
-        // Gemini requiere que el primer turno tenga rol 'user' y que los roles
-        // se alternen; se normaliza el historial antes de enviarlo.
         $geminiContents = [];
         $lastRole = null;
         foreach ($contents as $content) {
@@ -328,61 +283,48 @@ class AIController extends Controller {
         }
 
         if (empty($geminiContents) || $geminiContents[0]['role'] !== 'user') {
-            $geminiContents = [
-                [
-                    'role'  => 'user',
-                    'parts' => [['text' => $userMsg]]
-                ]
-            ];
+            $geminiContents = [[
+                'role'  => 'user',
+                'parts' => [['text' => $userMsg]],
+            ]];
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . AI_MODEL . ":generateContent?key=" . urlencode($apiKey);
-
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . AI_MODEL . ':generateContent?key=' . urlencode($apiKey);
         $payload = [
             'system_instruction' => [
-                'parts' => [
-                    ['text' => $systemInstruction]
-                ]
+                'parts' => [['text' => $systemInstruction]],
             ],
             'contents' => $geminiContents,
             'generationConfig' => [
                 'temperature'     => 0.7,
-                'maxOutputTokens' => 380
-            ]
+                'maxOutputTokens' => 380,
+            ],
         ];
 
         return $this->executeCurlPost($url, $payload);
     }
 
-    /**
-     * Llamada simple de texto para Gemini
-     */
     private function callGeminiTextOnly(string $prompt, string $apiKey): ?string {
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . AI_MODEL . ":generateContent?key=" . urlencode($apiKey);
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . AI_MODEL . ':generateContent?key=' . urlencode($apiKey);
         $payload = [
-            'contents' => [
-                [
-                    'role' => 'user',
-                    'parts' => [['text' => $prompt]]
-                ]
-            ],
+            'contents' => [[
+                'role'  => 'user',
+                'parts' => [['text' => $prompt]],
+            ]],
             'generationConfig' => [
                 'temperature'     => 0.7,
-                'maxOutputTokens' => 450
-            ]
+                'maxOutputTokens' => 450,
+            ],
         ];
         return $this->executeCurlPost($url, $payload);
     }
 
-    /**
-     * Ejecutar petición cURL con timeout estricto
-     */
     private function executeCurlPost(string $url, array $payload): ?string {
-        // cURL puede no estar habilitado en PHP/XAMPP; devolver null activa el
-        // fallback local en lugar de producir un error fatal al visitante.
         if (!function_exists('curl_init')) {
             return null;
         }
+
+        $verifySsl = defined('APP_ENV') && APP_ENV === 'production';
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -390,7 +332,7 @@ class AIController extends Controller {
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_TIMEOUT, AI_TIMEOUT_SECONDS);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySsl);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -406,168 +348,126 @@ class AIController extends Controller {
         return null;
     }
 
-    /**
-     * Motor Experto Local: Responde inteligentemente sin consumir API ni retrasar la web
-     */
+    private function normalizeSearchText(string $text): string {
+        $lower = mb_strtolower($text, 'UTF-8');
+        return strtr($lower, [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+        ]);
+    }
+
     private function localExpertEngine(string $query, array $properties): array {
-        // Motor determinista de respaldo. Las palabras clave deben conservarse
-        // normalizadas a minúsculas y coincidir con los valores del catálogo.
-        $q = mb_strtolower($query, 'UTF-8');
-        $related = [];
+        $q = $this->normalizeSearchText($query);
 
-        // 0. Saludos
-        if (preg_match('/^(hola|hey|saludos|buenas|buenos dias|buenas tardes|buenas noches|good (morning|afternoon|evening))\b/', $q) && mb_strlen(trim($query)) <= 60) {
+        if (preg_match('/^(hola|hey|saludos|buenas|buenos dias|buenas tardes|buenas noches)\b/', $q) && mb_strlen(trim($query)) <= 60) {
             return [
-                'reply' => "¡Hola! 😊 ¡Qué gusto saludarte! Soy el asistente virtual de **INFONATEC**. Estoy aquí para ayudarte a encontrar el inmueble ideal o resolver dudas sobre compra, renta, recorridos virtuales o créditos.
-
-Cuéntame, ¿qué tienes en mente hoy? Por ejemplo: una casa en Monterrey, un terreno en Mérida, un departamento en renta en CDMX.",
-                'related' => []
+                'reply' => "¡Hola! 😊 Soy el asistente virtual de **INFONATEC**. Estoy aquí para ayudarte a encontrar el inmueble ideal o resolver dudas sobre compra, renta, recorridos 360° o créditos.\n\nCuéntame, ¿qué estás buscando hoy? Por ejemplo: casas en Monterrey, terrenos en Mérida o departamentos en CDMX.",
+                'related' => [],
             ];
         }
 
-        // 1. Agradecimientos
         if (str_contains($q, 'gracias') || str_contains($q, 'thank')) {
             return [
-                'reply' => "¡Con mucho gusto! 😊 Si necesitas algo más, aquí estoy. ¡Mucho éxito con tu búsqueda!",
-                'related' => []
+                'reply' => "¡Con mucho gusto! 😊 Si necesitas revisar alguna ficha o agendar una visita, aquí estoy para apoyarte.",
+                'related' => [],
             ];
         }
 
-        // 2. Recorrido 3D
-        if (str_contains($q, '3d') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
-            $tourProps = array_filter($properties, fn($p) => !empty($p['virtualTour']['url']));
+        if (str_contains($q, '3d') || str_contains($q, '360') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
             if (str_contains($q, 'industrial') || str_contains($q, 'terreno')) {
-                $tourProps = array_filter($tourProps, fn($p) => $p['type'] === 'terreno');
+                return [
+                    'reply' => "¡Sí! Contamos con **Recorrido Virtual 360° Industrial** (Querétaro y Apodaca), donde puedes explorar la vista aérea, plataforma nivelada, subestación eléctrica 115 kV, patio de maniobras y caseta de control, además de consultar una galería estática de bajo consumo.",
+                    'related' => [6, 10],
+                ];
             }
-            $reply = empty($tourProps) ? 'No hay recorridos interactivos disponibles para esa selección.' : "Puedes iniciar un recorrido interactivo desde estas fichas:\n";
-            foreach ($tourProps as $property) {
-                $reply .= "• **{$property['title']}** ({$property['type_label']}) — {$property['location']}\n";
-            }
-            return ['reply' => $reply, 'related' => array_values(array_column($tourProps, 'id'))];
-        }
-
-        // 3. Consulta de Créditos / Financiamiento
-        if (str_contains($q, 'credito') || str_contains($q, 'crédito') || str_contains($q, 'infonavit') || str_contains($q, 'banco') || str_contains($q, 'bancario') || str_contains($q, 'financiamiento')) {
+            $tourProps = array_values(array_filter($properties, fn($p) => !empty($p['virtualTour']['url'])));
+            $ids = array_map(fn($p) => (int) $p['id'], array_slice($tourProps, 0, 3));
             return [
-                'reply' => "En **INFONATEC** aceptamos diversas modalidades de pago:
-• Crédito Infonavit y Fovissste.
-• Créditos bancarios (BBVA, Santander, Banorte, Scotiabank).
-• Pago de contado o financiamiento directo sujeto a evaluación.
-
-Si quieres una asesoría personalizada sin costo, tienes el botón **'Solicitar Asesoría'** en la página principal.",
-                'related' => []
+                'reply' => "¡Sí! Contamos con recorridos virtuales 360° en **Residencia Las Cumbres** y en los **Terrenos Industriales**, incluyendo controles de zoom, flechas accesibles y galería estática alternativa.",
+                'related' => !empty($ids) ? $ids : [2, 6],
             ];
         }
 
-        // 4. Vender o Publicar
-        if (str_contains($q, 'vender') || str_contains($q, 'publicar') || str_contains($q, 'anunciar') || str_contains($q, 'comision') || str_contains($q, 'comisión')) {
+        if (str_contains($q, 'credito') || str_contains($q, 'infonavit') || str_contains($q, 'fovissste') || str_contains($q, 'banco') || str_contains($q, 'financiamiento')) {
             return [
-                'reply' => "Para vender o rentar tu propiedad con nosotros, visita la sección **Vender** en el menú superior. Contamos con un formulario guiado e inteligencia artificial para redactar el anuncio con máxima atracción para compradores.",
-                'related' => []
+                'reply' => "En **INFONATEC** trabajamos distintas opciones según el tipo de inmueble:\n• Compra residencial: Contado, transferencia SPEI, crédito bancario, INFONAVIT y FOVISSSTE.\n• Terrenos: Contado, crédito para terreno y esquemas de financiamiento.\n• Renta: Depósito en garantía, SPEI y póliza jurídica.\n\nPuedes abrir cualquier ficha sin registrarte para ver sus opciones específicas.",
+                'related' => [],
             ];
         }
 
-        // 5. Búsqueda por Ubicación
-        $locations = [
-            'monterrey' => ['Monterrey, NL', 'San Pedro, NL'],
-            'mérida'   => ['Mérida, YUC'],
-            'merida'    => ['Mérida, YUC'],
-            'yucatan'   => ['Mérida, YUC'],
-            'cdmx'      => ['CDMX'],
-            'mexico'    => ['CDMX'],
-            'polanco'   => ['CDMX'],
-            'cancun'    => ['Cancún'],
-            'cancún'    => ['Cancún'],
-            'san pedro' => ['San Pedro, NL']
+        if (str_contains($q, 'vender') || str_contains($q, 'publicar') || str_contains($q, 'anunciar')) {
+            return [
+                'reply' => "Para publicar tu inmueble, entra a **Vender** en el menú superior. Nuestro formulario en 4 pasos guarda tu borrador automáticamente, valida fotografías y te permite generar y aprobar una descripción comercial con IA.",
+                'related' => [],
+            ];
+        }
+
+        $locationTerms = [
+            'monterrey', 'san pedro', 'apodaca', 'nl', 'nuevo leon',
+            'merida', 'yucatan', 'queretaro', 'cancun',
+            'cdmx', 'ciudad de mexico', 'polanco', 'condesa', 'roma', 'santa fe', 'cuajimalpa', 'cuauhtemoc',
         ];
-
-        foreach ($locations as $cityKey => $matchedLocs) {
-            if (str_contains($q, $cityKey)) {
-                $matches = array_filter($properties, function($p) use ($matchedLocs) {
-                    foreach ($matchedLocs as $l) {
-                        if (str_contains($p['location'], $l) || str_contains($p['full_location'], $l)) return true;
-                    }
-                    return false;
+        foreach ($locationTerms as $term) {
+            if (str_contains($q, $term)) {
+                $matches = array_filter($properties, function ($p) use ($term) {
+                    $haystack = $this->normalizeSearchText(($p['location'] ?? '') . ' ' . ($p['full_location'] ?? '') . ' ' . ($p['title'] ?? ''));
+                    return str_contains($haystack, $term);
                 });
-
                 if (!empty($matches)) {
-                    $reply = "Encontramos las siguientes opciones disponibles en esa zona:
-";
+                    $reply = "Encontramos estas opciones disponibles en esa zona:\n";
                     $ids = [];
                     foreach ($matches as $m) {
                         $reply .= "• **{$m['title']}** ({$m['type_label']}): {$m['price']} — {$m['full_location']}\n";
-                        $ids[] = $m['id'];
+                        $ids[] = (int) $m['id'];
                     }
-                    $reply .= "\nHaz clic en 'Ver detalles' sobre cualquiera de ellas para conocer la información completa.";
-                    return ['reply' => $reply, 'related' => $ids];
+                    $reply .= "\nHaz clic en **Ver Ficha** para consultar galería, situación legal y agendar visita.";
+                    return ['reply' => $reply, 'related' => array_slice($ids, 0, 4)];
                 }
             }
         }
 
-        // 6. Búsqueda por tipo de propiedad
         if (str_contains($q, 'terreno') || str_contains($q, 'lote')) {
             $terrenos = array_filter($properties, fn($p) => $p['type'] === 'terreno');
-            $reply = "Tenemos excelentes terrenos y lotes residenciales:
-";
+            $reply = "Tenemos estas opciones en terrenos y lotes:\n";
             $ids = [];
             foreach ($terrenos as $t) {
-                $reply .= "• **{$t['title']}** en {$t['location']} por {$t['price']}
-";
-                $ids[] = $t['id'];
+                $reply .= "• **{$t['title']}** ({$t['location']}) — {$t['price']}\n";
+                $ids[] = (int) $t['id'];
             }
-            return ['reply' => $reply, 'related' => $ids];
+            return ['reply' => $reply, 'related' => array_slice($ids, 0, 4)];
         }
 
-        if (str_contains($q, 'casa') || str_contains($q, 'residencia')) {
+        if (str_contains($q, 'casa') || str_contains($q, 'residencia') || str_contains($q, 'villa')) {
             $casas = array_filter($properties, fn($p) => $p['type'] === 'casa');
-            $reply = "Aquí tienes algunas de nuestras mejores casas en catálogo:
-";
+            $reply = "Aquí tienes nuestras casas disponibles:\n";
             $ids = [];
             foreach ($casas as $c) {
-                $reply .= "• **{$c['title']}** ({$c['location']}) — {$c['price']}
-";
-                $ids[] = $c['id'];
+                $reply .= "• **{$c['title']}** ({$c['location']}) — {$c['price']}\n";
+                $ids[] = (int) $c['id'];
             }
-            $reply .= "
-¿Te gustaría ver alguna en específico o agendar un recorrido?";
-            return ['reply' => $reply, 'related' => $ids];
+            return ['reply' => $reply, 'related' => array_slice($ids, 0, 4)];
         }
 
-        if (str_contains($q, 'renta') || str_contains($q, 'rentar') || str_contains($q, 'departamento') || str_contains($q, 'penthouse')) {
+        if (str_contains($q, 'renta') || str_contains($q, 'rentar') || str_contains($q, 'departamento') || str_contains($q, 'loft') || str_contains($q, 'penthouse') || str_contains($q, 'estudio')) {
             $deptos = array_filter($properties, fn($p) => $p['operation'] === 'rentar' || $p['type'] === 'departamento');
-            $reply = "Tenemos opciones en renta y departamentos exclusivos:
-";
+            $reply = "Opciones en renta y departamentos disponibles:\n";
             $ids = [];
             foreach ($deptos as $d) {
-                $reply .= "• **{$d['title']}** ({$d['location']}) — {$d['price']}
-";
-                $ids[] = $d['id'];
+                $reply .= "• **{$d['title']}** ({$d['location']}) — {$d['price']}\n";
+                $ids[] = (int) $d['id'];
             }
-            return ['reply' => $reply, 'related' => $ids];
+            return ['reply' => $reply, 'related' => array_slice($ids, 0, 4)];
         }
 
-        // 9. Citas / Contacto
         if (str_contains($q, 'cita') || str_contains($q, 'contacto') || str_contains($q, 'horario') || str_contains($q, 'asesor')) {
             return [
-                'reply' => "¡Con gusto! Puedes agendar una cita directamente desde la ficha de cualquier propiedad seleccionando 'Agendar Cita', o mediante la sección 'Asesoría' en la página de inicio.",
-                'related' => []
+                'reply' => "Puedes agendar una cita directamente desde la ficha de cualquier inmueble con el botón **Agendar Cita** o solicitar atención en la sección **Asesor**, sin necesidad de registrarte previamente.",
+                'related' => [],
             ];
         }
 
-        // Respuesta cordial final: conversacional y abierta
         return [
-            'reply' => "¡Buena pregunta! 😊 Para poder darte la mejor respuesta, necesito entender un poco mejor lo que tienes en mente.
-
-¿Buscas una **compra** o una **renta**?, ¿en qué **zona** te gustaría y qué tipo de propiedad (**casa, departamento o terreno**) te interesa? Con esa información puedo orientarte hacia las opciones más cercanas.
-
-Mientras me cuentas un poco más, aquí tienes lo que puedo atender:
-• 🏡 Casas y departamentos en venta o renta.
-• 📐 Terrenos y lotes.
-• 🕶️ Recorridos virtuales 3D.
-• 💳 Créditos y financiamiento.
-
-¿Qué tipo de propiedad estás buscando hoy?",
-            'related' => []
+            'reply' => "Puedo ayudarte a encontrar el inmueble adecuado. Indícame si buscas **compra** o **renta**, la **ciudad/zona** y el tipo de propiedad (**casa, departamento o terreno**).\n\nTambién puedes explorar:\n• 🏡 Casas, departamentos y terrenos con galería completa.\n• 🕶️ Recorridos virtuales 360° y galería estática accesible.\n• 💳 Información legal y opciones de pago abiertas en cada ficha.",
+            'related' => [],
         ];
     }
 }

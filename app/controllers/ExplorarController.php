@@ -1,27 +1,43 @@
 <?php
 /**
- * Controlador para Explorar / Catálogo de Propiedades
+ * Controlador para Explorar / Catálogo Completo de Propiedades
  */
 
 class ExplorarController extends Controller {
 
     public function index(): void {
-        // Los filtros son opcionales para conservar una URL compartible como
-        // /explorar?tipo=casa&operacion=comprar.
-        $type = $_GET['tipo'] ?? null;
-        $operation = $_GET['operacion'] ?? null;
+        $allowedTypes = ['all', 'casa', 'departamento', 'terreno'];
+        $allowedOps   = ['all', 'comprar', 'rentar'];
+
+        $type = strtolower(trim((string) ($_GET['tipo'] ?? 'all')));
+        if (!in_array($type, $allowedTypes, true)) {
+            $type = 'all';
+        }
+
+        $operation = strtolower(trim((string) ($_GET['operacion'] ?? 'all')));
+        if (!in_array($operation, $allowedOps, true)) {
+            $operation = 'all';
+        }
+
+        $location = trim((string) ($_GET['ubicacion'] ?? ''));
+        $minPrice = is_numeric($_GET['min_precio'] ?? null) ? (string) $_GET['min_precio'] : '';
+        $maxPrice = is_numeric($_GET['max_precio'] ?? null) ? (string) $_GET['max_precio'] : '';
+        $onlyFavorites = ($_GET['favoritos'] ?? '') === '1';
 
         $propiedadModel = new Propiedad();
-        // El filtrado se mantiene en el modelo para que la vista sólo renderice.
         $properties = $propiedadModel->getAll();
 
         $this->renderView('explorar/index', [
             'pageTitle'        => 'Explorar Propiedades | INFONATEC',
             'properties'       => $properties,
             'activePage'       => 'explorar',
-            'currentType'      => in_array($type, ['casa', 'departamento', 'terreno'], true) ? $type : 'casa',
-            'currentOperation' => in_array($operation, ['comprar', 'rentar'], true) ? $operation : 'comprar',
-            'showSplash'       => false
+            'currentType'      => $type,
+            'currentOperation' => $operation,
+            'currentLocation'  => $location,
+            'currentMinPrice'  => $minPrice,
+            'currentMaxPrice'  => $maxPrice,
+            'onlyFavorites'    => $onlyFavorites,
+            'showSplash'       => false,
         ]);
     }
 }

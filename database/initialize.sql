@@ -36,14 +36,27 @@ CREATE TABLE IF NOT EXISTS asignacion_transporte (
     INDEX (id_vehiculo, fecha_salida, fecha_llegada)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS favorito (
+    id_usuario INT UNSIGNED NOT NULL,
+    id_propiedad INT UNSIGNED NOT NULL,
+    fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_usuario, id_propiedad),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS solicitud_contacto (
     id_solicitud INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     id_propiedad INT UNSIGNED DEFAULT NULL,
+    id_usuario INT UNSIGNED DEFAULT NULL,
+    tipo VARCHAR(30) NOT NULL DEFAULT 'INTERES',
     nombre VARCHAR(160) NOT NULL,
-    telefono VARCHAR(25) NOT NULL,
     correo VARCHAR(150) DEFAULT NULL,
+    telefono VARCHAR(30) NOT NULL,
+    horario_preferido VARCHAR(80) DEFAULT NULL,
     mensaje TEXT DEFAULT NULL,
-    horario VARCHAR(80) DEFAULT NULL,
+    estado VARCHAR(25) NOT NULL DEFAULT 'NUEVA',
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad)
+    FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

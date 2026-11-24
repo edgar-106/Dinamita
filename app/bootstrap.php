@@ -23,3 +23,6 @@ spl_autoload_register(static function (string $class): void {
         }
     }
 });
+
+// Cabeceras HTTP de seguridad para toda respuesta web o JSON.
+Security::setSecurityHeaders();

@@ -1,7 +1,7 @@
 <!-- =========================================================
      PANEL DE ADMINISTRACIÓN - LOGÍSTICA DE TRANSPORTE
-     Gestión de vehículos y asignaciones de traslado.
      ========================================================= -->
+<div class="admin-shell">
 <section class="admin-hero">
     <div class="admin-hero-text">
         <p class="admin-kicker">Administración</p>
@@ -66,7 +66,7 @@
                             </td>
                             <td>
                                 <form class="admin-estado-form" data-vehiculo-id="<?= (int) ($vehiculo['id_vehiculo'] ?? 0) ?>">
-                                    <select class="admin-estado-select" name="estado" data-vehiculo-id="<?= (int) ($vehiculo['id_vehiculo'] ?? 0) ?>">
+                                    <select class="admin-estado-select" name="estado" aria-label="Estado vehículo <?= htmlspecialchars((string) ($vehiculo['placa'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" data-vehiculo-id="<?= (int) ($vehiculo['id_vehiculo'] ?? 0) ?>">
                                         <option value="DISPONIBLE" <?= ((string) ($vehiculo['estado'] ?? '')) === 'DISPONIBLE' ? 'selected' : '' ?>>DISPONIBLE</option>
                                         <option value="EN_USO" <?= ((string) ($vehiculo['estado'] ?? '')) === 'EN_USO' ? 'selected' : '' ?>>EN_USO</option>
                                         <option value="MANTENIMIENTO" <?= ((string) ($vehiculo['estado'] ?? '')) === 'MANTENIMIENTO' ? 'selected' : '' ?>>MANTENIMIENTO</option>
@@ -97,6 +97,8 @@
                 <select id="vehTipo" name="tipo" required>
                     <option value="AUTO">AUTO</option>
                     <option value="VAN">VAN</option>
+                    <option value="SUV">SUV</option>
+                    <option value="SEDAN">SEDAN</option>
                     <option value="CAMION">CAMION</option>
                     <option value="TRACTOR">TRACTOR</option>
                 </select>
@@ -192,3 +194,4 @@
         <button type="submit" class="admin-btn-cambiar" style="margin-top:16px;">Asignar transporte</button>
     </form>
 </section>
+</div>

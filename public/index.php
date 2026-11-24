@@ -4,7 +4,7 @@
  * INFONATEC Inmobiliaria
  */
 
-// 1. Carga centralizada de configuración y clases MVC
+// 1. Carga centralizada de configuración, seguridad y clases MVC
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 
 // 2. Inicialización del Enrutador
@@ -23,6 +23,11 @@ $router->get('/tour/industrial', 'AppController@tourIndustrial');
 // --- Rutas de API y Datos ---
 $router->get('/api/propiedades', 'ApiController@properties');
 $router->get('/api/propiedades/{id}', 'ApiController@property');
+$router->post('/api/citas', 'ApiController@createAppointment');
+$router->post('/api/contacto', 'ApiController@createContact');
+$router->get('/api/favoritos', 'ApiController@favorites');
+$router->post('/api/favoritos/toggle', 'ApiController@toggleFavorite');
+$router->post('/api/favoritos/sync', 'ApiController@syncFavorites');
 
 // --- Rutas de Inteligencia Artificial ---
 $router->post('/api/ai/chat', 'ApiController@chat');
@@ -33,6 +38,7 @@ $router->get('/api/ai/status', 'ApiController@status');
 // --- Rutas de Autenticación ---
 $router->post('/auth/login', 'AuthController@login');
 $router->post('/auth/register', 'AuthController@register');
+$router->post('/auth/logout', 'AuthController@logout');
 $router->get('/auth/logout', 'AuthController@logout');
 $router->post('/contacto', 'ContactController@interest');
 $router->post('/citas', 'ContactController@appointment');

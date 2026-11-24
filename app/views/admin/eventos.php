@@ -1,8 +1,7 @@
 <!-- =========================================================
      PANEL DE ADMINISTRACIÓN - EVENTOS Y RECORRIDOS
-     Gestión de atracciones (recorridos virtuales 3D) y coordinación
-     de tours / actividades inmobiliarias.
      ========================================================= -->
+<div class="admin-shell">
 <section class="admin-hero">
     <div class="admin-hero-text">
         <p class="admin-kicker">Administración</p>
@@ -42,7 +41,7 @@
                         <th>ID</th>
                         <th>Propiedad</th>
                         <th>Ubicación</th>
-                        <th>Tour 3D (URL)</th>
+                        <th>Tour 3D (Ruta/URL)</th>
                         <th>Descripción</th>
                         <th>Fecha</th>
                         <th>Acción</th>
@@ -70,7 +69,7 @@
 
 <section class="admin-panel">
     <div class="admin-panel-header">
-        <h2>Registrar nuevo recorrido 3D (atracción)</h2>
+        <h2>Registrar o actualizar recorrido 3D</h2>
     </div>
     <form class="admin-form" onsubmit="adminRegistrarTour(event)">
         <div class="admin-form-grid">
@@ -83,8 +82,8 @@
                 </select>
             </div>
             <div class="form-group full">
-                <label for="tourUrl">URL del recorrido 3D / Tour</label>
-                <input type="text" inputmode="url" id="tourUrl" name="url_3d" placeholder="tour/industrial o https://..." required>
+                <label for="tourUrl">Ruta local o URL del recorrido 3D</label>
+                <input type="text" id="tourUrl" name="url_3d" placeholder="tour, tour/industrial o https://..." required>
             </div>
             <div class="form-group full">
                 <label for="tourDescripcion">Descripción del recorrido</label>
@@ -94,3 +93,4 @@
         <button type="submit" class="admin-btn-cambiar" style="margin-top:16px;">Registrar tour</button>
     </form>
 </section>
+</div>

@@ -1,3 +1,6 @@
+.env
 push.bat
 /.sessions/
-/public/uploads/
+/public/uploads/propiedades/*
+!/public/uploads/propiedades/.htaccess
+!/public/uploads/propiedades/.gitkeep

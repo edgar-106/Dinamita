@@ -1,0 +1,17 @@
+# =========================================================
+# Protección de archivos internos y configuración - INFONATEC
+# =========================================================
+
+Options -Indexes
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloquear acceso directo por HTTP a código fuente, esquemas y archivos de configuración
+    RewriteRule ^(app|database|scripts|legacy)(/.*)?$ - [F,L]
+    RewriteRule ^(composer\.json|README\.md|\.env.*|\.gitignore)$ - [F,L]
+</IfModule>

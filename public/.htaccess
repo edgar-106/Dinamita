@@ -2,6 +2,9 @@
 # Reglas de Enrutamiento y Reescritura MVC - INFONATEC
 # =========================================================
 
+# Evita que mod_dir redirija /tour hacia /tour/?url=tour por existir la carpeta public/tour/
+DirectorySlash Off
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 

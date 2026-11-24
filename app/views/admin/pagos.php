@@ -1,8 +1,7 @@
 <!-- =========================================================
      PANEL DE ADMINISTRACIÓN - VALIDACIÓN DE PAGOS
-     Listado de transacciones/pagos registrados con comprobante
-     y acción de confirmación administrativa.
      ========================================================= -->
+<div class="admin-shell">
 <section class="admin-hero">
     <div class="admin-hero-text">
         <p class="admin-kicker">Administración</p>
@@ -82,3 +81,4 @@
         </div>
     <?php endif; ?>
 </section>
+</div>
