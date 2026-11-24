@@ -85,6 +85,12 @@ class ContactController extends Controller {
 
         try {
             $db->beginTransaction();
+            $available = $db->prepare("SELECT p.id_propiedad FROM propiedad p JOIN estado_propiedad e ON e.id_estado=p.id_estado
+                WHERE p.id_propiedad=? AND p.fecha_retiro IS NULL AND e.nombre='DISPONIBLE' FOR UPDATE");
+            $available->execute([$propertyId]);
+            if (!$available->fetchColumn()) {
+                throw new RuntimeException('La propiedad ya no está disponible.');
+            }
             $stmt = $db->prepare(
                 "INSERT INTO cita (id_usuario, id_propiedad, id_estado_cita, fecha, hora, medio_contacto)
                  SELECT ?, ?, id_estado_cita, ?, ?, ? FROM estado_cita WHERE nombre = 'PENDIENTE'"

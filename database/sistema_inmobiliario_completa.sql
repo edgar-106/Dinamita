@@ -193,6 +193,7 @@ DROP TABLE IF EXISTS `propiedad`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `propiedad` (
+  `fecha_retiro` datetime DEFAULT NULL,
   `id_propiedad` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Identificador único de la propiedad.',
   `id_propietario` int(10) unsigned NOT NULL COMMENT 'Usuario propietario de la propiedad; permite saber quién es el dueño registrado.',
   `id_categoria` int(10) unsigned NOT NULL COMMENT 'Categoría a la que pertenece la propiedad.',

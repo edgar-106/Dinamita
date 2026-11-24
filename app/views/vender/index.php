@@ -486,7 +486,7 @@
                 <div class="form-grid">
                     <div class="form-group full">
                         <label for="ownerName">Nombre completo</label>
-                        <input type="text" id="ownerName" placeholder="Tu nombre y apellidos" required>
+                        <input type="text" id="ownerName" placeholder="Tu nombre y apellidos" readonly required>
                         <span class="field-error" id="err-ownerName" role="alert"></span>
                     </div>
                     <div class="form-group">
@@ -496,7 +496,8 @@
                     </div>
                     <div class="form-group">
                         <label for="ownerEmail">Correo electrónico</label>
-                        <input type="email" id="ownerEmail" placeholder="correo@ejemplo.com" required>
+                        <input type="email" id="ownerEmail" placeholder="correo@ejemplo.com" readonly required>
+                        <p>El anuncio quedará vinculado a la cuenta con la que iniciaste sesión.</p>
                         <span class="field-error" id="err-ownerEmail" role="alert"></span>
                     </div>
                 </div>
@@ -524,6 +525,7 @@
                     </p>
                     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
                         <a href="<?= BASE_URL ?>explorar" class="btn-huge" style="text-decoration:none;background:#c9a86a;color:#111827;">Ver en Explorar</a>
+                        <a href="<?= BASE_URL ?>mis-propiedades" class="btn-huge" style="text-decoration:none;background:#172033;color:white;">Mis propiedades</a>
                         <a href="<?= BASE_URL ?>" class="btn-huge" style="text-decoration:none;background:#172033;color:white;">Volver al Inicio</a>
                     </div>
                 </div>
@@ -535,7 +537,7 @@
 </div>
 
 <script>
-const VENDER_DRAFT_KEY = 'infonatec_vender_draft_v1';
+const VENDER_DRAFT_KEY = 'infonatec_vender_draft_v2_' + (window.INFONATEC_USER ? window.INFONATEC_USER.id : 'invitado');
 const MAX_UPLOAD_PHOTOS = 10;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -556,6 +558,11 @@ const VENDER_FIELD_IDS = [
 ];
 
 function startPublishing() {
+    if (!window.INFONATEC_USER) {
+        showToast('Inicia sesión o crea una cuenta para guardar y administrar tus publicaciones.', 'info');
+        openModal('loginModal');
+        return;
+    }
     document.getElementById('venderHero').style.display = 'none';
     document.getElementById('formPanel').style.display = 'block';
     prefillOwnerFromSession();
@@ -568,9 +575,9 @@ function prefillOwnerFromSession() {
     const nameEl = document.getElementById('ownerName');
     const phoneEl = document.getElementById('ownerPhone');
     const emailEl = document.getElementById('ownerEmail');
-    if (nameEl && !nameEl.value) nameEl.value = u.name || '';
+    if (nameEl) nameEl.value = [u.name, u.last].filter(Boolean).join(' ');
     if (phoneEl && !phoneEl.value) phoneEl.value = u.phone || '';
-    if (emailEl && !emailEl.value) emailEl.value = u.email || '';
+    if (emailEl) emailEl.value = u.email || '';
 }
 
 function selectType(type) {
@@ -1128,6 +1135,11 @@ function renderPublishSummary() {
 }
 
 async function submitPublishForm() {
+    if (!window.INFONATEC_USER) {
+        openModal('loginModal');
+        return;
+    }
+    prefillOwnerFromSession();
     const formErr = document.getElementById('publishFormError');
     if (formErr) formErr.textContent = '';
 

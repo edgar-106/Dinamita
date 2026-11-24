@@ -9,6 +9,7 @@ if (!empty($currentUser['id'])) {
     $safeUser = [
         'id'       => (int) $currentUser['id'],
         'name'     => (string) ($currentUser['name'] ?? ''),
+        'last'     => (string) ($currentUser['last'] ?? ''),
         'email'    => (string) ($currentUser['email'] ?? ''),
         'phone'    => (string) ($currentUser['phone'] ?? ''),
         'is_admin' => !empty($currentUser['is_admin']),
@@ -66,12 +67,12 @@ if (!empty($currentUser['id'])) {
     <script>
         window.APP_BASE_URL = <?= json_encode(BASE_URL, JSON_UNESCAPED_SLASHES) ?>;
         window.CSRF_TOKEN = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES) ?>;
-        window.INFONATEC_USER = <?= json_encode($safeUser, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+        window.INFONATEC_USER = <?= json_encode($safeUser, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         window.INFONATEC_FAVORITES = <?= json_encode($userFavoriteIds) ?>;
     </script>
 
     <!-- CSS Principal -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.1">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.2">
 </head>
 
 <body class="page-<?= htmlspecialchars($activePage ?? 'public', ENT_QUOTES, 'UTF-8') ?>">
@@ -132,6 +133,7 @@ if (!empty($currentUser['id'])) {
     <button type="button" class="mobile-menu-close" id="mobileMenuClose" aria-label="Cerrar menú">×</button>
     <a href="<?= BASE_URL ?>explorar">Explorar</a>
     <a href="<?= BASE_URL ?>vender">Vender</a>
+    <?php if ($safeUser): ?><a href="<?= BASE_URL ?>mis-propiedades">Mis propiedades</a><?php endif; ?>
     <a href="<?= BASE_URL ?>#asesor">Asesor</a>
     <a href="<?= BASE_URL ?>#legal">Legal</a>
     <?php if (!empty($adminNavUser)): ?>
@@ -165,6 +167,7 @@ if (!empty($currentUser['id'])) {
     <ul class="nav-links" role="list">
         <li><a href="<?= BASE_URL ?>explorar" class="<?= ($activePage ?? '') === 'explorar' ? 'nav-link-active' : '' ?>">Explorar</a></li>
         <li><a href="<?= BASE_URL ?>vender" class="<?= ($activePage ?? '') === 'vender' ? 'nav-link-active' : '' ?>">Vender</a></li>
+        <?php if ($safeUser): ?><li><a href="<?= BASE_URL ?>mis-propiedades" class="<?= ($activePage ?? '') === 'mis-propiedades' ? 'nav-link-active' : '' ?>">Mis propiedades</a></li><?php endif; ?>
         <li><a href="<?= BASE_URL ?>#asesor">Asesor</a></li>
         <li><a href="<?= BASE_URL ?>#legal">Legal</a></li>
         <?php if (!empty($adminNavUser)): ?>

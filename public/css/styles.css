@@ -3852,3 +3852,27 @@ summary:focus-visible {
         scroll-behavior: auto !important;
     }
 }
+/* Cuenta y administración de publicaciones personales. */
+.owner-page { max-width:1180px; margin:0 auto; padding:130px 24px 70px; min-height:70vh; color:#172033; }
+.owner-page h1 { font-size:clamp(30px,4vw,46px); margin:12px 0; }
+.owner-page p { line-height:1.7; }
+.owner-heading { display:flex; justify-content:space-between; align-items:center; gap:24px; margin-bottom:28px; flex-wrap:wrap; }
+.owner-eyebrow { color:#805b26; font-size:13px; font-weight:700; letter-spacing:.07em; }
+.owner-notice,.owner-empty { padding:24px; margin:24px 0; background:#ffffff; border:1px solid #617087; border-radius:16px; }
+.owner-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr)); gap:24px; }
+.owner-card { background:#ffffff; border:1px solid #42516a; border-radius:16px; overflow:hidden; }
+.owner-card>img { width:100%; height:215px; object-fit:cover; }
+.owner-card-body { padding:22px; }
+.owner-card h2 { font-size:23px; margin:8px 0; overflow-wrap:anywhere; }
+.owner-price { font-size:22px; font-weight:700; }
+.owner-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.owner-actions form { margin:0; }
+.owner-page .btn-primary,.owner-page .btn-outline { display:inline-flex; justify-content:center; align-items:center; text-decoration:none; padding:12px 18px; min-height:44px; border-radius:8px; cursor:pointer; font-size:15px; }
+.owner-page .btn-primary { background:#d6b77e; color:#111827; border:1px solid #d6b77e; font-weight:700; }
+.owner-page .btn-outline { background:transparent; color:#172033; border:1px solid #a8b5c7; }
+.owner-edit { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; background:#ffffff; padding:28px; border-radius:16px; margin-top:28px; }
+.owner-edit label { display:flex; flex-direction:column; gap:10px; color:#172033; }
+.owner-edit input,.owner-edit select,.owner-edit textarea { width:100%; box-sizing:border-box; background:#ffffff; color:#172033; border:1px solid #8b9bb1; border-radius:8px; padding:13px; font:inherit; }
+.owner-wide { grid-column:1/-1; }
+.owner-page :focus-visible { outline:3px solid #f2ca79; outline-offset:4px; }
+@media(max-width:600px) { .owner-page { padding:110px 16px 40px; } .owner-edit { grid-template-columns:1fr; padding:20px; } }

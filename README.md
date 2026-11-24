@@ -262,3 +262,18 @@ Registradas en [`public/index.php`](public/index.php):
 - **Error `403` (`csrf_invalid`) en formularios o peticiones POST:** Asegúrate de abrir el sitio siempre bajo el mismo host (`localhost` o `127.0.0.1` sin mezclar ambos) para que la cookie de sesión y el token CSRF coincidan; si la sesión expiró (30 minutos de inactividad), recarga la página.
 - **Caracteres o acentos corruptos en el catálogo:** Reimporta `database/sistema_inmobiliario_seed.sql` indicando `--default-character-set=utf8mb4`.
 - **Error al subir fotografías en `/vender`:** Confirma que `public/uploads/propiedades/` tenga permisos de escritura, que cada imagen sea `JPG`, `PNG` o `WEBP` de máximo `5 MB` (hasta 10 por propiedad) y revisa `upload_max_filesize` / `post_max_size` en `php.ini`.
+# Mis propiedades (24 de noviembre de 2026)
+
+Las publicaciones nuevas requieren iniciar sesión o registrarse. El propietario se toma de la sesión; cambiar un correo en la petición no permite publicar a nombre de otra cuenta. Después de ingresar, los clientes llegan a **Mis propiedades** (si están publicando, permanecen en Vender). El menú incluye el acceso en escritorio y móvil.
+
+En **Mis propiedades** se consultan todas las publicaciones propias, incluidas las retiradas y las vendidas. Se pueden editar los datos del anuncio; las fotografías y recorridos se conservan. Retirar oculta el anuncio del catálogo sin borrar fotografías, citas, pagos ni el historial. No se permiten cambios cuando hay una transacción no cancelada o el anuncio dejó de estar disponible.
+
+Para actualizar una base existente, respaldarla y ejecutar **una sola vez** `database/migrations/20261124_mis_propiedades.sql`. Las instalaciones nuevas que importen el esquema o el SQL completo actualizado ya incluyen `fecha_retiro` y no deben ejecutar esa migración.
+
+Los propietarios que ya tenían cuenta conservan sus anuncios porque se mantiene `id_propietario`. Para publicaciones antiguas realizadas sin contraseña conocida, administración debe verificar primero la identidad del solicitante. Desde el servidor puede habilitar el acceso a la cuenta existente con:
+
+```powershell
+C:\xampp\php\php.exe scripts/habilitar_propietario.php --identidad-verificada correo-del-propietario@ejemplo.com
+```
+
+El comando genera una contraseña nueva y la muestra solo en la consola local, para entregarla por un canal privado. No cambia la titularidad, no permite recuperar administradores y no debe ejecutarse solo porque alguien conozca un correo. No se implementa recuperación automática por correo porque el proyecto no tiene un servicio de correo configurado.

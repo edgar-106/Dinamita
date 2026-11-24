@@ -17,6 +17,10 @@ $router->get('/explorar', 'ExplorarController@index');
 $router->get('/vender', 'AppController@sell');
 $router->get('/legal', 'AppController@legal');
 $router->post('/vender/publicar', 'AppController@publish');
+$router->get('/mis-propiedades', 'PublicacionesController@index');
+$router->get('/mis-propiedades/{id}/editar', 'PublicacionesController@edit');
+$router->post('/mis-propiedades/{id}/editar', 'PublicacionesController@update');
+$router->post('/mis-propiedades/{id}/retirar', 'PublicacionesController@withdraw');
 $router->get('/tour', 'AppController@tour');
 $router->get('/tour/industrial', 'AppController@tourIndustrial');
 

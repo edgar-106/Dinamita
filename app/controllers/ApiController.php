@@ -101,7 +101,8 @@ class ApiController extends AIController {
         }
 
         try {
-            $propCheck = $db->prepare('SELECT titulo FROM propiedad WHERE id_propiedad = ? LIMIT 1');
+            $propCheck = $db->prepare("SELECT p.titulo FROM propiedad p JOIN estado_propiedad e ON e.id_estado=p.id_estado
+                WHERE p.id_propiedad = ? AND p.fecha_retiro IS NULL AND e.nombre='DISPONIBLE' LIMIT 1");
             $propCheck->execute([$propertyId]);
             $propTitle = $propCheck->fetchColumn();
             if (!$propTitle) {

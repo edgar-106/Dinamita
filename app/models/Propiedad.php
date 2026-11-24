@@ -143,7 +143,7 @@ class Propiedad extends Model {
                     FROM propiedad p
                     INNER JOIN categoria c ON c.id_categoria = p.id_categoria
                     INNER JOIN estado_propiedad e ON e.id_estado = p.id_estado
-                    WHERE e.nombre = 'DISPONIBLE'
+                    WHERE e.nombre = 'DISPONIBLE' AND p.fecha_retiro IS NULL
                     ORDER BY p.fecha_publicacion DESC, p.id_propiedad DESC"
                 );
                 $rows = $stmt->fetchAll();
@@ -155,6 +155,7 @@ class Propiedad extends Model {
                         $rows
                     );
                 }
+                return [];
             } catch (Exception $e) {
                 error_log('Error consultando propiedades: ' . $e->getMessage());
             }
@@ -514,6 +515,10 @@ class Propiedad extends Model {
      * almacenamiento real de fotografías en public/uploads/propiedades/.
      */
     public function create(array $data, array $files = []): array {
+        $owner = Usuario::current();
+        if (empty($owner['id'])) {
+            return ['success' => false, 'message' => 'Inicia sesión o crea una cuenta para publicar.'];
+        }
         if ($this->db === null) {
             return ['success' => false, 'message' => 'La base de datos no está disponible.'];
         }
@@ -530,9 +535,9 @@ class Propiedad extends Model {
         $parkingRaw  = trim((string) ($data['parking'] ?? ''));
         $landUse     = trim((string) ($data['land_use'] ?? ''));
         $services    = trim((string) ($data['services'] ?? ''));
-        $ownerName   = trim((string) ($data['owner_name'] ?? ''));
-        $ownerPhone  = trim((string) ($data['owner_phone'] ?? ''));
-        $ownerEmail  = strtolower(trim((string) ($data['owner_email'] ?? '')));
+        $ownerName   = trim((string) ($owner['name'] ?? '') . ' ' . (string) ($owner['last'] ?? ''));
+        $ownerPhone  = trim((string) ($data['owner_phone'] ?? ($owner['phone'] ?? '')));
+        $ownerEmail  = strtolower(trim((string) ($owner['email'] ?? '')));
         $aiGenerated = (string) ($data['ai_generated'] ?? '0') === '1';
         $aiApproved  = (string) ($data['ai_approved'] ?? '0') === '1';
 
@@ -622,33 +627,12 @@ class Propiedad extends Model {
                 $this->db->beginTransaction();
             }
 
-            $ownerQuery = $this->db->prepare('SELECT id_usuario FROM usuario WHERE correo = ? LIMIT 1');
-            $ownerQuery->execute([$ownerEmail]);
-            $ownerId = $ownerQuery->fetchColumn();
-
-            if (!$ownerId) {
-                $nameParts = preg_split('/\s+/', $ownerName, 2);
-                $usernameBase = strtolower((string) preg_replace('/[^a-z0-9]/', '', (string) strstr($ownerEmail, '@', true)));
-                $username = substr($usernameBase ?: 'propietario', 0, 52) . '_' . substr(bin2hex(random_bytes(4)), 0, 7);
-                $ownerInsert = $this->db->prepare(
-                    'INSERT INTO usuario (nombre, apellido_paterno, correo, telefono, usuario, contrasena) VALUES (?, ?, ?, ?, ?, ?)'
-                );
-                $ownerInsert->execute([
-                    $nameParts[0],
-                    $nameParts[1] ?? 'Sin apellido',
-                    $ownerEmail,
-                    $ownerPhone,
-                    $username,
-                    password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
-                ]);
-                $ownerId = (int) $this->db->lastInsertId();
-
-                $rolStmt = $this->db->query("SELECT id_rol FROM rol WHERE nombre = 'CLIENTE' LIMIT 1");
-                $clienteRolId = $rolStmt ? $rolStmt->fetchColumn() : false;
-                if ($clienteRolId) {
-                    $urStmt = $this->db->prepare('INSERT IGNORE INTO usuario_rol (id_usuario, id_rol) VALUES (?, ?)');
-                    $urStmt->execute([$ownerId, (int) $clienteRolId]);
-                }
+            // La identidad procede exclusivamente de la sesión autenticada.
+            $ownerId = (int) $owner['id'];
+            $ownerCheck = $this->db->prepare('SELECT id_usuario FROM usuario WHERE id_usuario = ? AND activo = 1');
+            $ownerCheck->execute([$ownerId]);
+            if (!$ownerCheck->fetchColumn()) {
+                throw new RuntimeException('La cuenta no está activa.');
             }
 
             $categoryQuery = $this->db->prepare('SELECT id_categoria FROM categoria WHERE nombre = ? LIMIT 1');

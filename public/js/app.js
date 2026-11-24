@@ -1430,7 +1430,8 @@ async function register(event) {
         showToast('¡Cuenta creada con éxito! Tus favoritos se sincronizaron.', 'success', 3000);
 
         setTimeout(function () {
-            location.reload();
+            if (window.location.pathname.replace(/\/$/, '').endsWith('/vender')) location.reload();
+            else window.location.href = getApiUrl('mis-propiedades');
         }, 900);
     } catch (error) {
         showToast('Error de conexión al registrar la cuenta.', 'error');
@@ -1474,7 +1475,8 @@ async function login(event) {
                 if (user.is_admin) {
                     window.location.href = getApiUrl('admin');
                 } else {
-                    location.reload();
+                    if (window.location.pathname.replace(/\/$/, '').endsWith('/vender')) location.reload();
+                    else window.location.href = getApiUrl('mis-propiedades');
                 }
             }, 800);
             return;

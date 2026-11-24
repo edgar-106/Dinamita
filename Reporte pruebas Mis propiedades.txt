@@ -1,0 +1,42 @@
+INFONATEC - MIS PROPIEDADES
+Fecha: 24 de noviembre de 2026
+
+IMPLEMENTACION
+- Publicar exige una cuenta autenticada. El propietario procede de la sesión.
+- Cada cuenta ve sus anuncios actuales y retirados en /mis-propiedades.
+- Edición de título, ubicación, operación, precio, superficie, descripción,
+  habitaciones y baños. Las fotos y los recorridos existentes se conservan.
+- Retiro del catálogo mediante fecha_retiro; no se borran datos relacionados.
+- Autorización por propietario y protección CSRF en cada cambio.
+- Se bloquean cambios sobre anuncios retirados, no disponibles o con una
+  transacción no cancelada. Las propiedades retiradas no admiten nuevas citas.
+- Acceso de escritorio/móvil y borradores separados por cuenta.
+- Recuperación manual de cuentas antiguas mediante consola administrativa,
+  después de verificar identidad. No hay recuperación automática por correo.
+
+VALIDACION HTTP Y BASE DE DATOS
+scripts/test_mis_propiedades.py: 28 comprobaciones satisfactorias con dos
+cuentas desechables. Incluye publicación real con foto, manipulación de correo,
+aislamiento entre cuentas, rechazo de edición/retiro ajenos, CSRF, validación,
+persistencia después de cerrar y abrir sesión, bloqueo por operación pendiente,
+retiro, historial y conservación de imágenes, rechazo de citas de un anuncio
+retirado y recuperación de acceso sin cambiar la cuenta ni sus publicaciones.
+
+La instalación del SQL completo actualizado se verificó en una base temporal.
+Se comprobó que un catálogo sin propiedades disponibles devuelve una lista
+vacía y no vuelve a mostrar anuncios del catálogo de respaldo.
+38 archivos PHP sin errores de sintaxis. public/js/app.js sin errores de
+sintaxis. git diff --check sin errores de formato.
+
+VALIDACION VISUAL
+Ingreso desde Mis propiedades, listado e historial en vista móvil, edición
+mediante Guardar cambios, mensaje de éxito, confirmación de retiro y estado
+RETIRADA. Enlace Mis propiedades presente en el menú móvil.
+Se corrigió el contraste del encabezado con el fondo claro durante la revisión.
+Evidencia local: C:/Users/enoc5/Downloads/INFONATEC_mis_propiedades_prueba.png
+La captura contiene anuncios de prueba, eliminados después de validar.
+
+ESTADO FINAL
+Migración 20261124_mis_propiedades.sql aplicada a la base local sin borrar datos.
+Los datos sintéticos fueron eliminados: quedan 2 usuarios y 10 propiedades
+originales de la base recibida.

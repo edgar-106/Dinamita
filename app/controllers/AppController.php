@@ -42,6 +42,10 @@ class AppController extends Controller {
 
         Security::requireCsrf();
 
+        if (empty(Usuario::current()['id'])) {
+            $this->json(['success' => false, 'message' => 'Inicia sesión o crea una cuenta para publicar.'], 401);
+        }
+
         $result = (new Propiedad())->create($_POST, $_FILES);
         $this->json($result, !empty($result['success']) ? 200 : 400);
     }
