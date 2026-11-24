@@ -59,15 +59,32 @@ Edita `.env` con tus valores locales o de producción:
 
 ### 3. Crear e importar la base de datos
 
-#### Opción A — Usando phpMyAdmin (`http://localhost/phpmyadmin`)
+#### Opción rápida (1 solo archivo — recomendada)
 
-1. Abre phpMyAdmin y entra a la pestaña **Importar**.
-2. Importa primero **`database/sistema_inmobiliario_schema.sql`** (crea automáticamente la base `sistema_inmobiliario` en `utf8mb4` y las tablas principales).
-3. Selecciona la base `sistema_inmobiliario` y vuelve a importar **`database/sistema_inmobiliario_seed.sql`** (crea las tablas adicionales `vehiculo`, `asignacion_transporte`, `favorito` y `solicitud_contacto`, además de catálogos, usuarios de prueba, 10 propiedades con galería completa, recorridos 360° y registros iniciales).
+Importa únicamente **`database/sistema_inmobiliario_completa.sql`**, que incluye en un solo paso la creación de `sistema_inmobiliario`, las 19 tablas, 3 vistas, 2 triggers y todos los datos iniciales en `utf8mb4` (sin cláusulas `DEFINER` fijas):
+
+- **En phpMyAdmin** (`http://localhost/phpmyadmin`): abre la pestaña **Importar**, selecciona **`database/sistema_inmobiliario_completa.sql`** y haz clic en **Importar**.
+- **Windows (CMD con XAMPP):**
+  ```cmd
+  C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < database\sistema_inmobiliario_completa.sql
+  ```
+- **Windows (PowerShell con XAMPP):**
+  ```powershell
+  Get-Content database\sistema_inmobiliario_completa.sql -Raw | C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4
+  ```
+- **Linux / macOS:**
+  ```bash
+  mysql -u root -p --default-character-set=utf8mb4 < database/sistema_inmobiliario_completa.sql
+  ```
+
+#### Opción modular (esquema + datos por separado en phpMyAdmin o consola)
+
+1. En phpMyAdmin (`http://localhost/phpmyadmin`), abre la pestaña **Importar** e importa primero **`database/sistema_inmobiliario_schema.sql`** (crea automáticamente la base `sistema_inmobiliario` en `utf8mb4` y las tablas principales).
+2. Selecciona la base `sistema_inmobiliario` y vuelve a importar **`database/sistema_inmobiliario_seed.sql`** (crea las tablas adicionales `vehiculo`, `asignacion_transporte`, `favorito` y `solicitud_contacto`, además de catálogos, usuarios de prueba, 10 propiedades con galería completa, recorridos 360° y registros iniciales).
 
 > **Nota:** `database/initialize.sql` es un script complementario idempotente pensado únicamente si ya cuentas con un esquema previo sin haber ejecutado `database/sistema_inmobiliario_seed.sql`.
 
-#### Opción B — Por línea de comandos
+Por línea de comandos (opción modular):
 
 - **Windows (Símbolo del sistema / CMD con XAMPP):**
   ```cmd
@@ -208,9 +225,10 @@ Registradas en [`public/index.php`](public/index.php):
 │       ├── tour/                      # index.php, industrial.php
 │       └── vender/                    # index.php
 ├── database/
-│   ├── sistema_inmobiliario_schema.sql# Esquema principal de tablas
-│   ├── sistema_inmobiliario_seed.sql  # Tablas adicionales, catálogos y datos iniciales
-│   └── initialize.sql                 # Script complementario idempotente
+│   ├── sistema_inmobiliario_completa.sql # Base completa lista para importar en 1 solo paso
+│   ├── sistema_inmobiliario_schema.sql   # Esquema principal de tablas
+│   ├── sistema_inmobiliario_seed.sql     # Tablas adicionales, catálogos y datos iniciales
+│   └── initialize.sql                    # Script complementario idempotente
 ├── public/                            # Única raíz web pública (DocumentRoot)
 │   ├── .htaccess                      # Reescritura MVC hacia index.php y DirectorySlash Off
 │   ├── index.php                      # Front Controller y tabla de rutas
