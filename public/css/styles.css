@@ -3871,6 +3871,16 @@ summary:focus-visible {
 .owner-price { font-size:22px; font-weight:700; }
 .owner-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
 .owner-actions form { margin:0; }
+.owner-tour-link { display:flex; align-items:center; gap:13px; margin:20px 0; padding:16px; border:1px solid #e5d7bd; border-radius:12px; background:linear-gradient(115deg,#faf5e9,#fffdf8); color:#252525; text-decoration:none; transition:background .2s,border-color .2s,box-shadow .2s; min-height:80px; }
+.owner-tour-icon { display:grid; place-items:center; width:46px; height:46px; flex-shrink:0; border-radius:12px; background:#252525; color:#d7ba80; box-shadow:0 3px 8px #25252515; }
+.owner-tour-text { display:grid; gap:5px; min-width:0; }
+.owner-tour-text strong { font-size:14px; font-weight:700; line-height:1.4; }
+.owner-tour-text>span { font-size:11px; line-height:1.5; color:#766d60; }
+.owner-tour-arrow { margin-left:auto; flex-shrink:0; display:grid; place-items:center; width:27px; height:27px; border:1px solid #deceb0; border-radius:50%; font-size:16px; transition:background .2s,color .2s; }
+.owner-tour-link:hover { background:#f4ead7; border-color:#bfa06a; box-shadow:0 5px 16px #2525250d; }
+.owner-tour-link:hover .owner-tour-arrow { background:#252525; color:white; border-color:#252525; }
+.owner-page .owner-tour-link:focus-visible { outline:3px solid #b58c4c; outline-offset:4px; }
+@media(max-width:380px) { .owner-tour-link { padding:13px; gap:10px; } .owner-tour-icon { width:38px; height:38px; border-radius:10px; } .owner-tour-text strong { font-size:13px; } .owner-tour-arrow { width:23px; height:23px; } }
 .owner-page .btn-primary,.owner-page .btn-outline { display:inline-flex; justify-content:center; align-items:center; text-decoration:none; padding:12px 18px; min-height:44px; border-radius:8px; cursor:pointer; font-size:15px; }
 .owner-page .btn-primary { background:#d6b77e; color:#111827; border:1px solid #d6b77e; font-weight:700; }
 .owner-page .btn-outline { background:transparent; color:#172033; border:1px solid #a8b5c7; }

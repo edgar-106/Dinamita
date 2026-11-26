@@ -474,6 +474,10 @@
                 <span class="field-error" id="err-photos" role="alert" style="margin-top:10px;"></span>
                 <div id="photoPreviewGrid" class="photo-preview-grid" aria-live="polite"></div>
 
+                <p style="background:#f8fafc;border:1px solid #cbd5e1;color:#334155;padding:12px 14px;border-radius:10px;font-size:13px;margin-top:16px;">
+                    <strong>¿Quieres agregar un recorrido interactivo con fotos, panorámicas o video?</strong> Al publicar el anuncio podrás diseñarlo al instante.
+                </p>
+
                 <div class="form-actions">
                     <button type="button" class="btn-prev" onclick="prevStep(2)">← Atrás</button>
                     <button type="button" class="btn-next" onclick="nextStep(4)">Siguiente →</button>
@@ -524,6 +528,7 @@
                         Ya se encuentra disponible en el catálogo público de INFONATEC junto con sus fotografías.
                     </p>
                     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                        <a id="publishTourLink" href="<?= BASE_URL ?>mis-propiedades" class="btn-huge" style="text-decoration:none;background:#c9a86a;color:#111827;display:none;">Diseñar recorrido (fotos o video)</a>
                         <a href="<?= BASE_URL ?>explorar" class="btn-huge" style="text-decoration:none;background:#c9a86a;color:#111827;">Ver en Explorar</a>
                         <a href="<?= BASE_URL ?>mis-propiedades" class="btn-huge" style="text-decoration:none;background:#172033;color:white;">Mis propiedades</a>
                         <a href="<?= BASE_URL ?>" class="btn-huge" style="text-decoration:none;background:#172033;color:white;">Volver al Inicio</a>
@@ -1214,6 +1219,11 @@ async function submitPublishForm() {
         const successStep = document.getElementById('step-success');
         const successMsg = document.getElementById('publishSuccessMsg');
         if (successMsg && result.message) successMsg.textContent = result.message;
+        const tourLink = document.getElementById('publishTourLink');
+        if (tourLink && result.id) {
+            tourLink.href = '<?= BASE_URL ?>mis-propiedades/' + encodeURIComponent(result.id) + '/recorrido';
+            tourLink.style.display = 'inline-block';
+        }
         if (successStep) successStep.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {

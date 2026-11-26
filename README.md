@@ -277,3 +277,8 @@ C:\xampp\php\php.exe scripts/habilitar_propietario.php --identidad-verificada co
 ```
 
 El comando genera una contraseña nueva y la muestra solo en la consola local, para entregarla por un canal privado. No cambia la titularidad, no permite recuperar administradores y no debe ejecutarse solo porque alguien conozca un correo. No se implementa recuperación automática por correo porque el proyecto no tiene un servicio de correo configurado.
+# Recorridos con fotografías normales, panorámicas o desde video
+
+Desde **Mis propiedades → Diseña tu recorrido** (o al finalizar la publicación en `/vender`) se pueden cargar fotografías, panorámicas horizontales o videos privados (`.mp4`, `.mov`, `.webm`) para extraer escenas planas, definir fragmentos y conectarlos en el mismo editor y visor interactivo.
+
+Para bases existentes aplicar en orden `database/migrations/20261126_recorridos_fotos.sql` y `database/migrations/20261126_recorridos_video.sql`. La documentación completa del contrato unificado, seguridad y configuración opcional de FFmpeg está en [docs/recorridos-fotos-integracion.md](docs/recorridos-fotos-integracion.md), [docs/CONTRATO_RECORRIDOS.md](docs/CONTRATO_RECORRIDOS.md) y [docs/INSTALACION_VIDEO_FFMPEG.md](docs/INSTALACION_VIDEO_FFMPEG.md).

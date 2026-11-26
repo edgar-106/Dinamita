@@ -1,139 +1,97 @@
-# Contrato de Integración — Recorridos Interactivos por Escenas (INFONATEC)
+# Contrato Unificado de Integración — Recorridos Interactivos (INFONATEC)
 
-Versión del contrato: **`infonatec-tour-v1`**
+Versión del contrato: **`schema_version: 1`** (implementado en `RecorridoFoto`, `RecorridoVideo` y editor/visor compartido `/mis-propiedades/{id}/recorrido` · `/recorridos/{id}`).
 
-Este documento define el contrato común entre:
-- **Módulo de Recorridos por Video** (`feature/recorridos-video`): carga de videos protegidos, extracción de fotogramas planos, definición de fragmentos (`inicio_segundos`, `fin_segundos`) y reproducción controlada.
-- **Módulo de Recorridos por Fotografías / Panorámicas** (compañero): carga de fotos planas o panorámicas 360° y creación/edición de puntos interactivos.
+Este documento describe la integración real entre:
+- **Módulo de Recorridos por Fotografías / Panorámicas** (`RecorridoFoto`, `RecorridosController`, `app/views/recorridos/fotos.php`, `public/js/recorridos-fotos.js`): gestión de borradores/publicaciones con control optimista `version`, almacenamiento seguro de imágenes (`recorrido_archivo` en `storage/recorridos/`) y visor plano + panorámico horizontal (Pannellum).
+- **Módulo de Recorridos por Video** (`RecorridoVideo`, `RecorridoVideoController`, `VideoProcessor`, `public/js/recorrido-video.js`): carga privada de videos (`recorrido_video` en `storage/recorridos_videos/`), extracción de fotogramas planos hacia el mismo almacén `recorrido_archivo` (`storage/recorridos/`), edición/validación de intervalos (`inicio_segundos`, `fin_segundos`) y reproducción por rangos (`HTTP 206`).
 
-Ambos módulos comparten **el mismo esquema base** (`recorrido`, `recorrido_escena`, `recorrido_conexion`), **el mismo adaptador JS** (`public/js/recorrido-contrato.js`) y **el mismo visor** (`app/views/tour/escenas.php` + `public/js/recorrido-visor.js`).
-
----
-
-## 1. Esquema de base de datos compartido
-
-Definido en `database/migrations/20261126_recorridos_video.sql` (sin alterar `paseo_virtual` ni datos previos):
-
-### Tablas compartidas
-1. **`recorrido`**:
-   - `id_recorrido`, `id_propiedad` (UNIQUE FK → `propiedad`), `titulo`, `descripcion`, `estado` (`BORRADOR` | `PUBLICADO` | `INACTIVO`), `escena_inicial_id`, `fecha_creacion`, `fecha_actualizacion`.
-2. **`recorrido_escena`**:
-   - `id_escena` (`id`), `id_recorrido`, `nombre`, `tipo_visual` (`imagen` | `panorama`), `imagen_url`, `video_id` (NULL cuando proviene de fotografía), `momento_segundos` (NULL en foto), `inicio_segundos` (opcional), `fin_segundos` (opcional, `> inicio_segundos`), `orden`, `origen_extraccion` (`ffmpeg` | `navegador` | `foto` | `manual`).
-   - Las escenas extraídas desde video siempre producen `tipo_visual = 'imagen'` (imagen plana, nunca panorama 360°).
-3. **`recorrido_conexion`**:
-   - `id_conexion` (`id`), `id_recorrido`, `escena_origen_id`, `escena_destino_id` (`<> escena_origen_id`), `etiqueta`, `posicion_sistema` (`plano_xy` | `panorama_yaw_pitch`), `posicion_json`.
-
-### Tabla exclusiva del módulo de video
-4. **`recorrido_video`**:
-   - `id_video`, `id_recorrido`, `id_propiedad`, `id_propietario`, `nombre_original`, `archivo_interno` (nombre aleatorio generado en servidor dentro de `storage/recorridos_videos/`), `mime_type`, `tamano_bytes`, `duracion_segundos`, `ancho`, `alto`, `estado`, `mensaje_error`, `fecha_subida`.
+Ambas fuentes de escenas (fotografías normales, panorámicas horizontales y fotogramas de video) conviven dentro del **mismo recorrido**, usan el **mismo editor** y el **mismo visor**.
 
 ---
 
-## 2. Propuesta de coordenadas para puntos interactivos (a acordar)
+## 1. Esquema de base de datos unificado
 
-Para soportar tanto **imágenes planas** (`tipo_visual = 'imagen'`) como **panoramas 360°** (`tipo_visual = 'panorama'`) sin acoplar ambos visores, `posicion` es un objeto JSON discriminado por `sistema`:
+Orden de migraciones incrementales para bases existentes:
+1. `database/migrations/20261124_mis_propiedades.sql` (si falta `propiedad.fecha_retiro`).
+2. `database/migrations/20261126_recorridos_fotos.sql`: crea `recorrido_foto` (`borrador`, `publicado`, `version`) y `recorrido_archivo` (imágenes de escenas en `storage/recorridos/`).
+3. `database/migrations/20261126_recorridos_video.sql`: crea `recorrido_video` con FK hacia `recorrido_foto(id_recorrido) ON DELETE CASCADE`, `propiedad(id_propiedad) ON DELETE CASCADE` y `usuario(id_usuario)`.
 
-1. **Escena plana (`tipo_visual = 'imagen'`):**
-   ```json
-   {
-     "sistema": "plano_xy",
-     "x": 64.5,
-     "y": 52.0
-   }
-   ```
-   - `x` e `y` en porcentajes `0..100` respecto al borde superior izquierdo de la imagen renderizada (independiente de la resolución o pantalla).
-
-2. **Escena panorámica (`tipo_visual = 'panorama'`):**
-   ```json
-   {
-     "sistema": "panorama_yaw_pitch",
-     "yaw": -110.0,
-     "pitch": -4.0
-   }
-   ```
-   - `yaw` en grados (`-180..180`) y `pitch` en grados (`-90..90`) compatibles directamente con **Pannellum** (`public/tour/lib/pannellum.js`).
-
-> **Nota de coordinación:** el editor de fotografías puede seguir usando `plano_xy` para fotos normales o `panorama_yaw_pitch` para panorámicas; el visor único (`recorrido-visor.js`) ya interpreta ambos sistemas según `scene.tipo_visual`. Si tu módulo requiere campos extra en `posicion` (ej. `icono`, `rotacion`), se pueden añadir al objeto JSON sin romper las columnas de BD.
+No altera `paseo_virtual` ni sobrescribe los recorridos de demostración existentes.
 
 ---
 
-## 3. Formato JSON del contrato (`window.InfonatecTourContract`)
+## 2. Formato JSON unificado (`schema_version: 1`)
 
-El adaptador `public/js/recorrido-contrato.js` expone:
-- `InfonatecTourContract.normalizeTour(payload)`
-- `InfonatecTourContract.normalizeScene(scene)`
-- `InfonatecTourContract.normalizeConnection(conn)`
-- `InfonatecTourContract.validatePosition(pos, visualType)`
-- `InfonatecTourContract.getSamplePayload()` (fixture de ejemplo mixto: escena `imagen` de video + escena `panorama` de foto)
+Cada documento (`borrador` y `publicado` en `recorrido_foto`) sigue exactamente la estructura:
 
-### Escena normalizada
 ```json
 {
-  "id": 101,
-  "id_recorrido": 1,
-  "nombre": "Sala",
-  "tipo_visual": "imagen",
-  "imagen_url": "http://localhost/Bienes%20raices/public/uploads/recorridos/escenas/esc_1_xxxx.jpg",
-  "video_id": 10,
-  "momento_segundos": 3.5,
-  "inicio_segundos": 1.0,
-  "fin_segundos": 8.5,
-  "orden": 1,
-  "origen_extraccion": "ffmpeg",
-  "video_fragmento_url": "http://localhost/Bienes%20raices/public/api/recorridos/escenas/101/video"
+  "schema_version": 1,
+  "escena_inicial_id": 101,
+  "escenas": [
+    {
+      "id": 101,
+      "nombre": "Sala",
+      "tipo_visual": "imagen",
+      "imagen_url": "/Bienes%20raices/public/recorridos/imagen/101",
+      "ancho": 1280,
+      "alto": 720,
+      "angulo_horizontal": 180,
+      "orden": 0,
+      "video_id": 5,
+      "inicio_segundos": 0.5,
+      "fin_segundos": 3.5
+    }
+  ],
+  "conexiones": [
+    {
+      "id": 1,
+      "escena_origen_id": 101,
+      "escena_destino_id": 102,
+      "etiqueta": "Ir a cocina",
+      "coordenadas": "imagen_normalizada",
+      "x": 0.645,
+      "y": 0.52
+    }
+  ]
 }
 ```
 
-### Conexión normalizada
-```json
-{
-  "id": 1,
-  "escena_origen_id": 101,
-  "escena_destino_id": 102,
-  "etiqueta": "Pasar a Cocina",
-  "posicion": {
-    "sistema": "plano_xy",
-    "x": 64.5,
-    "y": 52.0
-  }
-}
-```
+### Reglas de validación en servidor (`RecorridoFoto::validate()`)
+- **`id`**: debe existir en `recorrido_archivo` para el `id_recorrido` de la propiedad autorizada.
+- **`tipo_visual`**: `'imagen'` o `'panorama'`. Si `video_id` no es nulo, el servidor **exige `tipo_visual = 'imagen'`** (las escenas de video son planas, no panoramas).
+- **`video_id`**: `null` en fotografías o panorámicas; si tiene valor, debe corresponder a una fila `LISTO` en `recorrido_video` perteneciente al mismo `id_recorrido`.
+- **`inicio_segundos` / `fin_segundos`**: opcionales y en segundos (`float >= 0`). No se admite `fin_segundos` sin `inicio_segundos`; si ambos existen, debe cumplirse `fin_segundos > inicio_segundos`; cuando el servidor conoce `duracion_segundos`, rechaza rangos fuera de la duración (`+ 0.5 s` de tolerancia).
+- **Coordenadas de conexión**: `coordenadas: "imagen_normalizada"` con `x`, `y` en `[0, 1]`. Para `panorama`, el editor/visor convierte automáticamente desde/hacia `(yaw, pitch)` en Pannellum usando `angulo_horizontal` (`180`, `270`, `360`).
 
 ---
 
-## 4. Documentación de endpoints
+## 3. Documentación de endpoints del módulo de video
 
-Todos los endpoints `POST` requieren sesión autenticada (propietario real verificado en servidor contra `propiedad.id_propietario`) y token CSRF válido (`X-CSRF-Token` o `_csrf`).
+Todas las rutas mutables (`POST`) exigen sesión autenticada, validación estricta de titularidad en BD (`propiedad.id_propietario === usuario_sesion.id`) y token CSRF válido (`X-CSRF-Token` o `_csrf`).
 
 | Método | Ruta | Quién accede | Recibe | Devuelve |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/mis-propiedades/{id}/recorrido-video` | Propietario | — | Vista HTML del estudio de video y escenas |
-| `GET` | `/api/recorridos/procesador/estado` | Autenticado | — | `{ success, procesador: { ffmpeg_available, max_video_mb, ... } }` |
-| `GET` | `/api/mis-propiedades/{id}/recorrido-video` | Propietario | — | `{ success, contract, propiedad, recorrido, videos, escenas, conexiones, procesador }` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/videos` | Propietario + CSRF | `multipart/form-data`: `video` (MP4/MOV/WebM), opcional `duracion_segundos`, `ancho`, `alto` | `200 { success, video }` / `413` / `422` / `403` / `404` |
-| `GET` | `/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/stream` | Propietario | Cabecera opcional `Range: bytes=...` | Stream binario `200`/`206` con `Accept-Ranges: bytes` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/eliminar` | Propietario + CSRF | — | `{ success, message }` (conserva imágenes ya extraídas con `video_id = NULL`) |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/escenas` | Propietario + CSRF | `video_id`, `nombre`, `momento_segundos`, opcional `inicio_segundos`, `fin_segundos`, `modo_extraccion` (`auto`/`ffmpeg`/`navegador`), opcional `frame_image` | `200 { success, escena }` / `422` / `503` (si falta FFmpeg y no hay captura) |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/escenas/{escenaId}/actualizar` | Propietario + CSRF | `nombre`, `inicio_segundos`, `fin_segundos`, `orden`, opcional `momento_segundos` / `frame_image` | `200 { success, escena }` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/escenas/{escenaId}/eliminar` | Propietario + CSRF | — | `{ success, message }` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/conexiones` | Propietario + CSRF | `escena_origen_id`, `escena_destino_id`, `etiqueta`, `posicion` (`{sistema, x, y}` o `{sistema, yaw, pitch}`) | `200 { success, conexion }` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/conexiones/{conexionId}/eliminar` | Propietario + CSRF | — | `{ success, message }` |
-| `POST` | `/api/mis-propiedades/{id}/recorrido-video/estado` | Propietario + CSRF | `estado` (`BORRADOR` \| `PUBLICADO`), opcional `escena_inicial_id` | `200 { success, recorrido }` |
-| `GET` | `/recorrido/{id}` | Público (si publicado) o Dueño | `?embed=1` opcional | Visor HTML interactivo por escenas |
-| `GET` | `/api/recorridos/{id}` | Público (si publicado) o Dueño | — | `{ success, contract, propiedad, recorrido, escenas, conexiones }` |
-| `GET` | `/api/recorridos/escenas/{escenaId}/video` | Público (si publicado) o Dueño | Cabecera `Range: bytes=...` | Stream `200`/`206` del video fuente de la escena |
+| `GET` | `/mis-propiedades/{id}/recorrido` | Propietario (`401`/`404`) | — | Editor unificado (fotos, panorámicas y estudio de video) |
+| `GET` | `/mis-propiedades/{id}/recorrido-video` | Propietario | — | Redirección de compatibilidad a `/mis-propiedades/{id}/recorrido#video` |
+| `GET` | `/api/recorridos/procesador/estado` | Autenticado (`401`) | — | `{ success, procesador: { ffmpeg_available, ffprobe_available, max_video_mb, ... } }` |
+| `GET` | `/api/mis-propiedades/{id}/recorrido-video/videos` | Propietario (`401`/`404`) | — | `{ success, procesador, videos: [...] }` |
+| `POST` | `/api/mis-propiedades/{id}/recorrido-video/videos` | Propietario + CSRF | `multipart/form-data`: `video` (MP4/MOV/WebM), opcional `duracion_segundos`, `ancho`, `alto` | `201 { success, video }` / `400` / `403` / `404` / `413` |
+| `GET` | `/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/stream` | Propietario (`401`/`404`) | Cabecera opcional `Range: bytes=...` | Stream `200`/`206` con `Cache-Control: private, no-store` |
+| `POST` | `/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/eliminar` | Propietario + CSRF | JSON o POST vacío con CSRF | `200 { success }` / `409` si alguna escena en `borrador` o `publicado` usa el video |
+| `POST` | `/api/mis-propiedades/{id}/recorrido-video/escenas` | Propietario + CSRF | `video_id`, `nombre`, `momento_segundos`, opcional `inicio_segundos`, `fin_segundos`, `duracion_segundos`, `modo_extraccion` (`auto`/`ffmpeg`/`navegador`), `frame` (JPG/PNG/WEBP) | `201 { success, origen_extraccion, scene }` / `400` / `422` / `503` (si `ffmpeg` no está instalado y no hay `frame`) |
+| `POST` | `/mis-propiedades/{id}/recorrido/guardar` | Propietario + CSRF | JSON `{ version, accion, graph }` (`guardar`/`publicar`/`ocultar`) | `200 { success, version, graph, published }` / `409` conflicto de versión |
+| `GET` | `/recorridos/{id}` | Público (si publicado y disponible) o Dueño (`?preview=1`) | `?preview=1` opcional | Visor unificado plano/panorámico + reproductor de fragmentos |
+| `GET` | `/recorrido/{id}` | Público / Dueño | `?preview=1` opcional | Redirección de compatibilidad a `/recorridos/{id}` |
+| `GET` | `/api/recorridos/{id}/escenas/{escenaId}/video` | Público (si publicado y disponible) o Dueño (`?preview=1`) | `Range: bytes=...` | Stream `200`/`206` del video fuente autorizado para esa escena (`Cache-Control: private, no-store`) |
 
 ---
 
-## 5. División de archivos al integrar con el módulo de fotografías
+## 4. Seguridad implementada
 
-- **Propios de video (no tocar en módulo de fotos):**
-  - `app/core/VideoProcessor.php`, `app/models/RecorridoVideo.php`, `app/controllers/RecorridoVideoController.php`
-  - `app/views/cuenta/recorrido_video.php`, `public/js/recorrido-video.js`, `public/css/recorrido-video.css`
-  - `storage/recorridos_videos/`, `storage/recorridos_tmp/`
-- **Compartidos (coordinar cambios):**
-  - `database/migrations/20261126_recorridos_video.sql` (`recorrido`, `recorrido_escena`, `recorrido_conexion`)
-  - `public/js/recorrido-contrato.js`
-  - `app/views/tour/escenas.php` y `public/js/recorrido-visor.js`
-  - `app/models/Propiedad.php` (`sceneTour` / `virtualTour`), `public/index.php`, `public/js/app.js`
-  - `app/views/cuenta/propiedades.php`, `app/views/cuenta/editar.php`
+- **Titularidad en servidor:** nunca se confía en `id_usuario`, `id_propietario` ni correos enviados por el navegador; todo se comprueba contra `Usuario::current()` y `propiedad.id_propietario`.
+- **Videos originales privados:** almacenados con nombre aleatorio en `storage/recorridos_videos/` (protegido por `.htaccess` + `storage/.htaccess` `Require all denied`). Ni siquiera las escenas publicadas exponen rutas directas a los archivos.
+- **Almacenamiento de fotogramas:** las imágenes extraídas se validan nuevamente en servidor (peso `<= 8 MB`, MIME real con `finfo`, dimensiones `getimagesize()`, entre `100×100` y `64 MP`) y se guardan en `storage/recorridos/` (servidas únicamente vía `/recorridos/imagen/{id_archivo}` cuando pertenecen al borrador del dueño o a una publicación activa).
+- **Streaming por rangos sin cargar el video en memoria PHP:** `VideoProcessor::streamVideoRange()` libera el bloqueo de sesión (`session_write_close()`) y lee bloques de `64 KB` soportando `HTTP 206 Partial Content`.
+- **Limpieza de temporales:** si FFmpeg o la validación falla durante la extracción, cualquier archivo temporal en `storage/recorridos_tmp/` o destino parcial en `storage/recorridos/` se elimina en el bloque `finally`/`catch`.

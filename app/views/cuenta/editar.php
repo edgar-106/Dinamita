@@ -23,7 +23,7 @@ $locked = $listing['fecha_retiro'] !== null || $listing['estado'] !== 'DISPONIBL
         <label>Baños<input name="banos" type="number" min="0" max="50" required value="<?= $esc($values['banos']) ?>"></label>
         <?php endif; ?>
         <label class="owner-wide">Descripción<textarea name="descripcion" required minlength="20" rows="7"><?= $esc($values['descripcion']) ?></textarea></label>
-        <div class="owner-actions owner-wide"><button class="btn-primary" type="submit">Guardar cambios</button><a class="btn-outline" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/recorrido-video">Recorrido por video</a><a class="btn-outline" href="<?= BASE_URL ?>mis-propiedades">Cancelar</a></div>
+        <div class="owner-actions owner-wide"><button class="btn-primary" type="submit">Guardar cambios</button><a class="btn-outline" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/recorrido">Diseña tu recorrido</a><a class="btn-outline" href="<?= BASE_URL ?>mis-propiedades">Cancelar</a></div>
     </form>
     <?php endif; ?>
 </main>

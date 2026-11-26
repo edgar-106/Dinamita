@@ -433,3 +433,23 @@ USE `sistema_inmobiliario`;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+
+-- Recorridos por fotografías (26 de noviembre de 2026).
+USE sistema_inmobiliario;
+CREATE TABLE IF NOT EXISTS recorrido_foto (
+ id_recorrido INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ id_propiedad INT UNSIGNED NOT NULL UNIQUE,
+ borrador LONGTEXT NOT NULL,
+ publicado LONGTEXT DEFAULT NULL,
+ version INT UNSIGNED NOT NULL DEFAULT 0,
+ FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS recorrido_archivo (
+ id_archivo INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ id_recorrido INT UNSIGNED NOT NULL,
+ ruta VARCHAR(100) NOT NULL,
+ mime VARCHAR(30) NOT NULL,
+ ancho INT UNSIGNED NOT NULL,
+ alto INT UNSIGNED NOT NULL,
+ FOREIGN KEY (id_recorrido) REFERENCES recorrido_foto(id_recorrido) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

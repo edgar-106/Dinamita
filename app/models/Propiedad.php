@@ -129,6 +129,9 @@ class Propiedad extends Model {
                         CASE WHEN UPPER(p.operacion) = 'RENTA' THEN 'Renta' ELSE 'Venta' END AS operation_label,
                         e.nombre AS tag,
                         COALESCE((
+                            SELECT CONCAT('recorridos/', p.id_propiedad) FROM recorrido_foto rf
+                            WHERE rf.id_propiedad=p.id_propiedad AND rf.publicado IS NOT NULL
+                        ), (
                             SELECT pv.url_3d
                             FROM paseo_virtual pv
                             WHERE pv.id_propiedad = p.id_propiedad
@@ -150,14 +153,10 @@ class Propiedad extends Model {
 
                 if (!empty($rows)) {
                     $galleries = $this->fetchAllGalleries();
-                    $sceneTours = class_exists('RecorridoVideo')
-                        ? (new RecorridoVideo())->fetchPublishedByPropertyMap()
-                        : [];
                     return array_map(
                         fn(array $row) => $this->mapDatabaseProperty(
                             $row,
-                            $galleries[(int) $row['id']] ?? [],
-                            $sceneTours[(int) $row['id']] ?? null
+                            $galleries[(int) $row['id']] ?? []
                         ),
                         $rows
                     );
@@ -238,7 +237,7 @@ class Propiedad extends Model {
     /**
      * Convierte un registro del esquema inmobiliario al contrato enriquecido de la UI.
      */
-    private function mapDatabaseProperty(array $property, array $gallery, ?array $sceneTour = null): array {
+    private function mapDatabaseProperty(array $property, array $gallery): array {
         $id = (int) $property['id'];
         $type = (string) $property['type'];
         $isRent = $property['operation'] === 'rentar';
@@ -291,15 +290,6 @@ class Propiedad extends Model {
                 (string) ($property['tour_desc'] ?? ''),
                 $videoPath
             );
-        } elseif ($sceneTour !== null) {
-            $virtualTour = [
-                'type'        => 'iframe',
-                'isSceneTour' => true,
-                'url'         => 'recorrido/' . $id,
-                'title'       => $sceneTour['titulo'],
-                'subtitle'    => 'Explora los espacios por escenas y reproduce fragmentos de video.',
-                'helpText'    => '💡 Haz clic en los puntos interactivos, usa las miniaturas o ← → para recorrer cada escena.',
-            ];
         } elseif ($videoPath !== null) {
             $virtualTour = [
                 'type'     => 'video',
@@ -337,7 +327,6 @@ class Propiedad extends Model {
             'legal_details'     => $legalDetails,
             'payment_options'   => $paymentOptions,
             'virtualTour'       => $virtualTour,
-            'sceneTour'         => $sceneTour,
         ];
     }
 
@@ -408,6 +397,18 @@ class Propiedad extends Model {
      * Construye la metadata completa del recorrido 360° y su galería estática accesible.
      */
     private function buildVirtualTourPayload(int $id, string $title, string $tourUrl, string $tourDesc, ?string $videoPath): array {
+        if (str_starts_with($tourUrl, 'recorridos/')) {
+            return [
+                'type'            => 'iframe',
+                'url'             => $tourUrl,
+                'video'           => $videoPath,
+                'title'           => 'Recorrido interactivo — ' . $title,
+                'subtitle'        => 'Explora los espacios y fragmentos de video conectados por el propietario.',
+                'helpText'        => 'Usa los puntos o la lista de espacios. Desplaza horizontalmente las fotos panorámicas o reproduce fragmentos de video.',
+                'estimatedDataMb' => 8,
+                'staticViews'     => [],
+            ];
+        }
         $isIndustrial = str_contains(strtolower($tourUrl), 'industrial');
 
         if ($isIndustrial) {

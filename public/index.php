@@ -18,28 +18,28 @@ $router->get('/vender', 'AppController@sell');
 $router->get('/legal', 'AppController@legal');
 $router->post('/vender/publicar', 'AppController@publish');
 $router->get('/mis-propiedades', 'PublicacionesController@index');
+$router->get('/mis-propiedades/{id}/recorrido', 'RecorridosController@editor');
+$router->post('/mis-propiedades/{id}/recorrido/foto', 'RecorridosController@upload');
+$router->post('/mis-propiedades/{id}/recorrido/guardar', 'RecorridosController@save');
+$router->post('/mis-propiedades/{id}/recorrido/limpiar', 'RecorridosController@cleanup');
+$router->get('/recorridos/imagen/{id}', 'RecorridosController@image');
+$router->get('/recorridos/{id}', 'RecorridosController@viewer');
 $router->get('/mis-propiedades/{id}/editar', 'PublicacionesController@edit');
 $router->post('/mis-propiedades/{id}/editar', 'PublicacionesController@update');
 $router->post('/mis-propiedades/{id}/retirar', 'PublicacionesController@withdraw');
 $router->get('/tour', 'AppController@tour');
 $router->get('/tour/industrial', 'AppController@tourIndustrial');
 
-// --- Rutas de Recorridos por Video y Escenas ---
-$router->get('/mis-propiedades/{id}/recorrido-video', 'RecorridoVideoController@studio');
-$router->get('/recorrido/{id}', 'RecorridoVideoController@viewer');
+// --- Rutas de Recorridos por Video (integrado al editor/visor compartido) ---
+$router->get('/mis-propiedades/{id}/recorrido-video', 'RecorridoVideoController@redirectToEditor');
+$router->get('/recorrido/{id}', 'RecorridoVideoController@redirectToViewer');
 $router->get('/api/recorridos/procesador/estado', 'RecorridoVideoController@status');
-$router->get('/api/mis-propiedades/{id}/recorrido-video', 'RecorridoVideoController@ownerTourData');
+$router->get('/api/mis-propiedades/{id}/recorrido-video/videos', 'RecorridoVideoController@listVideos');
 $router->post('/api/mis-propiedades/{id}/recorrido-video/videos', 'RecorridoVideoController@uploadVideo');
 $router->get('/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/stream', 'RecorridoVideoController@streamOwnerVideo');
 $router->post('/api/mis-propiedades/{id}/recorrido-video/videos/{videoId}/eliminar', 'RecorridoVideoController@deleteVideo');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/escenas', 'RecorridoVideoController@createScene');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/escenas/{escenaId}/actualizar', 'RecorridoVideoController@updateScene');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/escenas/{escenaId}/eliminar', 'RecorridoVideoController@deleteScene');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/conexiones', 'RecorridoVideoController@createConnection');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/conexiones/{conexionId}/eliminar', 'RecorridoVideoController@deleteConnection');
-$router->post('/api/mis-propiedades/{id}/recorrido-video/estado', 'RecorridoVideoController@updateTourState');
-$router->get('/api/recorridos/{id}', 'RecorridoVideoController@publicTourData');
-$router->get('/api/recorridos/escenas/{escenaId}/video', 'RecorridoVideoController@streamPublicSceneVideo');
+$router->post('/api/mis-propiedades/{id}/recorrido-video/escenas', 'RecorridoVideoController@extractScene');
+$router->get('/api/recorridos/{id}/escenas/{escenaId}/video', 'RecorridoVideoController@streamSceneVideo');
 
 // --- Rutas de API y Datos ---
 $router->get('/api/propiedades', 'ApiController@properties');

@@ -1093,13 +1093,9 @@ function showProperty(id) {
 
     const btnInteractivo = document.getElementById('btnMediaInteractivo');
     const hasTour = !!(property.virtualTour && property.virtualTour.url);
-    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
     if (btnInteractivo) {
-        btnInteractivo.textContent = isSceneTour ? '🗺️ Recorrido por escenas' : '🕹️ Tour 360°';
         btnInteractivo.style.opacity = hasTour ? '1' : '0.55';
-        btnInteractivo.title = hasTour
-            ? (isSceneTour ? 'Ver recorrido interactivo por escenas' : 'Ver recorrido interactivo 360°')
-            : 'Recorrido interactivo no disponible para esta propiedad';
+        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo' : 'Recorrido interactivo no disponible para esta propiedad';
     }
 
     const btnStatic360 = document.getElementById('btnMediaStatic360');
@@ -1205,6 +1201,13 @@ function openMediaTour(type) {
 
     hideAllTourContainers();
 
+    if (type === 'interactivo' && property.virtualTour && property.virtualTour.url.startsWith('recorridos/')) {
+        closeModal('propertyModal');
+        openModal('tourModal');
+        loadInteractiveTourIframe(property);
+        return;
+    }
+
     if (type === 'static360') {
         closeModal('propertyModal');
         openModal('tourModal');
@@ -1229,9 +1232,8 @@ function openMediaTour(type) {
         return;
     }
 
-    // type === 'interactivo': los recorridos por escenas ligeros cargan directo; los 360° verifican gate de datos
-    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
-    const preApproved = isSceneTour || (sessionStorage.getItem('infonatec_360_approved') === '1' && !isSlowConnection());
+    // type === 'interactivo': verificar gate de consumo de datos antes de cargar iframe
+    const preApproved = sessionStorage.getItem('infonatec_360_approved') === '1' && !isSlowConnection();
     closeModal('propertyModal');
     openModal('tourModal');
 
@@ -1279,14 +1281,11 @@ function loadInteractiveTourIframe(property) {
         tourUrl = getApiUrl(tourUrl);
     }
     const sep = tourUrl.includes('?') ? '&' : '?';
-    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
-    const finalUrl = isSceneTour
-        ? tourUrl + sep + 'embed=1'
-        : tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
+    const finalUrl = tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
 
     if (iframeBox) iframeBox.style.display = 'block';
-    if (iframePlayer) iframePlayer.src = finalUrl;
-    if (switchBtn) switchBtn.style.display = isSceneTour ? 'none' : 'inline-block';
+    if (iframePlayer) { iframePlayer.src = finalUrl; iframePlayer.title = property.virtualTour.title || 'Recorrido interactivo'; }
+    if (switchBtn) switchBtn.style.display = Array.isArray(property.virtualTour.staticViews) && property.virtualTour.staticViews.length ? 'inline-block' : 'none';
     if (help) {
         help.textContent = (property.virtualTour && property.virtualTour.helpText)
             ? property.virtualTour.helpText
@@ -1800,7 +1799,7 @@ async function sendMessage() {
                 const card = document.createElement('div');
                 card.className = 'chat-prop-card';
                 const tourBtnHtml = (prop.virtualTour && prop.virtualTour.url)
-                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido 360°</button>'
+                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido interactivo</button>'
                     : '';
 
                 card.innerHTML =
