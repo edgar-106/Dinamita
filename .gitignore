@@ -4,3 +4,12 @@ push.bat
 /public/uploads/propiedades/*
 !/public/uploads/propiedades/.htaccess
 !/public/uploads/propiedades/.gitkeep
+/public/uploads/recorridos/escenas/*
+!/public/uploads/recorridos/escenas/.htaccess
+!/public/uploads/recorridos/escenas/.gitkeep
+/storage/recorridos_videos/*
+!/storage/recorridos_videos/.htaccess
+!/storage/recorridos_videos/.gitkeep
+/storage/recorridos_tmp/*
+!/storage/recorridos_tmp/.htaccess
+!/storage/recorridos_tmp/.gitkeep

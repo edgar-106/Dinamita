@@ -150,8 +150,15 @@ class Propiedad extends Model {
 
                 if (!empty($rows)) {
                     $galleries = $this->fetchAllGalleries();
+                    $sceneTours = class_exists('RecorridoVideo')
+                        ? (new RecorridoVideo())->fetchPublishedByPropertyMap()
+                        : [];
                     return array_map(
-                        fn(array $row) => $this->mapDatabaseProperty($row, $galleries[(int) $row['id']] ?? []),
+                        fn(array $row) => $this->mapDatabaseProperty(
+                            $row,
+                            $galleries[(int) $row['id']] ?? [],
+                            $sceneTours[(int) $row['id']] ?? null
+                        ),
                         $rows
                     );
                 }
@@ -231,7 +238,7 @@ class Propiedad extends Model {
     /**
      * Convierte un registro del esquema inmobiliario al contrato enriquecido de la UI.
      */
-    private function mapDatabaseProperty(array $property, array $gallery): array {
+    private function mapDatabaseProperty(array $property, array $gallery, ?array $sceneTour = null): array {
         $id = (int) $property['id'];
         $type = (string) $property['type'];
         $isRent = $property['operation'] === 'rentar';
@@ -284,6 +291,15 @@ class Propiedad extends Model {
                 (string) ($property['tour_desc'] ?? ''),
                 $videoPath
             );
+        } elseif ($sceneTour !== null) {
+            $virtualTour = [
+                'type'        => 'iframe',
+                'isSceneTour' => true,
+                'url'         => 'recorrido/' . $id,
+                'title'       => $sceneTour['titulo'],
+                'subtitle'    => 'Explora los espacios por escenas y reproduce fragmentos de video.',
+                'helpText'    => '💡 Haz clic en los puntos interactivos, usa las miniaturas o ← → para recorrer cada escena.',
+            ];
         } elseif ($videoPath !== null) {
             $virtualTour = [
                 'type'     => 'video',
@@ -321,6 +337,7 @@ class Propiedad extends Model {
             'legal_details'     => $legalDetails,
             'payment_options'   => $paymentOptions,
             'virtualTour'       => $virtualTour,
+            'sceneTour'         => $sceneTour,
         ];
     }
 

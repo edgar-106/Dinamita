@@ -21,6 +21,7 @@
                 <h2><?= $esc($listing['titulo']) ?></h2><p><?= $esc($listing['ubicacion']) ?></p><p class="owner-price">$<?= number_format((float) $listing['precio'], 2) ?> MXN<?= $listing['operacion'] === 'RENTA' ? ' / mes' : '' ?></p>
                 <?php if (!$withdrawn && $listing['estado'] === 'DISPONIBLE'): ?>
                 <div class="owner-actions"><a class="btn-primary" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/editar">Editar</a>
+                    <a class="btn-outline" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/recorrido-video">Recorrido por video</a>
                     <form method="post" action="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/retirar" onsubmit="return confirm('¿Retirar esta propiedad del catálogo? Se conservará en tu historial.');">
                         <input type="hidden" name="_csrf" value="<?= $esc(Security::csrfToken()) ?>"><button class="btn-outline" type="submit">Retirar anuncio</button>
                     </form></div>

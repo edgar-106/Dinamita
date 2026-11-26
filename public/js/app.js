@@ -1093,9 +1093,13 @@ function showProperty(id) {
 
     const btnInteractivo = document.getElementById('btnMediaInteractivo');
     const hasTour = !!(property.virtualTour && property.virtualTour.url);
+    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
     if (btnInteractivo) {
+        btnInteractivo.textContent = isSceneTour ? '🗺️ Recorrido por escenas' : '🕹️ Tour 360°';
         btnInteractivo.style.opacity = hasTour ? '1' : '0.55';
-        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo 360° no disponible para esta propiedad';
+        btnInteractivo.title = hasTour
+            ? (isSceneTour ? 'Ver recorrido interactivo por escenas' : 'Ver recorrido interactivo 360°')
+            : 'Recorrido interactivo no disponible para esta propiedad';
     }
 
     const btnStatic360 = document.getElementById('btnMediaStatic360');
@@ -1225,8 +1229,9 @@ function openMediaTour(type) {
         return;
     }
 
-    // type === 'interactivo': verificar gate de consumo de datos antes de cargar iframe
-    const preApproved = sessionStorage.getItem('infonatec_360_approved') === '1' && !isSlowConnection();
+    // type === 'interactivo': los recorridos por escenas ligeros cargan directo; los 360° verifican gate de datos
+    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
+    const preApproved = isSceneTour || (sessionStorage.getItem('infonatec_360_approved') === '1' && !isSlowConnection());
     closeModal('propertyModal');
     openModal('tourModal');
 
@@ -1274,11 +1279,14 @@ function loadInteractiveTourIframe(property) {
         tourUrl = getApiUrl(tourUrl);
     }
     const sep = tourUrl.includes('?') ? '&' : '?';
-    const finalUrl = tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
+    const isSceneTour = !!(property.virtualTour && property.virtualTour.isSceneTour);
+    const finalUrl = isSceneTour
+        ? tourUrl + sep + 'embed=1'
+        : tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
 
     if (iframeBox) iframeBox.style.display = 'block';
     if (iframePlayer) iframePlayer.src = finalUrl;
-    if (switchBtn) switchBtn.style.display = 'inline-block';
+    if (switchBtn) switchBtn.style.display = isSceneTour ? 'none' : 'inline-block';
     if (help) {
         help.textContent = (property.virtualTour && property.virtualTour.helpText)
             ? property.virtualTour.helpText
