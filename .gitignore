@@ -4,3 +4,5 @@ push.bat
 /public/uploads/propiedades/*
 !/public/uploads/propiedades/.htaccess
 !/public/uploads/propiedades/.gitkeep
+storage/recorridos/*
+!storage/recorridos/.gitkeep

@@ -72,7 +72,7 @@ if (!empty($currentUser['id'])) {
     </script>
 
     <!-- CSS Principal -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.3">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.5">
 </head>
 
 <body class="page-<?= htmlspecialchars($activePage ?? 'public', ENT_QUOTES, 'UTF-8') ?>">

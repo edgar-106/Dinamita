@@ -277,3 +277,8 @@ C:\xampp\php\php.exe scripts/habilitar_propietario.php --identidad-verificada co
 ```
 
 El comando genera una contraseña nueva y la muestra solo en la consola local, para entregarla por un canal privado. No cambia la titularidad, no permite recuperar administradores y no debe ejecutarse solo porque alguien conozca un correo. No se implementa recuperación automática por correo porque el proyecto no tiene un servicio de correo configurado.
+# Recorridos con fotografías normales o panorámicas
+
+Desde **Mis propiedades → Crear o editar recorrido con fotos** se pueden cargar espacios y conectarlos con puntos interactivos. Hay borrador privado, publicación y vista previa. Las panorámicas tienen visor con giro, zoom y pantalla completa. Se puede declarar cobertura de 180°, 270° o 360°; una vuelta completa requiere haber capturado toda la vuelta.
+
+Para bases existentes aplicar `database/migrations/20261126_recorridos_fotos.sql`. La documentación de instalación, seguridad, endpoints y contrato propuesto para integrar video está en [docs/recorridos-fotos-integracion.md](docs/recorridos-fotos-integracion.md).

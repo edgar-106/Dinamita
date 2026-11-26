@@ -12,6 +12,6 @@ Options -Indexes
     RewriteEngine On
 
     # Bloquear acceso directo por HTTP a código fuente, esquemas y archivos de configuración
-    RewriteRule ^(app|database|scripts|legacy)(/.*)?$ - [F,L]
+    RewriteRule ^(app|database|scripts|legacy|storage)(/.*)?$ - [F,L]
     RewriteRule ^(composer\.json|README\.md|\.env.*|\.gitignore)$ - [F,L]
 </IfModule>

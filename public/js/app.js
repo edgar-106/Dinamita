@@ -1095,7 +1095,7 @@ function showProperty(id) {
     const hasTour = !!(property.virtualTour && property.virtualTour.url);
     if (btnInteractivo) {
         btnInteractivo.style.opacity = hasTour ? '1' : '0.55';
-        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo 360° no disponible para esta propiedad';
+        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo' : 'Recorrido interactivo no disponible para esta propiedad';
     }
 
     const btnStatic360 = document.getElementById('btnMediaStatic360');
@@ -1201,6 +1201,13 @@ function openMediaTour(type) {
 
     hideAllTourContainers();
 
+    if (type === 'interactivo' && property.virtualTour && property.virtualTour.url.startsWith('recorridos/')) {
+        closeModal('propertyModal');
+        openModal('tourModal');
+        loadInteractiveTourIframe(property);
+        return;
+    }
+
     if (type === 'static360') {
         closeModal('propertyModal');
         openModal('tourModal');
@@ -1277,8 +1284,8 @@ function loadInteractiveTourIframe(property) {
     const finalUrl = tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
 
     if (iframeBox) iframeBox.style.display = 'block';
-    if (iframePlayer) iframePlayer.src = finalUrl;
-    if (switchBtn) switchBtn.style.display = 'inline-block';
+    if (iframePlayer) { iframePlayer.src = finalUrl; iframePlayer.title = property.virtualTour.title || 'Recorrido interactivo'; }
+    if (switchBtn) switchBtn.style.display = Array.isArray(property.virtualTour.staticViews) && property.virtualTour.staticViews.length ? 'inline-block' : 'none';
     if (help) {
         help.textContent = (property.virtualTour && property.virtualTour.helpText)
             ? property.virtualTour.helpText
@@ -1792,7 +1799,7 @@ async function sendMessage() {
                 const card = document.createElement('div');
                 card.className = 'chat-prop-card';
                 const tourBtnHtml = (prop.virtualTour && prop.virtualTour.url)
-                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido 360°</button>'
+                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido interactivo</button>'
                     : '';
 
                 card.innerHTML =

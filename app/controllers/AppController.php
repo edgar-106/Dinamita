@@ -69,6 +69,7 @@ class AppController extends Controller {
         }
 
         $tourUrl = strtolower((string) ($selectedProperty['virtualTour']['url'] ?? ''));
+        if (str_starts_with($tourUrl,'recorridos/')) $this->redirect($tourUrl);
         if ($prop === 'industrial' || in_array($prop, ['6', '10'], true) || str_contains($tourUrl, 'industrial')) {
             $this->renderView('tour/industrial', [
                 'tourPreApproved'  => $isApproved,

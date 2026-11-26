@@ -155,7 +155,7 @@ $heroMeta = $titlesMap[$initType] ?? $titlesMap['all'];
                     </button>
                     <span class="property-tag"><?= htmlspecialchars($prop['operation_label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <?php if (!empty($prop['virtualTour']['url'])): ?>
-                    <span class="property-tour-badge">🕶️ Tour 360°</span>
+                    <span class="property-tour-badge"><?= str_starts_with((string)($prop['virtualTour']['url']??''),'recorridos/') ? '📷 Recorrido por fotos' : '🕶️ Tour 360°' ?></span>
                     <?php endif; ?>
                     <button
                         type="button"
