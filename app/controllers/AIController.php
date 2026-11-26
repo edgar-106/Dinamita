@@ -372,6 +372,18 @@ class AIController extends Controller {
             ];
         }
 
+        // Preguntas sobre una propiedad concreta del catálogo (precio, ubicación, detalles...).
+        $mentioned = $this->findPropertyMention($q, $properties);
+        if ($mentioned !== null) {
+            return $this->describeProperty($mentioned, $this->detectPropertyIntent($q));
+        }
+
+        // Recomendaciones filtradas por operación, tipo, zona y presupuesto.
+        $recommendation = $this->recommendProperties($q, $properties);
+        if ($recommendation !== null) {
+            return $recommendation;
+        }
+
         if (str_contains($q, '3d') || str_contains($q, '360') || str_contains($q, 'recorrido') || str_contains($q, 'tour') || str_contains($q, 'virtual')) {
             if (str_contains($q, 'industrial') || str_contains($q, 'terreno')) {
                 return [
@@ -469,5 +481,618 @@ class AIController extends Controller {
             'reply' => "Puedo ayudarte a encontrar el inmueble adecuado. Indícame si buscas **compra** o **renta**, la **ciudad/zona** y el tipo de propiedad (**casa, departamento o terreno**).\n\nTambién puedes explorar:\n• 🏡 Casas, departamentos y terrenos con galería completa.\n• 🕶️ Recorridos virtuales 360° y galería estática accesible.\n• 💳 Información legal y opciones de pago abiertas en cada ficha.",
             'related' => [],
         ];
+    }
+
+    /**
+     * Devuelve la propiedad cuyo título aparece completo en la consulta.
+     */
+    private function hasFullTitleMention(string $q, array $properties): ?array {
+        foreach ($properties as $property) {
+            $title = $this->normalizeSearchText((string) ($property['title'] ?? ''));
+            if ($title !== '' && str_contains($q, $title)) {
+                return $property;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Detecta si el usuario pide recomendaciones u opciones.
+     */
+    private function hasRecommendationTrigger(string $q): bool {
+        $triggers = [
+            'recomienda', 'recomiendame', 'recomiendan', 'recomendar', 'recomendacion',
+            'sugiere', 'sugiereme', 'sugerencia', 'busco', 'buscando', 'quiero',
+            'necesito', 'me interesa', 'me gustaria', 'opciones', 'alternativas',
+            'presupuesto', 'conviene', 'asesorame', 'ayudame a encontrar',
+        ];
+        foreach ($triggers as $trigger) {
+            if (str_contains($q, $trigger)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Identifica la propiedad aludida en la pregunta del usuario.
+     */
+    private function findPropertyMention(string $q, array $properties): ?array {
+        $fullTitle = $this->hasFullTitleMention($q, $properties);
+        if ($fullTitle !== null) {
+            return $fullTitle;
+        }
+
+        $typeWords = ['casa', 'residencia', 'terreno', 'lote', 'departamento', 'villa'];
+        $locationWords = [
+            'monterrey', 'apodaca', 'merida', 'queretaro', 'cancun', 'cdmx', 'polanco',
+            'condesa', 'roma', 'santa', 'fe', 'cuajimalpa', 'cuauhtemoc', 'yucatan',
+            'qroo', 'norte', 'valle',
+        ];
+
+        $tokenFrequency = [];
+        $tokensByProperty = [];
+        foreach ($properties as $index => $property) {
+            $title = $this->normalizeSearchText((string) ($property['title'] ?? ''));
+            $words = array_values(array_unique(array_filter(
+                preg_split('/[^a-z0-9]+/', $title) ?: [],
+                fn($word) => $word !== '' && mb_strlen($word) >= 4
+            )));
+            $tokensByProperty[$index] = $words;
+            foreach ($words as $word) {
+                $tokenFrequency[$word] = ($tokenFrequency[$word] ?? 0) + 1;
+            }
+        }
+
+        $best = null;
+        $bestScore = 0;
+        $bestDistinctiveHits = 0;
+        $tie = false;
+
+        foreach ($properties as $index => $property) {
+            $score = 0;
+            $distinctiveHits = 0;
+            foreach ($tokensByProperty[$index] ?? [] as $word) {
+                if (!str_contains($q, $word)) {
+                    continue;
+                }
+                if (in_array($word, $typeWords, true) || in_array($word, $locationWords, true)) {
+                    $score += 40;
+                } elseif (($tokenFrequency[$word] ?? 1) === 1) {
+                    $score += 100;
+                    $distinctiveHits++;
+                } else {
+                    $score += 25;
+                }
+            }
+
+            $type = (string) ($property['type'] ?? '');
+            if ($type === 'terreno' && (str_contains($q, 'terreno') || str_contains($q, 'lote') || str_contains($q, 'predio'))) {
+                $score += 30;
+            } elseif ($type === 'casa' && (str_contains($q, 'casa') || str_contains($q, 'residencia') || str_contains($q, 'villa'))) {
+                $score += 30;
+            } elseif ($type === 'departamento' && (str_contains($q, 'departamento') || str_contains($q, 'depto') || str_contains($q, 'depa') || str_contains($q, 'loft') || str_contains($q, 'penthouse') || str_contains($q, 'estudio'))) {
+                $score += 30;
+            }
+
+            if ($score > $bestScore) {
+                $best = $property;
+                $bestScore = $score;
+                $bestDistinctiveHits = $distinctiveHits;
+                $tie = false;
+            } elseif ($score > 0 && $score === $bestScore) {
+                $tie = true;
+            }
+        }
+
+        if ($best === null || $bestScore < 100 || $tie) {
+            return null;
+        }
+        if ($bestDistinctiveHits === 0 && $this->hasRecommendationTrigger($q)) {
+            return null;
+        }
+
+        return $best;
+    }
+
+    /**
+     * Determina qué aspecto de la propiedad le interesa al usuario.
+     */
+    private function detectPropertyIntent(string $q): string {
+        $intents = [
+            'precio' => ['precio', 'cuesta', 'costo', 'cuanto', 'valor', 'vale', 'barato', 'caro', 'cotizacion'],
+            'ubicacion' => ['donde', 'ubicacion', 'ubicad', 'zona', 'direccion', 'colonia', 'ciudad', 'llegar', 'mapa'],
+            'disponibilidad' => ['disponible', 'sigue', 'vendida', 'vendido', 'ocupada', 'ocupado', 'rentada', 'rentado', 'estatus', 'todavia'],
+            'recorrido' => ['recorrido', 'tour', '360', 'virtual', 'fotos', 'video', 'galeria', 'imagenes', 'ver'],
+            'legal' => ['legal', 'escritura', 'gravamen', 'predial', 'document', 'papel', 'rpp', 'notaria', 'fideicomiso'],
+            'pago' => ['pago', 'credito', 'financiamiento', 'infonavit', 'fovissste', 'mensualidad', 'enganche', 'banco', 'contado'],
+            'renta' => ['renta', 'rentar', 'arrendar', 'alquiler', 'mensual', 'deposito'],
+            'venta' => ['venta', 'comprar', 'compra', 'adquirir'],
+            'detalles' => ['habitacion', 'recamara', 'bano', 'banos', 'metro', 'm2', 'superficie', 'amenidad', 'caracteristica', 'distribucion', 'terraza', 'alberca', 'cochera', 'estacionamiento'],
+        ];
+
+        foreach ($intents as $intent => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($q, $keyword)) {
+                    return $intent;
+                }
+            }
+        }
+
+        return 'resumen';
+    }
+
+    /**
+     * Construye una respuesta concreta sobre una propiedad del catálogo.
+     */
+    private function describeProperty(array $property, string $intent): array {
+        $id = (int) ($property['id'] ?? 0);
+        $title = (string) ($property['title'] ?? 'esta propiedad');
+        $price = (string) ($property['price'] ?? '');
+        $location = (string) ($property['full_location'] ?? $property['location'] ?? '');
+        $typeLabel = (string) ($property['type_label'] ?? '');
+        $operationLabel = (string) ($property['operation_label'] ?? '');
+        $favorites = $this->currentFavoriteIds();
+        $isFavorite = in_array($id, $favorites, true);
+        $favoriteNote = $isFavorite ? "\n\n⭐ Ya la tienes guardada en **Favoritos**." : '';
+
+        switch ($intent) {
+            case 'precio':
+                $reply = "**{$title}** tiene un precio de **{$price}**";
+                $reply .= $property['operation'] === 'rentar'
+                    ? " (renta mensual)."
+                    : " (operación: {$operationLabel}).";
+                if (!empty($property['payment_options'])) {
+                    $reply .= "\n\n💳 Opciones de pago:\n" . $this->bulletList($property['payment_options']);
+                }
+                $reply .= "\n\n¿Quieres que revise si se ajusta a tu presupuesto o te muestre opciones similares?";
+                break;
+
+            case 'ubicacion':
+                $reply = "**{$title}** se ubica en **{$location}**.";
+                if (!empty($property['description'])) {
+                    $reply .= "\n\n📍 " . $this->shortenText((string) $property['description'], 220);
+                }
+                $reply .= "\n\nPuedes abrir su ficha para ver la zona, la galería y agendar una visita.";
+                break;
+
+            case 'disponibilidad':
+                $reply = "Sí, **{$title}** aparece como **disponible** en nuestro catálogo vigente ({$operationLabel}, {$typeLabel}).";
+                $reply .= "\n\nSi quieres asegurarla, te recomiendo agendar una visita o contactar a un asesor desde su ficha.";
+                break;
+
+            case 'recorrido':
+                if (!empty($property['virtualTour'])) {
+                    $tourTitle = (string) ($property['virtualTour']['title'] ?? 'Recorrido virtual');
+                    $reply = "¡Claro! **{$title}** cuenta con **{$tourTitle}**.";
+                    if (!empty($property['virtualTour']['subtitle'])) {
+                        $reply .= "\n\n🕶️ " . $property['virtualTour']['subtitle'];
+                    }
+                    $reply .= "\n\nAbre la ficha y pulsa **Recorrido 360°** para explorarlo.";
+                } else {
+                    $reply = "**{$title}** no tiene recorrido virtual publicado por ahora, pero su ficha incluye **galería fotográfica completa**.";
+                    $reply .= "\n\n¿Quieres que te recomiende propiedades con recorrido 360°?";
+                }
+                break;
+
+            case 'legal':
+                $reply = "Situación legal de **{$title}**:\n" . $this->bulletList($property['legal_details'] ?? []);
+                $reply .= "\n\nToda la documentación se revisa con notaría antes de cerrar la operación.";
+                break;
+
+            case 'pago':
+                $reply = "Para **{$title}** ({$operationLabel}) estas son las opciones de pago:\n" . $this->bulletList($property['payment_options'] ?? []);
+                $reply .= "\n\nPrecio: **{$price}**. Puedo ayudarte a comparar contra otras propiedades si me dices tu presupuesto.";
+                break;
+
+            case 'renta':
+            case 'venta':
+                $reply = "**{$title}** está en **{$operationLabel}** con un precio de **{$price}**.";
+                $reply .= "\n\n• Tipo: {$typeLabel}\n• Ubicación: {$location}";
+                if (!empty($property['details'])) {
+                    $reply .= "\n• " . implode("\n• ", array_slice($property['details'], 0, 5));
+                }
+                $reply .= "\n\n¿Te gustaría conocer las condiciones legales o agendar una visita?";
+                break;
+
+            case 'detalles':
+                $reply = "Estos son los detalles de **{$title}**:\n";
+                if (!empty($property['stats'])) {
+                    $reply .= '• ' . implode(' · ', $property['stats']) . "\n";
+                }
+                $reply .= '• Tipo: ' . $typeLabel . "\n• Operación: " . $operationLabel . "\n• Ubicación: " . $location;
+                if (!empty($property['description'])) {
+                    $reply .= "\n\n" . $this->shortenText((string) $property['description'], 260);
+                }
+                break;
+
+            default:
+                $reply = "**{$title}** es un(a) **{$typeLabel}** en **{$operationLabel}** por **{$price}**.";
+                if (!empty($property['stats'])) {
+                    $reply .= "\n\n📐 " . implode(' · ', $property['stats']);
+                }
+                $reply .= "\n📍 " . $location;
+                if (!empty($property['description'])) {
+                    $reply .= "\n\n" . $this->shortenText((string) $property['description'], 240);
+                }
+                $reply .= "\n\nPuedo darte el precio, la ubicación, los detalles legales, las formas de pago o el recorrido virtual. ¿Qué te interesa?";
+                break;
+        }
+
+        return [
+            'reply' => $reply . $favoriteNote,
+            'related' => $id > 0 ? [$id] : [],
+        ];
+    }
+
+    /**
+     * Genera recomendaciones filtradas por operación, tipo, zona y presupuesto.
+     */
+    private function recommendProperties(string $q, array $properties): ?array {
+        if ($this->hasFullTitleMention($q, $properties)) {
+            return null;
+        }
+        if (!$this->hasRecommendationTrigger($q)) {
+            return null;
+        }
+
+        $operation = null;
+        if (preg_match('/\b(renta|rentar|alquilar|alquiler|arrendar|mensual)\b/', $q)) {
+            $operation = 'rentar';
+        } elseif (preg_match('/\b(comprar|compra|venta|adquirir|invertir)\b/', $q)) {
+            $operation = 'comprar';
+        }
+
+        $type = null;
+        if (preg_match('/\b(terreno|lote|predio|macrolote)s?\b/', $q)) {
+            $type = 'terreno';
+        } elseif (preg_match('/\b(casa|residencia|villa)s?\b/', $q)) {
+            $type = 'casa';
+        } elseif (preg_match('/\b(departamento|depto|depa|loft|penthouse|estudio)s?\b/', $q)) {
+            $type = 'departamento';
+        }
+
+        $zones = [
+            'san pedro', 'monterrey', 'apodaca', 'merida', 'yucatan', 'queretaro',
+            'cancun', 'cdmx', 'ciudad de mexico', 'polanco', 'condesa', 'roma norte',
+            'roma', 'santa fe', 'cuajimalpa', 'cuauhtemoc',
+        ];
+        $zoneLabels = [
+            'san pedro' => 'San Pedro', 'monterrey' => 'Monterrey', 'apodaca' => 'Apodaca',
+            'merida' => 'Mérida', 'yucatan' => 'Yucatán', 'queretaro' => 'Querétaro',
+            'cancun' => 'Cancún', 'cdmx' => 'CDMX', 'ciudad de mexico' => 'CDMX',
+            'polanco' => 'Polanco', 'condesa' => 'Condesa', 'roma norte' => 'Roma Norte',
+            'roma' => 'Roma', 'santa fe' => 'Santa Fe', 'cuajimalpa' => 'Cuajimalpa',
+            'cuauhtemoc' => 'Cuauhtémoc',
+        ];
+        $zoneHits = [];
+        foreach ($zones as $zone) {
+            if (str_contains($q, $zone)) {
+                $zoneHits[] = $zone;
+            }
+        }
+
+        $budget = $this->parseBudget($q);
+
+        $featured = ($operation === null && $type === null && empty($zoneHits) && $budget === null);
+
+        $matchesZone = function (array $property) use ($zoneHits): bool {
+            if (empty($zoneHits)) {
+                return true;
+            }
+            $haystack = $this->normalizeSearchText(
+                ($property['location'] ?? '') . ' ' . ($property['full_location'] ?? '') . ' ' . ($property['title'] ?? '')
+            );
+            foreach ($zoneHits as $zone) {
+                if (str_contains($haystack, $zone)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        $baseFilter = function (array $property) use ($operation, $type, $matchesZone): bool {
+            if ($operation !== null && ($property['operation'] ?? '') !== $operation) {
+                return false;
+            }
+            if ($type !== null && ($property['type'] ?? '') !== $type) {
+                return false;
+            }
+            return $matchesZone($property);
+        };
+
+        $matchesBudget = function (array $property) use ($budget): bool {
+            if ($budget === null) {
+                return true;
+            }
+            $price = (float) ($property['raw_price'] ?? 0);
+            if (isset($budget['min']) && $price < $budget['min']) {
+                return false;
+            }
+            if (isset($budget['max']) && $price > $budget['max']) {
+                return false;
+            }
+            return true;
+        };
+
+        $candidates = array_values(array_filter($properties, $baseFilter));
+        $withinBudget = array_values(array_filter($candidates, $matchesBudget));
+
+        $adjusted = null;
+        $favorites = $this->currentFavoriteIds();
+        if ($featured) {
+            $withinBudget = $this->featuredProperties($properties, $favorites);
+        } elseif (empty($withinBudget) && $budget !== null) {
+            $adjusted = 'presupuesto';
+            $withinBudget = $candidates;
+        }
+        if (!$featured && empty($withinBudget) && !empty($zoneHits)) {
+            $adjusted = 'zona';
+            $withinBudget = array_values(array_filter($properties, function (array $property) use ($operation, $type): bool {
+                if ($operation !== null && ($property['operation'] ?? '') !== $operation) {
+                    return false;
+                }
+                return $type === null || ($property['type'] ?? '') === $type;
+            }));
+        }
+        if (empty($withinBudget)) {
+            $adjusted = 'filtros';
+            $withinBudget = $properties;
+        }
+
+        usort($withinBudget, function (array $a, array $b) use ($favorites, $adjusted, $budget): int {
+            $aFav = in_array((int) ($a['id'] ?? 0), $favorites, true);
+            $bFav = in_array((int) ($b['id'] ?? 0), $favorites, true);
+            if ($aFav !== $bFav) {
+                return $aFav ? -1 : 1;
+            }
+
+            if ($adjusted === 'presupuesto' && $budget !== null) {
+                $distance = function (array $property) use ($budget): float {
+                    $price = (float) ($property['raw_price'] ?? 0);
+                    if (isset($budget['min']) && $price < $budget['min']) {
+                        return $budget['min'] - $price;
+                    }
+                    if (isset($budget['max']) && $price > $budget['max']) {
+                        return $price - $budget['max'];
+                    }
+                    return 0.0;
+                };
+                $diff = $distance($a) <=> $distance($b);
+                if ($diff !== 0) {
+                    return $diff;
+                }
+            }
+
+            return ((float) ($a['raw_price'] ?? 0)) <=> ((float) ($b['raw_price'] ?? 0));
+        });
+
+        $top = array_slice($withinBudget, 0, 4);
+
+        $criteria = [];
+        if ($type !== null) {
+            $criteria[] = $type === 'terreno' ? 'terrenos' : ($type === 'casa' ? 'casas' : 'departamentos');
+        }
+        if ($operation !== null) {
+            $criteria[] = $operation === 'rentar' ? 'en renta' : 'en venta';
+        }
+        if (!empty($zoneHits)) {
+            $criteria[] = 'en ' . ($zoneLabels[$zoneHits[0]] ?? mb_convert_case($zoneHits[0], MB_CASE_TITLE, 'UTF-8'));
+        }
+        if ($budget !== null && isset($budget['max'])) {
+            $suffix = $operation === 'rentar' ? ' al mes' : '';
+            if (isset($budget['min'])) {
+                $criteria[] = 'entre $' . number_format((float) $budget['min'], 0) . ' y $' . number_format((float) $budget['max'], 0) . $suffix;
+            } else {
+                $criteria[] = 'hasta $' . number_format((float) $budget['max'], 0) . $suffix;
+            }
+        }
+
+        $reply = "Claro 😊 ";
+        if ($featured) {
+            $reply .= "Estas son algunas opciones destacadas de nuestro catálogo:";
+        } else {
+            $reply .= empty($criteria)
+                ? "Estas son las opciones que mejor se ajustan a lo que buscas:"
+                : "Buscando **" . implode(' ', $criteria) . "** encontré estas opciones:";
+        }
+
+        if ($adjusted === 'presupuesto') {
+            $reply .= "\n\n⚠️ No hay coincidencias exactas dentro de ese presupuesto, pero estas son las más cercanas:";
+        } elseif ($adjusted === 'zona') {
+            $reply .= "\n\n⚠️ No hay opciones en esa zona con esos filtros; te muestro alternativas equivalentes:";
+        } elseif ($adjusted === 'filtros') {
+            $reply .= "\n\n⚠️ No encontré coincidencias exactas; estas son las opciones disponibles:";
+        }
+
+        $reply .= "\n";
+        foreach ($top as $property) {
+            $reply .= "\n" . $this->propertySummaryLine($property, $favorites);
+        }
+
+        $favoriteResults = array_filter($top, fn($property) => in_array((int) ($property['id'] ?? 0), $favorites, true));
+        if (!empty($favoriteResults)) {
+            $reply .= "\n\n⭐ Incluí propiedades que ya tienes en **Favoritos** para que las compares primero.";
+        }
+
+        $pick = $top[0] ?? null;
+        if ($pick !== null) {
+            $reply .= "\n\n💡 **Mi recomendación:** **{$pick['title']}**";
+            $reply .= " por **{$pick['price']}** en {$pick['full_location']}";
+            if (!empty($pick['stats'])) {
+                $reply .= ' (' . implode(' · ', array_slice($pick['stats'], 0, 3)) . ')';
+            }
+            $reply .= ". Es la que mejor equilibra precio y características de tu búsqueda.";
+        }
+
+        $reply .= "\n\n¿Quieres que te muestre la ficha completa, el recorrido 360° o que ajuste la búsqueda?";
+
+        return [
+            'reply' => $reply,
+            'related' => array_map(fn($property) => (int) $property['id'], $top),
+        ];
+    }
+
+    /**
+     * Selección curada cuando el usuario pide recomendaciones sin filtros.
+     */
+    private function featuredProperties(array $properties, array $favoriteIds): array {
+        $picked = [];
+        $seen = [];
+
+        foreach ($properties as $property) {
+            $id = (int) ($property['id'] ?? 0);
+            if (in_array($id, $favoriteIds, true) && !isset($seen[$id])) {
+                $picked[] = $property;
+                $seen[$id] = true;
+            }
+        }
+
+        $cheapestByKey = [];
+        foreach ($properties as $property) {
+            $key = ($property['type'] ?? '') . '|' . ($property['operation'] ?? '');
+            if (!isset($cheapestByKey[$key]) || ((float) ($property['raw_price'] ?? 0)) < ((float) ($cheapestByKey[$key]['raw_price'] ?? 0))) {
+                $cheapestByKey[$key] = $property;
+            }
+        }
+
+        foreach ($cheapestByKey as $property) {
+            if (count($picked) >= 4) {
+                break;
+            }
+            $id = (int) ($property['id'] ?? 0);
+            if (!isset($seen[$id])) {
+                $picked[] = $property;
+                $seen[$id] = true;
+            }
+        }
+
+        return array_slice($picked, 0, 4);
+    }
+
+    /**
+     * Extrae un rango de presupuesto en pesos desde el texto del usuario.
+     */
+    private function parseBudget(string $q): ?array {
+        $unitPattern = '(millones|millon|mdp|mill|mil|k)';
+
+        if (preg_match('/(?:entre|de)\s+\$?([0-9][0-9.,]*)\s*' . $unitPattern . '?\s+(?:y|a|hasta)\s+\$?([0-9][0-9.,]*)\s*' . $unitPattern . '?/', $q, $range)) {
+            $unitA = $range[2] ?? '';
+            $unitB = $range[4] ?? '';
+            if ($unitA === '' && $unitB !== '') {
+                $unitA = $unitB;
+            }
+            if ($unitB === '' && $unitA !== '') {
+                $unitB = $unitA;
+            }
+            $min = $this->parseAmount($range[1], $unitA);
+            $max = $this->parseAmount($range[3], $unitB);
+            if ($min !== null && $max !== null && $max >= $min) {
+                return ['min' => $min, 'max' => $max];
+            }
+        }
+
+        if (preg_match('/(?:hasta|menos de|maximo|no mas de|presupuesto de|presupuesto|tope)\s+\$?([0-9][0-9.,]*)\s*' . $unitPattern . '?/', $q, $maxMatch)) {
+            $unit = $maxMatch[2] ?? '';
+            $max = $this->parseAmount($maxMatch[1], $unit);
+            if ($max !== null && ($unit !== '' || $max >= 10000)) {
+                return ['max' => $max];
+            }
+        }
+
+        if (preg_match('/\$?([0-9][0-9.,]*)\s*' . $unitPattern . '\b/', $q, $unitMatch)) {
+            $max = $this->parseAmount($unitMatch[1], $unitMatch[2]);
+            if ($max !== null) {
+                return ['max' => $max];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Convierte una cifra con unidad (millones, mdp, mil, k) a pesos.
+     */
+    private function parseAmount(string $raw, string $unit = ''): ?float {
+        $raw = trim(str_replace(['$', ' '], '', $raw));
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{1,3}([.,]\d{3})+$/', $raw)) {
+            $value = (float) str_replace([',', '.'], '', $raw);
+        } else {
+            $value = (float) str_replace(',', '.', $raw);
+        }
+
+        $unit = $this->normalizeSearchText($unit);
+        if (in_array($unit, ['millon', 'millones', 'mdp', 'mill'], true)) {
+            $value *= 1000000;
+        } elseif (in_array($unit, ['mil', 'k'], true)) {
+            $value *= 1000;
+        }
+
+        return $value > 0 ? $value : null;
+    }
+
+    /**
+     * Línea resumida de una propiedad para listados de recomendaciones.
+     */
+    private function propertySummaryLine(array $property, array $favoriteIds): string {
+        $isFavorite = in_array((int) ($property['id'] ?? 0), $favoriteIds, true);
+        $bullet = $isFavorite ? '• ⭐ ' : '• ';
+        return "{$bullet}**{$property['title']}** ({$property['type_label']}, {$property['operation_label']}) — **{$property['price']}** — {$property['full_location']}";
+    }
+
+    /**
+     * Convierte un arreglo en una lista con viñetas.
+     */
+    private function bulletList(array $items): string {
+        $lines = [];
+        foreach ($items as $item) {
+            if (is_array($item)) {
+                $item = $item['label'] ?? $item['title'] ?? $item['code'] ?? '';
+            }
+            $item = trim((string) $item);
+            if ($item !== '') {
+                $lines[] = $item;
+            }
+        }
+        if (empty($lines)) {
+            return '• Información disponible en la ficha del inmueble.';
+        }
+        return '• ' . implode("\n• ", $lines);
+    }
+
+    /**
+     * Recorta un texto largo sin partir palabras.
+     */
+    private function shortenText(string $text, int $limit): string {
+        $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+        if (mb_strlen($text) <= $limit) {
+            return $text;
+        }
+        $cut = mb_substr($text, 0, $limit);
+        $space = mb_strrpos($cut, ' ');
+        if ($space !== false) {
+            $cut = mb_substr($cut, 0, $space);
+        }
+        return rtrim($cut, " ,.;:") . '…';
+    }
+
+    /**
+     * IDs favoritos del usuario en sesión (vacío si no hay sesión).
+     */
+    private function currentFavoriteIds(): array {
+        try {
+            $user = Usuario::current();
+            if (!$user || empty($user['id'])) {
+                return [];
+            }
+            return (new Propiedad())->getUserFavoriteIds((int) $user['id']);
+        } catch (Throwable $e) {
+            error_log('Error consultando favoritos en AI: ' . $e->getMessage());
+            return [];
+        }
     }
 }
