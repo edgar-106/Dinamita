@@ -513,6 +513,22 @@ CREATE TABLE IF NOT EXISTS `solicitud_contacto` (
   CONSTRAINT `fk_solicitud_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `notificacion` (
+  `id_notificacion` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(10) unsigned NOT NULL,
+  `id_propiedad` int(10) unsigned DEFAULT NULL,
+  `tipo` varchar(30) NOT NULL DEFAULT 'PROPIEDAD',
+  `mensaje` varchar(300) NOT NULL,
+  `leida` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_creacion` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_notificacion`),
+  KEY `idx_notificacion_usuario` (`id_usuario`),
+  KEY `idx_notificacion_propiedad` (`id_propiedad`),
+  CONSTRAINT `fk_notificacion_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_notificacion_propiedad` FOREIGN KEY (`id_propiedad`) REFERENCES `propiedad` (`id_propiedad`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- =========================================================================
 -- Catálogos iniciales
 -- =========================================================================

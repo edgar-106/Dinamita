@@ -17,15 +17,18 @@ class PublicacionesController extends Controller {
         $user = $this->user();
         $error = '';
         $listings = [];
+        $favorites = [];
         try {
-            $listings = (new Publicacion())->owned((int) $user['id']);
+            $ownerId = (int) $user['id'];
+            $listings = (new Publicacion())->owned($ownerId);
+            $favorites = (new Publicacion())->favorites($ownerId);
         } catch (Throwable $e) {
             error_log('Error cargando publicaciones: ' . $e->getMessage());
             $error = 'No fue posible cargar tus propiedades. Inténtalo de nuevo más tarde.';
         }
         $flash = $_SESSION['publication_flash'] ?? null;
         unset($_SESSION['publication_flash']);
-        $this->renderView('cuenta/propiedades', ['pageTitle' => 'Mis propiedades | INFONATEC', 'activePage' => 'mis-propiedades', 'owner' => $user, 'listings' => $listings, 'error' => $error, 'flash' => $flash]);
+        $this->renderView('cuenta/propiedades', ['pageTitle' => 'Mis propiedades | INFONATEC', 'activePage' => 'mis-propiedades', 'owner' => $user, 'listings' => $listings, 'favorites' => $favorites, 'error' => $error, 'flash' => $flash]);
     }
 
     public function edit(string $id): void {

@@ -10,23 +10,51 @@
             <button class="btn-outline" type="button" onclick="openModal('registerModal')">Crear cuenta</button>
             <p>Si publicaste antes sin cuenta y no tienes contraseña, contacta a administración para verificar tu identidad y habilitar tu acceso. No crees otra cuenta para recuperar ese anuncio.</p>
         </section>
-    <?php elseif (!$listings && empty($error)): ?>
-        <section class="owner-empty"><h2>Aún no tienes publicaciones</h2><p>Cuando publiques con esta cuenta, tus propiedades aparecerán aquí cada vez que inicies sesión.</p><a class="btn-primary" href="<?= BASE_URL ?>vender">Crear mi primer anuncio</a></section>
+    <?php else: ?>
+        <div class="owner-tabs" role="tablist">
+            <button type="button" class="owner-tab-btn is-active" data-owner-tab="publicaciones" role="tab" aria-selected="true">Publicaciones</button>
+            <button type="button" class="owner-tab-btn" data-owner-tab="favoritos" role="tab" aria-selected="false">Favoritos</button>
+        </div>
+        <section class="owner-tab-panel is-active" data-owner-tab-panel="publicaciones">
+            <?php if (!empty($error)): ?>
+                <p class="owner-notice" role="alert"><?= $esc($error) ?></p>
+            <?php elseif (empty($listings)): ?>
+                <section class="owner-empty"><h2>Aún no tienes publicaciones</h2><p>Cuando publiques con esta cuenta, tus propiedades aparecerán aquí cada vez que inicies sesión.</p><a class="btn-primary" href="<?= BASE_URL ?>vender">Crear mi primer anuncio</a></section>
+            <?php else: ?>
+                <div class="owner-grid">
+                <?php foreach ($listings as $listing): $withdrawn = $listing['fecha_retiro'] !== null; ?>
+                    <article class="owner-card">
+                        <img src="<?= $esc(Propiedad::resolveAssetUrl($listing['imagen'])) ?>" alt="<?= $esc($listing['titulo']) ?>" loading="lazy">
+                        <div class="owner-card-body"><p class="owner-eyebrow"><?= $esc($withdrawn ? 'RETIRADA' : $listing['estado']) ?> · <?= $esc($listing['operacion']) ?></p>
+                            <h2><?= $esc($listing['titulo']) ?></h2><p><?= $esc($listing['ubicacion']) ?></p><p class="owner-price">$<?= number_format((float) $listing['precio'], 2) ?> MXN<?= $listing['operacion'] === 'RENTA' ? ' / mes' : '' ?></p>
+                            <?php if (!$withdrawn && $listing['estado'] === 'DISPONIBLE'): ?>
+                            <div class="owner-actions"><a class="btn-primary" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/editar">Editar</a>
+                                <form method="post" action="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/retirar" onsubmit="return confirm('¿Retirar esta propiedad del catálogo? Se conservará en tu historial.');">
+                                    <input type="hidden" name="_csrf" value="<?= $esc(Security::csrfToken()) ?>"><button class="btn-outline" type="submit">Retirar anuncio</button>
+                                </form></div>
+                            <?php else: ?><p>Este anuncio se conserva en tu historial y no permite cambios.</p><?php endif; ?>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </section>
+        <section class="owner-tab-panel" data-owner-tab-panel="favoritos">
+            <?php if (empty($favorites)): ?>
+                <section class="owner-empty"><h2>Aún no tienes favoritos</h2><p>Las propiedades que agregues a favoritos aparecerán aquí.</p></section>
+            <?php else: ?>
+                <div class="owner-grid">
+                <?php foreach ($favorites as $listing): ?>
+                    <article class="owner-card">
+                        <img src="<?= $esc(Propiedad::resolveAssetUrl($listing['imagen'])) ?>" alt="<?= $esc($listing['titulo']) ?>" loading="lazy">
+                        <div class="owner-card-body"><p class="owner-eyebrow"><?= $esc($listing['estado']) ?> · <?= $esc($listing['operacion']) ?></p>
+                            <h2><?= $esc($listing['titulo']) ?></h2><p><?= $esc($listing['ubicacion']) ?></p><p class="owner-price">$<?= number_format((float) $listing['precio'], 2) ?> MXN<?= $listing['operacion'] === 'RENTA' ? ' / mes' : '' ?></p>
+                            <div class="owner-actions"><a class="btn-primary" href="<?= BASE_URL ?>explorar">Ver en el catálogo</a></div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </section>
     <?php endif; ?>
-    <div class="owner-grid">
-    <?php foreach ($listings as $listing): $withdrawn = $listing['fecha_retiro'] !== null; ?>
-        <article class="owner-card">
-            <img src="<?= $esc(Propiedad::resolveAssetUrl($listing['imagen'])) ?>" alt="<?= $esc($listing['titulo']) ?>" loading="lazy">
-            <div class="owner-card-body"><p class="owner-eyebrow"><?= $esc($withdrawn ? 'RETIRADA' : $listing['estado']) ?> · <?= $esc($listing['operacion']) ?></p>
-                <h2><?= $esc($listing['titulo']) ?></h2><p><?= $esc($listing['ubicacion']) ?></p><p class="owner-price">$<?= number_format((float) $listing['precio'], 2) ?> MXN<?= $listing['operacion'] === 'RENTA' ? ' / mes' : '' ?></p>
-                <?php if (!$withdrawn && $listing['estado'] === 'DISPONIBLE'): ?>
-                <div class="owner-actions"><a class="btn-primary" href="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/editar">Editar</a>
-                    <form method="post" action="<?= BASE_URL ?>mis-propiedades/<?= (int) $listing['id_propiedad'] ?>/retirar" onsubmit="return confirm('¿Retirar esta propiedad del catálogo? Se conservará en tu historial.');">
-                        <input type="hidden" name="_csrf" value="<?= $esc(Security::csrfToken()) ?>"><button class="btn-outline" type="submit">Retirar anuncio</button>
-                    </form></div>
-                <?php else: ?><p>Este anuncio se conserva en tu historial y no permite cambios.</p><?php endif; ?>
-            </div>
-        </article>
-    <?php endforeach; ?>
-    </div>
 </main>

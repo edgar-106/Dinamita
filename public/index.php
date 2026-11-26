@@ -32,6 +32,8 @@ $router->post('/api/contacto', 'ApiController@createContact');
 $router->get('/api/favoritos', 'ApiController@favorites');
 $router->post('/api/favoritos/toggle', 'ApiController@toggleFavorite');
 $router->post('/api/favoritos/sync', 'ApiController@syncFavorites');
+$router->get('/api/notificaciones', 'ApiController@notifications');
+$router->post('/api/notificaciones/leer', 'ApiController@markNotificationsRead');
 
 // --- Rutas de Inteligencia Artificial ---
 $router->post('/api/ai/chat', 'ApiController@chat');
