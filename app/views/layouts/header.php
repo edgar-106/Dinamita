@@ -81,7 +81,7 @@ if (!empty($currentUser['id'])) {
     </script>
 
     <!-- CSS Principal -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.2">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/styles.css?v=6.5">
 </head>
 
 <body class="page-<?= htmlspecialchars($activePage ?? 'public', ENT_QUOTES, 'UTF-8') ?>">
@@ -167,8 +167,8 @@ if (!empty($currentUser['id'])) {
 
         <?php if (($activePage ?? '') === 'home'): ?>
         <div class="nav-operation-tabs" aria-label="Tipo de operación">
-            <button type="button" class="filter-btn active" id="op-comprar" onclick="openCatalogForOperation('comprar')">Adquirir</button>
-            <button type="button" class="filter-btn" id="op-rentar" onclick="openCatalogForOperation('rentar')">Rentar</button>
+            <a href="<?= BASE_URL ?>explorar?operacion=comprar" class="filter-btn active" id="op-comprar">Adquirir</a>
+            <a href="<?= BASE_URL ?>explorar?operacion=rentar" class="filter-btn" id="op-rentar">Rentar</a>
         </div>
         <?php endif; ?>
     </div>

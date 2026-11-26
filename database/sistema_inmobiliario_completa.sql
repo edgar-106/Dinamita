@@ -21,6 +21,8 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `sistema_inmobiliario` /*!40100 DEFAULT
 
 USE `sistema_inmobiliario`;
 
+DROP TABLE IF EXISTS `recorrido_archivo`;
+DROP TABLE IF EXISTS `recorrido_foto`;
 DROP TABLE IF EXISTS `solicitud_contacto`;
 DROP TABLE IF EXISTS `favorito`;
 DROP TABLE IF EXISTS `asignacion_transporte`;
@@ -692,3 +694,23 @@ INSERT IGNORE INTO `vehiculo` (`id_vehiculo`, `placa`, `tipo`, `marca`, `modelo`
 
 INSERT IGNORE INTO `asignacion_transporte` (`id_asignacion`, `id_propiedad`, `id_vehiculo`, `id_cita`, `fecha_salida`, `fecha_llegada`, `estado`, `observaciones`) VALUES
 (1, 2, 1, 1, DATE_ADD(NOW(), INTERVAL 2 DAY), DATE_ADD(DATE_ADD(NOW(), INTERVAL 2 DAY), INTERVAL 2 HOUR), 'PROGRAMADA', 'Traslado de cliente para visita');
+
+-- Recorridos por fotografías (26 de noviembre de 2026).
+USE sistema_inmobiliario;
+CREATE TABLE IF NOT EXISTS recorrido_foto (
+ id_recorrido INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ id_propiedad INT UNSIGNED NOT NULL UNIQUE,
+ borrador LONGTEXT NOT NULL,
+ publicado LONGTEXT DEFAULT NULL,
+ version INT UNSIGNED NOT NULL DEFAULT 0,
+ FOREIGN KEY (id_propiedad) REFERENCES propiedad(id_propiedad) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS recorrido_archivo (
+ id_archivo INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ id_recorrido INT UNSIGNED NOT NULL,
+ ruta VARCHAR(100) NOT NULL,
+ mime VARCHAR(30) NOT NULL,
+ ancho INT UNSIGNED NOT NULL,
+ alto INT UNSIGNED NOT NULL,
+ FOREIGN KEY (id_recorrido) REFERENCES recorrido_foto(id_recorrido) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

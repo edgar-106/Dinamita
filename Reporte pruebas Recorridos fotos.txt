@@ -1,0 +1,72 @@
+INFONATEC - RECORRIDOS CON FOTOGRAFIAS
+26 de noviembre de 2026
+
+FUNCIONES IMPLEMENTADAS
+- Editor accesible desde Mis propiedades, con carga real JPG/PNG/WEBP.
+- Escenas normales y panoramicas horizontales desplazables.
+- Nombres, escena inicial, puntos normalizados y conexiones direccionales.
+- Posicionamiento sobre la imagen o mediante campos numericos accesibles.
+- Vista previa del borrador guardado, publicacion y ocultamiento.
+- Publicar requiere que todas las escenas sean alcanzables desde el inicio.
+- El borrador no sustituye la publicacion hasta pulsar Publicar recorrido.
+- Los recorridos publicados se abren desde la ficha del catalogo.
+- Los recorridos anteriores de demostracion se conservan.
+
+VALIDACION AUTOMATIZADA
+scripts/test_recorridos_fotos.py: 38 comprobaciones satisfactorias.
+Incluye usuarios distintos, propiedad real con foto, permisos, CSRF, carga
+sin archivo, HTML disfrazado de JPG, limite de 8 MB, imagenes privadas,
+borrador, vista previa, escenas desconectadas, coordenadas invalidas,
+imagenes ajenas/inexistentes, conflictos entre pestanas, publicacion,
+integracion con la ficha, persistencia al volver a iniciar sesion,
+limpieza de archivos sin usar, ocultamiento, republicacion y bloqueo HTTP
+del almacenamiento privado.
+
+scripts/test_mis_propiedades.py: 28 comprobaciones satisfactorias nuevamente.
+SQL completo actualizado importado sin errores en base temporal: 21 tablas.
+41 archivos PHP revisados sin errores de sintaxis; JavaScript principal y
+recorridos-fotos.js sin errores de sintaxis.
+
+VALIDACION EN NAVEGADOR
+Ingreso con cuenta desechable y acceso desde Mis propiedades al editor.
+Navegacion Sala -> Cocina mediante punto de la foto.
+Conexion creada mediante campos de destino, etiqueta y posicion.
+Guardar borrador y Publicar recorrido con confirmacion visible.
+Panoramica movil a 390 px desplazable con teclado: scrollLeft=32,
+scrollWidth=538, clientWidth=313, sin desbordamiento horizontal de la pagina.
+Visor publico con navegacion entre escenas.
+Ficha de Explorar -> Recorrido interactivo -> escena Cocina en el iframe,
+sin mostrar el aviso exclusivo de recorridos 360 grados.
+Captura: C:/Users/enoc5/Downloads/INFONATEC_recorrido_fotos_prueba.png
+La captura utiliza fotografias de demostracion, no espacios reales del inmueble.
+
+BASE DE DATOS Y LIMPIEZA
+Respaldo previo en Descargas: INFONATEC_respaldo_antes_fotos_20261126.sql.
+Migracion 20261126_recorridos_fotos.sql aplicada a la base local.
+Se conservaron los 3 usuarios y 11 propiedades preexistentes.
+Se eliminaron todos los usuarios, propiedades e imagenes de estas pruebas;
+las dos tablas nuevas de recorridos quedaron vacias.
+
+LIMITACIONES DOCUMENTADAS
+Las panoramicas son imagenes horizontales, no reconstrucciones 360 o 3D.
+El modulo de video todavia no esta integrado. Campos y reglas propuestos
+para coordinarlo en docs/recorridos-fotos-integracion.md.
+No hay reconocimiento automatico de habitaciones ni procesamiento de video.
+
+
+AMPLIACION: VISOR PANORAMICO CON GIRO
+Pannellum local integrado con arrastre, zoom, pantalla completa y seleccion
+de cobertura capturada (180, 270, 360). Cobertura guardada en el JSON sin
+cambios adicionales al esquema. Puntos normalizados convertidos a pitch/yaw.
+Se verificaron giro y zoom con IMG_20261126_123938.jpg y colocacion de punto
+en el editor (x=55.3%, y=51.7%). Textura de visualizacion limitada a 4096 px
+por lado, sin modificar el archivo original. Encuadre ajustado al visor.
+40 pruebas HTTP satisfactorias con el archivo original, incluidas cobertura
+invalida y persistencia de 360 declarados. Los fixtures se eliminaron.
+Evidencia: C:/Users/enoc5/Downloads/INFONATEC_visor_giro_panoramico.png
+
+REDISENO FINAL
+Paleta negra, gris y dorada en editor, visor y acceso a recorridos.
+Miniaturas de espacios y panel de configuracion. Compatibilidad EXIF y
+limite de 64 megapixeles. Cargador .env aislado por peticion; 50 solicitudes
+paralelas de imagenes satisfactorias durante la verificacion.

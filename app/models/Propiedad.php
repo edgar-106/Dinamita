@@ -129,6 +129,9 @@ class Propiedad extends Model {
                         CASE WHEN UPPER(p.operacion) = 'RENTA' THEN 'Renta' ELSE 'Venta' END AS operation_label,
                         e.nombre AS tag,
                         COALESCE((
+                            SELECT CONCAT('recorridos/', p.id_propiedad) FROM recorrido_foto rf
+                            WHERE rf.id_propiedad=p.id_propiedad AND rf.publicado IS NOT NULL
+                        ), (
                             SELECT pv.url_3d
                             FROM paseo_virtual pv
                             WHERE pv.id_propiedad = p.id_propiedad
@@ -391,6 +394,11 @@ class Propiedad extends Model {
      * Construye la metadata completa del recorrido 360° y su galería estática accesible.
      */
     private function buildVirtualTourPayload(int $id, string $title, string $tourUrl, string $tourDesc, ?string $videoPath): array {
+        if (str_starts_with($tourUrl,'recorridos/')) {
+            return ['type'=>'iframe','url'=>$tourUrl,'video'=>$videoPath,'title'=>'Recorrido por fotografías — '.$title,
+                'subtitle'=>'Explora los espacios conectados por el propietario.','helpText'=>'Usa los puntos o la lista de espacios. Desplaza horizontalmente las fotos panorámicas.',
+                'estimatedDataMb'=>8,'staticViews'=>[]];
+        }
         $isIndustrial = str_contains(strtolower($tourUrl), 'industrial');
 
         if ($isIndustrial) {

@@ -877,39 +877,38 @@ function applyCatalogFilters() {
     }
 }
 
-// Funciones públicas del flujo Home (#categoryChooser <-> #catalogView)
+function buildExplorarUrl(paramsObj) {
+    const baseUrl = getApiUrl('explorar');
+    const params = new URLSearchParams();
+    if (paramsObj && typeof paramsObj === 'object') {
+        Object.keys(paramsObj).forEach(function (key) {
+            const val = paramsObj[key];
+            if (val != null && val !== '' && val !== 'all') {
+                params.set(key, String(val));
+            }
+        });
+    }
+    const queryStr = params.toString();
+    return queryStr ? baseUrl + '?' + queryStr : baseUrl;
+}
+
+// Funciones públicas de navegación hacia la vista completa (/explorar)
 function openCategoryChooser() {
     const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = false;
-    if (catalog) catalog.hidden = true;
     const section = document.getElementById('adquirir');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (chooser && section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+    window.location.href = getApiUrl('#adquirir');
 }
 
 function selectCategory(type) {
-    const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = true;
-    if (catalog) catalog.hidden = false;
-
-    catalogState.type = type || 'all';
-    catalogState.operation = 'all';
-    applyCatalogFilters();
+    window.location.href = buildExplorarUrl({ tipo: type });
 }
 
 function openCatalogForOperation(operation) {
-    const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = true;
-    if (catalog) catalog.hidden = false;
-
-    catalogState.operation = operation || 'all';
-    catalogState.type = 'all';
-    applyCatalogFilters();
-
-    const section = document.getElementById('adquirir');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.location.href = buildExplorarUrl({ operacion: operation });
 }
 
 /* =========================================================
@@ -1118,7 +1117,7 @@ function showProperty(id) {
     const hasTour = !!(property.virtualTour && property.virtualTour.url);
     if (btnInteractivo) {
         btnInteractivo.style.opacity = hasTour ? '1' : '0.55';
-        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo 360°' : 'Recorrido interactivo 360° no disponible para esta propiedad';
+        btnInteractivo.title = hasTour ? 'Ver recorrido interactivo' : 'Recorrido interactivo no disponible para esta propiedad';
     }
 
     const btnStatic360 = document.getElementById('btnMediaStatic360');
@@ -1224,6 +1223,13 @@ function openMediaTour(type) {
 
     hideAllTourContainers();
 
+    if (type === 'interactivo' && property.virtualTour && property.virtualTour.url.startsWith('recorridos/')) {
+        closeModal('propertyModal');
+        openModal('tourModal');
+        loadInteractiveTourIframe(property);
+        return;
+    }
+
     if (type === 'static360') {
         closeModal('propertyModal');
         openModal('tourModal');
@@ -1300,8 +1306,8 @@ function loadInteractiveTourIframe(property) {
     const finalUrl = tourUrl + sep + 'approved=1&prop=' + encodeURIComponent(property.id);
 
     if (iframeBox) iframeBox.style.display = 'block';
-    if (iframePlayer) iframePlayer.src = finalUrl;
-    if (switchBtn) switchBtn.style.display = 'inline-block';
+    if (iframePlayer) { iframePlayer.src = finalUrl; iframePlayer.title = property.virtualTour.title || 'Recorrido interactivo'; }
+    if (switchBtn) switchBtn.style.display = Array.isArray(property.virtualTour.staticViews) && property.virtualTour.staticViews.length ? 'inline-block' : 'none';
     if (help) {
         help.textContent = (property.virtualTour && property.virtualTour.helpText)
             ? property.virtualTour.helpText
@@ -1815,7 +1821,7 @@ async function sendMessage() {
                 const card = document.createElement('div');
                 card.className = 'chat-prop-card';
                 const tourBtnHtml = (prop.virtualTour && prop.virtualTour.url)
-                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido 360°</button>'
+                    ? '<button type="button" class="chat-prop-btn chat-prop-btn-tour" onclick="handleChatTour(' + Number(prop.id) + ')">🕶️ Recorrido interactivo</button>'
                     : '';
 
                 card.innerHTML =
@@ -2255,12 +2261,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initCatalogFilters();
     initNotifications();
 
-    // Si la URL incluye ?categoria= en Home, abrir catálogo filtrado
+    // Si la URL incluye ?categoria= en Home, redirigir al catálogo completo filtrado
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('categoria');
-    if (categoryParam && document.getElementById('catalogView')) {
+    if (categoryParam && document.body.classList.contains('page-home')) {
         selectCategory(categoryParam);
-        const section = document.getElementById('adquirir');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
     }
 });

@@ -43,12 +43,9 @@ if (!function_exists('loadEnvFile')) {
                 }
             }
 
-            // No sobrescribir variables ya definidas en el entorno del proceso/servidor
-            if (getenv($key) === false && !array_key_exists($key, $_ENV) && !array_key_exists($key, $_SERVER)) {
-                putenv("{$key}={$val}");
-                $_ENV[$key] = $val;
-                $_SERVER[$key] = $val;
-            }
+            // Guardar por petición: putenv modifica el proceso compartido en Apache
+            // con hilos y puede provocar credenciales vacías en cargas paralelas.
+            $GLOBALS['infonatec_file_env'][$key] = $val;
         }
     }
 }
@@ -65,7 +62,7 @@ if (!function_exists('env')) {
         if ($val !== false) {
             return (string) $val;
         }
-        return $default;
+        return $GLOBALS['infonatec_file_env'][$key] ?? $default;
     }
 }
 

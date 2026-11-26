@@ -375,7 +375,7 @@
                 🎥 Video recorrido
             </button>
             <button type="button" id="btnMediaInteractivo" class="btn-media-option btn-media-option-tour" onclick="openMediaTour('interactivo')">
-                🕹️ Tour 360°
+                🕹️ Recorrido interactivo
             </button>
             <button type="button" id="btnMediaStatic360" class="btn-media-option" onclick="openMediaTour('static360')" hidden>
                 🖼️ Galería estática 360°
@@ -550,7 +550,7 @@
 </script>
 
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=6.1"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=6.3"></script>
 
 </body>
 </html>
