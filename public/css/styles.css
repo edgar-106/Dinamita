@@ -2397,6 +2397,10 @@ summary:focus-visible {
 }
 
 .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
     color: #fff;

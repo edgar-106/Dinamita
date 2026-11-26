@@ -855,39 +855,38 @@ function applyCatalogFilters() {
     }
 }
 
-// Funciones públicas del flujo Home (#categoryChooser <-> #catalogView)
+function buildExplorarUrl(paramsObj) {
+    const baseUrl = getApiUrl('explorar');
+    const params = new URLSearchParams();
+    if (paramsObj && typeof paramsObj === 'object') {
+        Object.keys(paramsObj).forEach(function (key) {
+            const val = paramsObj[key];
+            if (val != null && val !== '' && val !== 'all') {
+                params.set(key, String(val));
+            }
+        });
+    }
+    const queryStr = params.toString();
+    return queryStr ? baseUrl + '?' + queryStr : baseUrl;
+}
+
+// Funciones públicas de navegación hacia la vista completa (/explorar)
 function openCategoryChooser() {
     const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = false;
-    if (catalog) catalog.hidden = true;
     const section = document.getElementById('adquirir');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (chooser && section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+    window.location.href = getApiUrl('#adquirir');
 }
 
 function selectCategory(type) {
-    const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = true;
-    if (catalog) catalog.hidden = false;
-
-    catalogState.type = type || 'all';
-    catalogState.operation = 'all';
-    applyCatalogFilters();
+    window.location.href = buildExplorarUrl({ tipo: type });
 }
 
 function openCatalogForOperation(operation) {
-    const chooser = document.getElementById('categoryChooser');
-    const catalog = document.getElementById('catalogView');
-    if (chooser) chooser.hidden = true;
-    if (catalog) catalog.hidden = false;
-
-    catalogState.operation = operation || 'all';
-    catalogState.type = 'all';
-    applyCatalogFilters();
-
-    const section = document.getElementById('adquirir');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.location.href = buildExplorarUrl({ operacion: operation });
 }
 
 /* =========================================================
@@ -2078,12 +2077,10 @@ document.addEventListener('DOMContentLoaded', function () {
     loadInitialFavorites();
     initCatalogFilters();
 
-    // Si la URL incluye ?categoria= en Home, abrir catálogo filtrado
+    // Si la URL incluye ?categoria= en Home, redirigir al catálogo completo filtrado
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('categoria');
-    if (categoryParam && document.getElementById('catalogView')) {
+    if (categoryParam && document.body.classList.contains('page-home')) {
         selectCategory(categoryParam);
-        const section = document.getElementById('adquirir');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
     }
 });

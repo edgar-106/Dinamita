@@ -550,7 +550,7 @@
 </script>
 
 <!-- JavaScript Principal -->
-<script src="<?= BASE_URL ?>js/app.js?v=6.1"></script>
+<script src="<?= BASE_URL ?>js/app.js?v=6.2"></script>
 
 </body>
 </html>

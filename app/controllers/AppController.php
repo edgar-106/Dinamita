@@ -10,6 +10,15 @@ class AppController extends Controller {
     }
 
     public function index(): void {
+        $categoria = strtolower(trim((string) ($_GET['categoria'] ?? '')));
+        if ($categoria !== '') {
+            $allowedTypes = ['casa', 'departamento', 'terreno'];
+            $target = in_array($categoria, $allowedTypes, true)
+                ? 'explorar?tipo=' . urlencode($categoria)
+                : 'explorar';
+            $this->redirect($target);
+        }
+
         $this->renderView('home/index', [
             'pageTitle'  => APP_TITLE,
             'properties' => (new Propiedad())->getFeatured(),
