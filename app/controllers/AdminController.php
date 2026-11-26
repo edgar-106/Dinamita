@@ -292,6 +292,22 @@ class AdminController extends Controller {
 
             $db->commit();
 
+            try {
+                $newStateName = '';
+                if ($disponibleId) {
+                    $stateStmt = $db->prepare('SELECT nombre FROM estado_propiedad WHERE id_estado = ? LIMIT 1');
+                    $stateStmt->execute([(int) $disponibleId]);
+                    $newStateName = (string) ($stateStmt->fetchColumn() ?? '');
+                }
+                (new Notificacion())->notifyFavoriteChanges(
+                    (int) $transaccion['id_propiedad'],
+                    'PROPIEDAD_COMPRAR',
+                    'La propiedad que guardaste en favoritos cambió a estado: ' . ($newStateName !== '' ? $newStateName : 'NUEVO_ESTADO') . '.'
+                );
+            } catch (Throwable $notifError) {
+                error_log('Error creando notificaciones de favoritos: ' . $notifError->getMessage());
+            }
+
             $this->json([
                 'success'            => true,
                 'id_transaccion'     => $transId,

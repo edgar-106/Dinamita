@@ -4,6 +4,8 @@ $currentUser = Usuario::current();
 $safeUser = null;
 $userFavoriteIds = [];
 $adminNavUser = null;
+$notifications = [];
+$unreadNotifications = 0;
 
 if (!empty($currentUser['id'])) {
     $safeUser = [
@@ -15,6 +17,13 @@ if (!empty($currentUser['id'])) {
         'is_admin' => !empty($currentUser['is_admin']),
     ];
     $userFavoriteIds = (new Propiedad())->getUserFavoriteIds((int) $currentUser['id']);
+
+    try {
+        $notifications = (new Notificacion())->forUser((int) $currentUser['id']);
+        $unreadNotifications = (int) (new Notificacion())->unreadCount((int) $currentUser['id']);
+    } catch (Throwable $e) {
+        error_log('Error consultando notificaciones en el header: ' . $e->getMessage());
+    }
 
     $adminEmail = defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '';
     if ($adminEmail === '' || strtolower((string) ($currentUser['email'] ?? '')) === $adminEmail) {
@@ -186,6 +195,32 @@ if (!empty($currentUser['id'])) {
             <span class="nav-user-greeting">
                 Hola, <strong><?= htmlspecialchars(explode(' ', trim($safeUser['name']))[0], ENT_QUOTES, 'UTF-8') ?></strong>
             </span>
+            <div class="nav-notifications" id="navNotifications">
+                <button type="button" class="nav-bell" id="navBellBtn" aria-label="Notificaciones" aria-haspopup="dialog" aria-expanded="false" title="Notificaciones">
+                    <span class="nav-bell-icon" aria-hidden="true">🔔</span>
+                    <span class="nav-bell-count" id="navBellCount"><?= (int) $unreadNotifications ?></span>
+                </button>
+                <div class="nav-notifications-panel" id="navNotificationsPanel" hidden>
+                    <div class="nav-notifications-header">
+                        <span class="nav-notifications-title">Notificaciones</span>
+                        <button type="button" class="nav-notifications-clear" id="navNotificationsClear" <?= $unreadNotifications > 0 ? '' : 'disabled' ?>>Marcar leídas</button>
+                    </div>
+                    <ul class="nav-notifications-list" id="navNotificationsList">
+                        <?php if (empty($notifications)): ?>
+                            <li class="nav-notifications-empty">No tienes notificaciones nuevas.</li>
+                        <?php else: ?>
+                            <?php foreach ($notifications as $notification): ?>
+                            <li class="nav-notification-item <?= empty($notification['leida']) ? 'is-unread' : 'is-read' ?>" data-notification-id="<?= (int) ($notification['id_notificacion'] ?? 0) ?>">
+                                <a class="nav-notification-link" href="<?= BASE_URL ?>explorar" onclick="handleMoreInfo(<?= (int) ($notification['id_propiedad'] ?? 0) ?>); return false;">
+                                    <span class="nav-notification-message"><?= htmlspecialchars((string) ($notification['mensaje'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="nav-notification-time"><?= htmlspecialchars((string) date('d/m/Y H:i', strtotime((string) ($notification['fecha_creacion'] ?? 'now'))), ENT_QUOTES, 'UTF-8') ?></span>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            </div>
             <button type="button" class="btn-outline" id="logoutBtn">Cerrar sesión</button>
             <?php endif; ?>
         </div>

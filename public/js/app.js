@@ -272,6 +272,28 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* =========================================================
+   MIS PROPIEDADES — PESTAÑAS (PUBLICACIONES / FAVORITOS)
+========================================================= */
+
+document.addEventListener('DOMContentLoaded', function () {
+    const tabButtons = document.querySelectorAll('[data-owner-tab]');
+    if (!tabButtons.length) return;
+    tabButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const tabId = btn.getAttribute('data-owner-tab');
+            document.querySelectorAll('[data-owner-tab-panel]').forEach(function (panel) {
+                const isActive = panel.getAttribute('data-owner-tab-panel') === tabId;
+                panel.classList.toggle('is-active', isActive);
+            });
+            tabButtons.forEach(function (other) {
+                const isActive = other.getAttribute('data-owner-tab') === tabId;
+                other.classList.toggle('is-active', isActive);
+            });
+        });
+    });
+});
+
+/* =========================================================
    MODALES Y TECLADO GLOBAL
 ========================================================= */
 
@@ -2063,6 +2085,160 @@ async function adminAsignarTransporte(event) {
 }
 
 /* =========================================================
+   NOTIFICACIONES — CAMBIOS EN PROPIEDADES FAVORITAS
+========================================================= */
+
+function formatNotificationDate(value) {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function initNotifications() {
+    const bellBtn = document.getElementById('navBellBtn');
+    const panel = document.getElementById('navNotificationsPanel');
+    const listEl = document.getElementById('navNotificationsList');
+    const badge = document.getElementById('navBellCount');
+    const clearBtn = document.getElementById('navNotificationsClear');
+    if (!bellBtn || !panel) return;
+
+    const user = window.INFONATEC_USER || {};
+    if (!user.id) return;
+
+    let open = false;
+
+    function updateBadge(unread) {
+        if (!badge) return;
+        if (unread > 0) {
+            badge.textContent = String(unread);
+            badge.hidden = false;
+        } else {
+            badge.textContent = '0';
+            badge.hidden = true;
+        }
+    }
+
+    async function refreshNotifications() {
+        try {
+            const response = await fetch(getApiUrl('api/notificaciones'), { headers: apiHeaders({}) });
+            const data = await response.json();
+            if (!response.ok || !data.authenticated) {
+                if (badge) badge.hidden = true;
+                return;
+            }
+            updateBadge(Number(data.unread) || 0);
+            renderNotifications(data.notifications || []);
+        } catch (err) {
+            // Sin conexión: se mantiene el estado local del badge.
+        }
+    }
+
+    function renderNotifications(notifications) {
+        if (!listEl) return;
+        if (!Array.isArray(notifications) || notifications.length === 0) {
+            listEl.innerHTML = '<li class="nav-notifications-empty">No tienes notificaciones nuevas.</li>';
+            return;
+        }
+        listEl.innerHTML = '';
+        notifications.forEach(function (n) {
+            const li = document.createElement('li');
+            li.className = 'nav-notification-item ' + (n.leida ? 'is-read' : 'is-unread');
+            li.setAttribute('data-notification-id', String(n.id || 0));
+
+            const a = document.createElement('a');
+            a.className = 'nav-notification-link';
+            a.setAttribute('href', getApiUrl('explorar'));
+            a.onclick = function (event) {
+                event.preventDefault();
+                markNotificationRead(n.id, a);
+                if (n.id_propiedad) {
+                    handleMoreInfo(n.id_propiedad);
+                }
+            };
+
+            const msg = document.createElement('span');
+            msg.className = 'nav-notification-message';
+            msg.textContent = n.mensaje || 'La propiedad que guardaste en favoritos tuvo cambios.';
+            const time = document.createElement('span');
+            time.className = 'nav-notification-time';
+            time.textContent = n.fecha_creacion ? formatNotificationDate(n.fecha_creacion) : '';
+            a.appendChild(msg);
+            a.appendChild(time);
+            li.appendChild(a);
+            listEl.appendChild(li);
+        });
+    }
+
+    async function markNotificationRead(id, el) {
+        if (!el) return;
+        el.closest('.nav-notification-item')?.classList.remove('is-unread');
+        el.closest('.nav-notification-item')?.classList.add('is-read');
+        try {
+            await fetch(getApiUrl('api/notificaciones/leer'), {
+                method: 'POST',
+                headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ id_notificacion: id })
+            });
+        } catch (e) {
+            // Ignorar fallos de red al marcar leída.
+        }
+    }
+
+    async function markAllNotificationsRead() {
+        try {
+            const response = await fetch(getApiUrl('api/notificaciones/leer'), {
+                method: 'POST',
+                headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({})
+            });
+            if (response.ok) {
+                await refreshNotifications();
+            }
+        } catch (e) {
+            // Ignorar fallos de red al marcar leídas.
+        }
+    }
+
+    function setOpen(value) {
+        open = value;
+        panel.classList.toggle('is-open', open);
+        panel.hidden = !open;
+        bellBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (clearBtn) clearBtn.disabled = !open;
+    }
+
+    bellBtn.addEventListener('click', function (event) {
+        event.stopPropagation();
+        setOpen(!open);
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function (event) {
+            event.stopPropagation();
+            markAllNotificationsRead();
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        if (!open) return;
+        if (panel.contains(event.target) || bellBtn.contains(event.target)) return;
+        setOpen(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') setOpen(false);
+    });
+
+    if (clearBtn) {
+        clearBtn.disabled = true;
+    }
+
+    setOpen(false);
+    refreshNotifications();
+    window.setInterval(refreshNotifications, 45000);
+}
+
+/* =========================================================
    INICIALIZACIÓN PRINCIPAL AL CARGAR DOM
 ========================================================= */
 
@@ -2083,6 +2259,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     loadInitialFavorites();
     initCatalogFilters();
+    initNotifications();
 
     // Si la URL incluye ?categoria= en Home, redirigir al catálogo completo filtrado
     const urlParams = new URLSearchParams(window.location.search);

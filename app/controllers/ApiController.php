@@ -271,6 +271,56 @@ class ApiController extends AIController {
     }
 
     /**
+     * Lista las notificaciones (cambios en propiedades favoritas) del usuario autenticado.
+     */
+    public function notifications(): void {
+        $user = Usuario::current();
+        if (empty($user['id'])) {
+            $this->json(['authenticated' => false, 'unread' => 0, 'notifications' => []]);
+            return;
+        }
+
+        $notificaciones = (new Notificacion())->forUser((int) $user['id']);
+        $this->json([
+            'authenticated' => true,
+            'unread'        => (int) (new Notificacion())->unreadCount((int) $user['id']),
+            'notifications' => array_map(static function (array $n): array {
+                return [
+                    'id'               => (int) ($n['id_notificacion'] ?? 0),
+                    'id_propiedad'     => (int) ($n['id_propiedad'] ?? 0),
+                    'tipo'             => (string) ($n['tipo'] ?? ''),
+                    'mensaje'          => (string) ($n['mensaje'] ?? ''),
+                    'leida'            => !empty($n['leida']),
+                    'fecha_creacion'  => (string) ($n['fecha_creacion'] ?? ''),
+                    'propiedad_titulo' => (string) ($n['propiedad_titulo'] ?? ''),
+                ];
+            }, $notificaciones),
+        ]);
+    }
+
+    /**
+     * Marca como leída una notificación específica o todas las del usuario.
+     */
+    public function markNotificationsRead(): void {
+        $input = $this->parseInput();
+        Security::requireCsrf($input);
+
+        $user = Usuario::current();
+        if (empty($user['id'])) {
+            $this->json(['success' => false, 'authenticated' => false, 'message' => 'Sesión no iniciada.'], 401);
+        }
+
+        $notificacionId = (int) ($input['id_notificacion'] ?? 0);
+        if ($notificacionId > 0) {
+            (new Notificacion())->markRead((int) $user['id'], $notificacionId);
+        } else {
+            (new Notificacion())->markAllRead((int) $user['id']);
+        }
+
+        $this->json(['success' => true]);
+    }
+
+    /**
      * Localiza o crea un cliente por correo cuando un visitante agenda cita sin login previo.
      */
     private function findOrCreateClientUser(PDO $db, string $fullName, string $email, string $phone): int {

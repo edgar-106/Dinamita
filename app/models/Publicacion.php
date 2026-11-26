@@ -21,6 +21,33 @@ class Publicacion extends Model {
         return $stmt->fetchAll();
     }
 
+    /**
+     * Obtiene las propiedades favoritas del usuario autenticado.
+     */
+    public function favorites(int $ownerId): array {
+        if ($this->db === null) {
+            throw new RuntimeException('La base de datos no está disponible.');
+        }
+        $ids = [];
+        $stmt = $this->db->prepare('SELECT id_propiedad FROM favorito WHERE id_usuario = ? ORDER BY fecha_registro DESC');
+        $stmt->execute([$ownerId]);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $fid) {
+            $ids[] = (int) $fid;
+        }
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT p.*, e.nombre AS estado, c.nombre AS categoria,
+                       (SELECT url_imagen FROM imagen_propiedad i WHERE i.id_propiedad=p.id_propiedad
+                        ORDER BY orden_visualizacion, i.id_imagen LIMIT 1) AS imagen
+                FROM propiedad p JOIN estado_propiedad e ON e.id_estado=p.id_estado
+                JOIN categoria c ON c.id_categoria=p.id_categoria WHERE p.id_propiedad IN ($placeholders)";
+        $stmt = $this->db->prepare($sql . ' ORDER BY p.fecha_publicacion DESC, p.id_propiedad DESC');
+        $stmt->execute($ids);
+        return $stmt->fetchAll();
+    }
+
     public function change(int $ownerId, int $id, array $data, bool $withdraw = false): array {
         if ($this->db === null) {
             return ['success' => false, 'message' => 'La base de datos no está disponible.'];
@@ -75,6 +102,7 @@ class Publicacion extends Model {
                     ->execute([$title, $description, $location, $price, $area, $operation, $rooms, $baths, $id, $ownerId]);
             }
             $this->db->commit();
+            $this->notifyChanges((int) $id, $withdraw);
             return ['success' => true, 'message' => $withdraw ? 'Publicación retirada del catálogo. Se conserva en tu historial.' : 'Cambios guardados.'];
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
@@ -83,6 +111,24 @@ class Publicacion extends Model {
                 return ['success' => false, 'message' => 'No fue posible guardar el cambio. Inténtalo nuevamente.'];
             }
             return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Avisa a los usuarios que guardaron la propiedad como favorito sobre
+     * los cambios realizados (edición o retiro del catálogo).
+     */
+    private function notifyChanges(int $propertyId, bool $withdraw): void {
+        try {
+            (new Notificacion())->notifyFavoriteChanges(
+                $propertyId,
+                $withdraw ? 'PROPIEDAD_RETIRADA' : 'PROPIEDAD_ACTUALIZADA',
+                $withdraw
+                    ? 'El anuncio que guardaste en favoritos fue retirado del catálogo.'
+                    : 'El anuncio que guardaste en favoritos fue actualizado por su propietario.'
+            );
+        } catch (Throwable $e) {
+            error_log('Error creando notificaciones de favoritos: ' . $e->getMessage());
         }
     }
 }
